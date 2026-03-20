@@ -5491,5 +5491,20 @@
     "ticketId": null,
     "ticket_id": null,
     "logged_at": "2026-03-20T09:35:45.771Z"
+  },
+  {
+    "type": "CLOSE_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "side": "SELL",
+    "lot": 0.01,
+    "price": 4683.893,
+    "sl": 0,
+    "tp": 0,
+    "profit": -4.91,
+    "mode": "SCALP",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-20T09:38:09.775Z"
   }
 ]
