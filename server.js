@@ -228,19 +228,27 @@ app.post("/signal", async (req, res) => {
       const riskAmount = balance * (riskPercent / 100);
       let calculatedLot = riskAmount / slPoints;
 
-      if (Math.abs(score) < 5.5) {
-        calculatedLot *= 1.5;
-      }
+      // if (Math.abs(score) < 5.5) {
+      //   calculatedLot *= 1.5;
+      // }
 
       lotSize = Number(calculatedLot.toFixed(2));
       if (lotSize < 0.01) lotSize = 0.01;
       if (lotSize > 5.0) lotSize = 5.0;
     }
 
+    // if (Math.abs(score) < 3.0) {
+    //   tpPoints = Math.round(tpPoints * 0.4);
+    // } else if (Math.abs(score) < 5.5) {
+    //   tpPoints = Math.round(tpPoints * 0.7);
+    // }
+
     if (Math.abs(score) < 3.0) {
       tpPoints = Math.round(tpPoints * 0.4);
+      slPoints = Math.round(slPoints * 0.4);
     } else if (Math.abs(score) < 5.5) {
       tpPoints = Math.round(tpPoints * 0.7);
+      slPoints = Math.round(slPoints * 0.7);
     }
 
     if (defensiveFlags.warningMatched) {
@@ -252,7 +260,11 @@ app.post("/signal", async (req, res) => {
     }
 
     if (tpPoints < 200) {
-      tpPoints = 200;
+        tpPoints = 200;
+    }
+      
+    if (slPoints < 150) {
+        slPoints = 150;
     }
 
     return res.json({
