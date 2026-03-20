@@ -174,13 +174,21 @@ async function evaluateDecision({
       }
     }
 
+    const microTrend = pattern?.structure?.microTrend || "NEUTRAL";
+
     const isBuyPattern =
     pattern?.pattern === "MOTHER_FISH_BUY" ||
     pattern?.pattern === "CLAW_BUY";
   
-  const isSellPattern =
+    const isSellPattern =
     pattern?.pattern === "MOTHER_FISH_SELL" ||
     pattern?.pattern === "CLAW_SELL";
+
+    const isBullishMicroTrend =
+    microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL";
+  
+    const isBearishMicroTrend =
+    microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL";
 
     let patternScore = pattern.score || 0;
 
@@ -226,62 +234,87 @@ async function evaluateDecision({
       ) {
         patternScore *= 0.5;
       }
+    } else if (tradeMode === "SCALP") {
+      if (isBuyPattern && isBullishMicroTrend) {
+        patternScore *= 1.25;
+      }
+    
+      if (isSellPattern && isBearishMicroTrend) {
+        patternScore *= 1.25;
+      }
+    
+      if (isBuyPattern && isBearishMicroTrend) {
+        patternScore *= 0.75;
+      }
+    
+      if (isSellPattern && isBullishMicroTrend) {
+        patternScore *= 0.75;
+      }
+    
+      // reversal microtrend ให้ boost เพิ่มเล็กน้อย
+      if (isBuyPattern && microTrend === "BULLISH_REVERSAL") {
+        patternScore *= 1.10;
+      }
+    
+      if (isSellPattern && microTrend === "BEARISH_REVERSAL") {
+        patternScore *= 1.10;
+      }
     } else {
-      const microTrend =
-        pattern && pattern.structure ? pattern.structure.microTrend : "NEUTRAL";
-
-      if (pattern.isVolumeClimax) {
-        patternScore *= 1.8;
-        tradeMode = "NORMAL";
-      } else {
-        if (
-          (microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL") &&
-          pattern.pattern === "MOTHER_FISH_BUY"
-        ) {
-          patternScore *= 1.5;
-        } else if (
-          (microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL") &&
-          pattern.pattern === "MOTHER_FISH_SELL"
-        ) {
-          patternScore *= 1.5;
-        } else if (
-          (microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL") &&
-          pattern.pattern === "MOTHER_FISH_SELL"
-        ) {
-          patternScore *= 0.6;
-        } else if (
-          (microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL") &&
-          pattern.pattern === "MOTHER_FISH_BUY"
-        ) {
-          patternScore *= 0.6;
-        } else {
-          patternScore *= 0.9;
-        }
+          const microTrend =
+            pattern && pattern.structure ? pattern.structure.microTrend : "NEUTRAL";
+    
+          if (pattern.isVolumeClimax) {
+            patternScore *= 1.8;
+            tradeMode = "NORMAL";
+          } else {
+            if (
+              (microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL") &&
+              pattern.pattern === "MOTHER_FISH_BUY"
+            ) {
+              patternScore *= 1.5;
+            } else if (
+              (microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL") &&
+              pattern.pattern === "MOTHER_FISH_SELL"
+            ) {
+              patternScore *= 1.5;
+            } else if (
+              (microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL") &&
+              pattern.pattern === "MOTHER_FISH_SELL"
+            ) {
+              patternScore *= 0.6;
+            } else if (
+              (microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL") &&
+              pattern.pattern === "MOTHER_FISH_BUY"
+            ) {
+              patternScore *= 0.6;
+            } else {
+              patternScore *= 0.9;
+            }
       }
 
       // ===== 4-candle trend follow confirmation (M5) =====
-if (trendFollow4.direction === "BUY" && isBuyPattern) {
-  patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
-}
-
-if (trendFollow4.direction === "SELL" && isSellPattern) {
-  patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
-}
-
-if (trendFollow4.direction === "BUY" && isSellPattern) {
-  patternScore *= 0.75;
-}
-
-if (trendFollow4.direction === "SELL" && isBuyPattern) {
-  patternScore *= 0.75;
-}
-
-if (!trendFollow4.volumeConfirmed && trendFollow4.direction !== "NEUTRAL") {
-  patternScore *= 0.90;
-  if (tradeMode === "NORMAL") {
-    tradeMode = "SCALP";
-  }
-}
+      if (trendFollow4.direction === "BUY" && isBuyPattern) {
+        patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
+      }
+      
+      if (trendFollow4.direction === "SELL" && isSellPattern) {
+        patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
+      }
+      
+      if (trendFollow4.direction === "BUY" && isSellPattern) {
+        patternScore *= 0.75;
+      }
+      
+      if (trendFollow4.direction === "SELL" && isBuyPattern) {
+        patternScore *= 0.75;
+      }
+      
+      if (!trendFollow4.volumeConfirmed && trendFollow4.direction !== "NEUTRAL") {
+        patternScore *= 0.90;
+        if (tradeMode === "NORMAL") {
+          tradeMode = "SCALP";
+        }
+      }
 
 // ===== H1/H4 trend alignment + volume confirm =====
 if (trendContext.overallTrend === "BULLISH" && isBuyPattern) {
