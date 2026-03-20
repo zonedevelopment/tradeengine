@@ -1,29 +1,59 @@
 const { query } = require("./db");
 
+const ALLOWED_EVENT_TYPES = [
+  "WAIT_ORDER",
+  "OPEN_ORDER",
+  "CLOSE_ORDER",
+  "CANCEL_ORDER",
+  "CLOSE_EMERGENCY",
+];
+
+const ALLOWED_SIDES = ["BUY", "SELL"];
+const ALLOWED_MODES = ["NORMAL", "SCALP"];
+
+function normalizeNumber(value, fallback = 0) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizeTicketId(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const str = String(value).trim();
+
+  if (!/^\d+$/.test(str)) {
+    return null;
+  }
+
+  const num = Number(str);
+  return Number.isSafeInteger(num) ? num : null;
+}
+
+function normalizeDate(value) {
+  if (!value) return new Date();
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? new Date() : value;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 async function insertTradeHistory(data) {
-  const safeEventType = [
-    "WAIT_ORDER",
-    "OPEN_ORDER",
-    "CLOSE_ORDER",
-    "CANCEL_ORDER",
-    "CLOSE_EMERGENCY"
-  ].includes(data.eventType)
+  const safeEventType = ALLOWED_EVENT_TYPES.includes(data.eventType)
     ? data.eventType
     : "WAIT_ORDER";
 
-  const safeSide = ["BUY", "SELL"].includes(data.side) ? data.side : "BUY";
-
-  const safeMode =
-    data.mode === "NORMAL" || data.mode === "SCALP"
-      ? data.mode
-      : "NORMAL";
-
-  const safeTicketId =
-    data.ticketId !== undefined &&
-      data.ticketId !== null &&
-      String(data.ticketId).trim() !== ""
-      ? Number(data.ticketId)
-      : null;
+  const safeSide = ALLOWED_SIDES.includes(data.side) ? data.side : "BUY";
+  const safeMode = ALLOWED_MODES.includes(data.mode) ? data.mode : "NORMAL";
+  const safeTicketId = normalizeTicketId(data.ticketId ?? data.ticket_id);
 
   const sql = `
     INSERT INTO trade_history (
@@ -39,53 +69,66 @@ async function insertTradeHistory(data) {
       profit,
       mode,
       event_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const params = [
     data.firebaseUserId || null,
     safeTicketId,
     safeEventType,
-    data.symbol || "",
+    data.symbol ? String(data.symbol).trim() : "",
     safeSide,
-    Number(data.lot || 0),
-    Number(data.price || 0),
-    Number(data.sl || 0),
-    Number(data.tp || 0),
-    Number(data.profit || 0),
+    normalizeNumber(data.lot, 0),
+    normalizeNumber(data.price, 0),
+    normalizeNumber(data.sl, 0),
+    normalizeNumber(data.tp, 0),
+    normalizeNumber(data.profit, 0),
     safeMode,
-    data.eventTime || null,
+    normalizeDate(data.eventTime),
   ];
 
   console.log("trade_history params:", params);
 
-  return await query(sql, params);
+  try {
+    return await query(sql, params);
+  } catch (error) {
+    console.error("trade_history insert failed:", {
+      message: error.message,
+      code: error.code || null,
+      sqlMessage: error.sqlMessage || null,
+      params,
+    });
+    throw error;
+  }
 }
 
 async function getTradeHistoryByUser(firebaseUserId, limit = 100) {
-  const sql = `
-      SELECT
-        id,
-        firebase_user_id,
-        ticket_id,
-        event_type,
-        symbol,
-        side,
-        lot,
-        price,
-        sl,
-        tp,
-        profit,
-        mode,
-        created_at,
-        event_time
-      FROM trade_history
-      WHERE firebase_user_id = ?
-      ORDER BY id DESC
-      LIMIT ?
-    `;
+  const safeLimit = Math.max(1, Math.min(1000, normalizeNumber(limit, 100)));
 
-  return await query(sql, [firebaseUserId, Number(limit)]);
+  const sql = `
+    SELECT
+      id,
+      firebase_user_id,
+      ticket_id,
+      event_type,
+      symbol,
+      side,
+      lot,
+      price,
+      sl,
+      tp,
+      profit,
+      mode,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE firebase_user_id = ?
+    ORDER BY id DESC
+    LIMIT ?
+  `;
+
+  return await query(sql, [firebaseUserId, safeLimit]);
 }
 
 module.exports = {
