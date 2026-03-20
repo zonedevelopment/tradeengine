@@ -10,14 +10,64 @@
  * - high risk cut loss now
  * - medium/low risk wait for bounce and take small profit
  */
+const { analyzePattern } = require("../pattern/pattern-analyzer");
 
+function shouldMoveToBreakEven({
+      mode,
+      currentProfit,
+      tpPoints,
+      slPoints,
+      pattern,
+      side,
+    }) {
+      if (mode !== "NORMAL") return false;
+      if (!tpPoints || !slPoints) return false;
+    
+      const profitToTP = currentProfit / tpPoints;
+      const profitToSL = currentProfit / slPoints;
+    
+      let allowBE = false;
+    
+      if (profitToTP >= 0.4 || profitToSL >= 0.8) {
+        allowBE = true;
+      }
+    
+      if (pattern?.isVolumeClimax) {
+        allowBE = false;
+      }
+    
+      if (pattern?.isVolumeDrying) {
+        allowBE = true;
+      }
+    
+      if (pattern?.recentMassiveBull && side === "BUY") {
+        allowBE = false;
+      }
+    
+      if (pattern?.recentMassiveBear && side === "SELL") {
+        allowBE = false;
+      }
+    
+      return allowBE;
+    }
+
+// function analyzeEarlyExit({
+//     firebaseUserId = null,
+//     openPosition,
+//     currentProfit = 0,
+//     candles = [],
+//     failedPattern = null
+// }) {
 function analyzeEarlyExit({
-    firebaseUserId = null,
-    openPosition,
-    currentProfit = 0,
-    candles = [],
-    failedPattern = null
-}) {
+      firebaseUserId,
+      openPosition,
+      currentProfit,
+      candles,
+      failedPattern,
+      mode = "NORMAL",
+      tpPoints = 0,
+      slPoints = 0,
+    }) {
     // =========================
     // 1. VALIDATION
     // =========================
@@ -38,6 +88,8 @@ function analyzeEarlyExit({
             score: 0
         };
     }
+
+    const pattern = analyzePattern({ candles });
 
     const side = String(openPosition.side || "").toUpperCase(); // BUY / SELL
 
@@ -123,6 +175,23 @@ function analyzeEarlyExit({
             };
         }
     }
+
+    // 2) move to break-even
+      if (
+        shouldMoveToBreakEven({
+          mode,
+          currentProfit,
+          tpPoints,
+          slPoints,
+          pattern,
+          side,
+        })
+      ) {
+        return {
+          action: "MOVE_TO_BE",
+          reason: "Profit has reached a safe threshold for break-even protection.",
+        };
+      }
 
     // =========================
     // 5. PROFIT PROTECTION / TAKE SMALL PROFIT
