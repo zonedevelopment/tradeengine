@@ -216,14 +216,46 @@ app.post("/signal", async (req, res) => {
     //   retracePoints = 55;
     // }
 
+    // const avgRange = calculateAvgRange(candles, 5);
+    // retracePoints = Math.round(avgRange * 0.6);
+    
+    // if (score >= 6) {
+    //   retracePoints = Math.round(retracePoints * 0.35);
+    // } else if (score >= 4) {
+    //   retracePoints = Math.round(retracePoints * 0.60);
+    // } else if (score >= 2) {
+    //   retracePoints = Math.round(retracePoints * 0.90);
+    // } else {
+    //   retracePoints = Math.round(retracePoints * 1.20);
+    // }
+    
+    // if (pattern?.isVolumeClimax) {
+    //   retracePoints = Math.round(retracePoints * 0.80);
+    // }
+    
+    // if (pattern?.isVolumeDrying) {
+    //   retracePoints = Math.round(retracePoints * 1.15);
+    // }
+    
+    // if (retracePoints < 20) retracePoints = 20;
+    // if (retracePoints > 200) retracePoints = 200;
     const avgRange = calculateAvgRange(candles, 5);
     retracePoints = Math.round(avgRange * 0.6);
     
-    if (score >= 6) {
+    let signalStrength = 0;
+    
+    if (side === "BUY") {
+      signalStrength = score;
+    } else if (side === "SELL") {
+      signalStrength = -score;
+    }
+    
+    // signalStrength > 0 = คะแนนสนับสนุนฝั่งที่กำลังจะเข้า
+    if (signalStrength >= 6) {
       retracePoints = Math.round(retracePoints * 0.35);
-    } else if (score >= 4) {
+    } else if (signalStrength >= 4) {
       retracePoints = Math.round(retracePoints * 0.60);
-    } else if (score >= 2) {
+    } else if (signalStrength >= 2) {
       retracePoints = Math.round(retracePoints * 0.90);
     } else {
       retracePoints = Math.round(retracePoints * 1.20);
