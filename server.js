@@ -194,17 +194,35 @@ app.post("/signal", async (req, res) => {
     let lotSize = 0.01;
     let retracePoints = 0;
 
-    if (pattern.slPrice && price) {
-      const dynamicSLPips = Math.abs(price - pattern.slPrice) * 100;
-      if (dynamicSLPips > 50 && dynamicSLPips < 1500) {
-        slPoints = Math.round(dynamicSLPips);
+    // if (pattern.slPrice && price) {
+    //   const dynamicSLPips = Math.abs(price - pattern.slPrice) * 100;
+    //   if (dynamicSLPips > 50 && dynamicSLPips < 1500) {
+    //     slPoints = Math.round(dynamicSLPips);
+    //   }
+    // }
+
+    // if (pattern.tpPrice && price) {
+    //   const dynamicTPPips = Math.abs(pattern.tpPrice - price) * 100;
+    //   if (dynamicTPPips > 100 && dynamicTPPips < 3000) {
+    //     tpPoints = Math.round(dynamicTPPips);
+    //   }
+    // }
+
+    if (side === "BUY") {
+      if (pattern.slPrice < price) {
+        slPoints = Math.round((price - pattern.slPrice) * 100);
+      }
+      if (pattern.tpPrice > price) {
+        tpPoints = Math.round((pattern.tpPrice - price) * 100);
       }
     }
-
-    if (pattern.tpPrice && price) {
-      const dynamicTPPips = Math.abs(pattern.tpPrice - price) * 100;
-      if (dynamicTPPips > 100 && dynamicTPPips < 3000) {
-        tpPoints = Math.round(dynamicTPPips);
+    
+    if (side === "SELL") {
+      if (pattern.slPrice > price) {
+        slPoints = Math.round((pattern.slPrice - price) * 100);
+      }
+      if (pattern.tpPrice < price) {
+        tpPoints = Math.round((price - pattern.tpPrice) * 100);
       }
     }
 
@@ -272,17 +290,17 @@ app.post("/signal", async (req, res) => {
     if (retracePoints < 20) retracePoints = 20;
     if (retracePoints > 200) retracePoints = 200;
 
-    const hour = new Date().getHours();
+    // const hour = new Date().getHours();
 
-    if (!pattern.slPrice && !pattern.tpPrice) {
-      if (hour >= 19 && hour <= 23) {
-        slPoints = 1000;
-        tpPoints = 5000;
-      } else if (hour >= 7 && hour <= 8) {
-        tpPoints = 300;
-        slPoints = 600;
-      } 
-    }
+    // if (!pattern.slPrice && !pattern.tpPrice) {
+    //   if (hour >= 19 && hour <= 23) {
+    //     slPoints = 1000;
+    //     tpPoints = 5000;
+    //   } else if (hour >= 7 && hour <= 8) {
+    //     tpPoints = 300;
+    //     slPoints = 600;
+    //   } 
+    // }
 
     if (balance && balance > 0) {
       const riskPercent = calculateDynamicRisk(
@@ -298,9 +316,15 @@ app.post("/signal", async (req, res) => {
       //   calculatedLot *= 1.5;
       // }
 
-      if (Math.abs(score) >= 6) {
-        calculatedLot *= 1.10;
-      } else if (Math.abs(score) < 3) {
+      // if (Math.abs(score) >= 6) {
+      //   calculatedLot *= 1.10;
+      // } else if (Math.abs(score) < 3) {
+      //   calculatedLot *= 0.75;
+      // }
+
+      if (signalStrength >= 6) {
+        calculatedLot *= 1.1;
+      } else if (signalStrength < 3) {
         calculatedLot *= 0.75;
       }
 
@@ -315,12 +339,21 @@ app.post("/signal", async (req, res) => {
     //   tpPoints = Math.round(tpPoints * 0.7);
     // }
 
-    if (Math.abs(score) < 3.0) {
+    // if (Math.abs(score) < 3.0) {
+    //   tpPoints = Math.round(tpPoints * 0.4);
+    //   slPoints = Math.round(slPoints * 0.4);
+    // } else if (Math.abs(score) < 5.5) {
+    //   tpPoints = Math.round(tpPoints * 0.7);
+    //   slPoints = Math.round(slPoints * 0.7);
+    // }
+
+    // ===== TP / SL Scaling (USE signalStrength) =====
+    if (signalStrength < 3.0) {
       tpPoints = Math.round(tpPoints * 0.4);
-      slPoints = Math.round(slPoints * 0.4);
-    } else if (Math.abs(score) < 5.5) {
-      tpPoints = Math.round(tpPoints * 0.7);
       slPoints = Math.round(slPoints * 0.7);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.7);
+      slPoints = Math.round(slPoints * 0.85);
     }
 
     if (defensiveFlags.warningMatched) {
