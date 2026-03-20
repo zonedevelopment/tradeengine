@@ -1998,5 +1998,135 @@
       "side": "SELL"
     },
     "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T10:05:08.686Z",
+    "type": "trade_result",
+    "ticket_id": 1774001108686,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -6.34,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T10:39:09.061Z",
+    "type": "trade_result",
+    "ticket_id": 1774003149061,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -9.54,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T10:41:08.961Z",
+    "type": "trade_result",
+    "ticket_id": 1774003268961,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -2.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T11:02:47.177Z",
+    "type": "trade_result",
+    "ticket_id": 1774004567177,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -3.52,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T12:17:47.716Z",
+    "type": "trade_result",
+    "ticket_id": 1774009067716,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -3.33,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T12:21:15.565Z",
+    "type": "trade_result",
+    "ticket_id": 1774009275565,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -5.03,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T12:46:16.390Z",
+    "type": "trade_result",
+    "ticket_id": 1774010776390,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -3.34,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T13:06:47.317Z",
+    "type": "trade_result",
+    "ticket_id": 1774012007317,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 6.06,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T13:36:12.671Z",
+    "type": "trade_result",
+    "ticket_id": 1774013772671,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -4.4,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T13:40:15.543Z",
+    "type": "trade_result",
+    "ticket_id": 1774014015543,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -2.19,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
   }
 ]
