@@ -480,6 +480,14 @@ app.post("/trade-event", async (req, res) => {
 });
 
 app.post("/check-exit-signal", async (req, res) => {
+  // const {
+  //   firebaseUserId,
+  //   openPosition,
+  //   candles,
+  //   currentProfit,
+  //   symbol = "XAUUSD",
+  //   mode = "NORMAL",
+  // } = req.body;
   const {
     firebaseUserId,
     openPosition,
@@ -487,6 +495,8 @@ app.post("/check-exit-signal", async (req, res) => {
     currentProfit,
     symbol = "XAUUSD",
     mode = "NORMAL",
+    tpPoints,
+    slPoints,
   } = req.body;
 
   if (!openPosition || !candles) {
@@ -523,13 +533,23 @@ app.post("/check-exit-signal", async (req, res) => {
       contextHash,
     });
 
+    // const exitDecision = analyzeEarlyExit({
+    //   firebaseUserId: resolvedUserId,
+    //   openPosition,
+    //   currentProfit,
+    //   candles,
+    //   failedPattern,
+    // });
     const exitDecision = analyzeEarlyExit({
-      firebaseUserId: resolvedUserId,
-      openPosition,
-      currentProfit,
-      candles,
-      failedPattern,
-    });
+        firebaseUserId: resolvedUserId,
+        openPosition,
+        currentProfit,
+        candles,
+        failedPattern,
+        mode,
+        tpPoints,
+        slPoints,
+      });
 
     console.log(
       `-> ️ Early Exit [${resolvedUserId}] ${openPosition.side}: ${exitDecision.action} - ${exitDecision.reason}`
