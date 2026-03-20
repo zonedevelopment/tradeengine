@@ -221,7 +221,7 @@ app.post("/signal", async (req, res) => {
     const avgRange = calculateAvgRange(candles, 5);
 
     // base retrace จาก volatility
-    let retracePoints = Math.round(avgRange * 0.6);
+    retracePoints = Math.round(avgRange * 0.6);
     
     // ปรับตาม score (confidence)
     if (score >= 6) {
