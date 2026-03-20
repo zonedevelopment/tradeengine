@@ -1,0 +1,82 @@
+{
+  "updatedAt": "2026-03-18T09:12:00.000Z",
+  "sourceCount": 17,
+  "summary": "ระบบเทรดแม่ปลาปากกาเขียวเน้น Price Action รูปแบบกลืนกิน (Engulfing), ทะลุฐาน (Base Break), และรูปแบบการกลับตัวที่มีประสิทธิภาพอื่นๆ (Pin Bar, Piercing) บริเวณแนวรับ/แนวต้านสำคัญ โดยต้องมี Momentum ชัดเจน",
+  "patterns": [
+    {
+      "name": "CLAW_BUY",
+      "type": "Bullish_Engulfing",
+      "confidence": 1.5,
+      "conditions": ["NearSupport", "NotMiddleRange", "StrongMomentum"]
+    },
+    {
+      "name": "CLAW_SELL",
+      "type": "Bearish_Engulfing",
+      "confidence": 1.5,
+      "conditions": ["NearResistance", "NotMiddleRange", "StrongMomentum"]
+    },
+    {
+      "name": "CLAW_BUY",
+      "type": "Pin_Bar_Hammer",
+      "confidence": 1.3,
+      "conditions": ["NearSupport", "LongLowerWick"]
+    },
+    {
+      "name": "CLAW_SELL",
+      "type": "Pin_Bar_Shooting_Star",
+      "confidence": 1.3,
+      "conditions": ["NearResistance", "LongUpperWick"]
+    },
+    {
+      "name": "CLAW_BUY",
+      "type": "Piercing_Pattern",
+      "confidence": 1.2,
+      "conditions": ["NearSupport"]
+    },
+    {
+      "name": "CLAW_SELL",
+      "type": "Dark_Cloud_Cover",
+      "confidence": 1.2,
+      "conditions": ["NearResistance"]
+    },
+    {
+      "name": "CLAW_BUY",
+      "type": "Morning_Star_Base_Break",
+      "confidence": 1.4,
+      "conditions": ["NearSupport"]
+    },
+    {
+      "name": "CLAW_SELL",
+      "type": "Evening_Star_Base_Break",
+      "confidence": 1.4,
+      "conditions": ["NearResistance"]
+    }
+  ],
+  "coreRules": {
+    "bodyCloseThreshold": 0.5,
+    "mustBeNearSupportResistance": true,
+    "mustNotBeMiddleRange": true,
+    "preferredTimeframes": ["M5", "M15"],
+    "minimumMomentumPips": 30,
+    "maxOverlapPips": 200
+  },
+  "refinements": {
+    "entryQualityFactors": [
+      "สัญญาณเกิดบริเวณแนวรับแนวต้านสำคัญ หรือโซน liquidity",
+      "รูปแบบแท่งเทียนสอดคล้องกับโครงสร้างตลาดหลัก (เช่น Pin Bar ที่ Demand Zone)"
+    ],
+    "invalidConditions": [
+      "สัญญาณเกิดกลางกรอบราคา (กลาง range)",
+      "สัญญาณเกิดในช่วง consolidation ที่ไร้ทิศทางชัดเจน"
+    ],
+    "sessionPreferences": ["London", "NewYork"],
+    "newsConditions": [
+      "ควรหลีกเลี่ยงการเข้าเทรดก่อนข่าวเศรษฐกิจแรง 1-2 ชั่วโมง (เช่น CPI, NFP, FOMC)"
+    ],
+    "exitIdeas": [
+      "Stop Loss: เผื่อระยะพ้นหางยาวของ Pin Bar หรือล่างสุดของ Base",
+      "Take Profit: RR ขั้นต่ำ 1:1.5 หรือที่แนวรับแนวต้านถัดไป"
+    ]
+  },
+  "confidence": 0.90
+}

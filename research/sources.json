@@ -1,0 +1,54 @@
+[
+  {
+    "source": "core-rule",
+    "content": "แท่งแดงก่อนหน้า ตามด้วยแท่งเขียวที่ปิดเกิน 50% ของ body แท่งแดง เรียกว่าแม่ปลา BUY"
+  },
+  {
+    "source": "core-rule",
+    "content": "แท่งเขียวก่อนหน้า ตามด้วยแท่งแดงที่ปิดเกิน 50% ของ body แท่งเขียว เรียกว่าแม่ปลา SELL"
+  },
+  {
+    "source": "entry-condition",
+    "content": "สัญญาณแม่ปลาควรเกิดบริเวณแนวรับแนวต้านสำคัญ หรือโซน liquidity"
+  },
+  {
+    "source": "entry-condition",
+    "content": "ไม่ควรเข้าเทรดเมื่อสัญญาณเกิดกลางกรอบราคา"
+  },
+  {
+    "source": "timeframe",
+    "content": "timeframe ที่นิยมใช้กับระบบแม่ปลา คือ M5 และ M15"
+  },
+  {
+    "source": "confirmation",
+    "content": "ควรมี momentum ของแท่งที่สองชัดเจน และ body ใหญ่กว่าแท่งก่อนหน้า"
+  },
+  {
+    "source": "market-structure",
+    "content": "สัญญาณ BUY มีความน่าเชื่อถือมากขึ้นเมื่อเกิดหลังจากโครงสร้าง HL หรือบริเวณ demand zone"
+  },
+  {
+    "source": "market-structure",
+    "content": "สัญญาณ SELL มีความน่าเชื่อถือมากขึ้นเมื่อเกิดหลังจากโครงสร้าง LH หรือบริเวณ supply zone"
+  },
+  {
+    "source": "avoid-condition",
+    "content": "ควรหลีกเลี่ยงการเข้าเทรดก่อนข่าวเศรษฐกิจแรง เช่น CPI NFP หรือ FOMC"
+  },
+  {
+    "source": "risk-management",
+    "content": "จุด stop loss มักวางใต้ low ของแท่งแม่ปลา BUY หรือเหนือ high ของแท่งแม่ปลา SELL"
+  },
+  {
+    "source": "take-profit",
+    "content": "เป้าหมายกำไรควรอยู่ที่แนวรับแนวต้านถัดไป หรือ liquidity zone ถัดไป"
+  },
+  {
+    "source": "pattern-quality",
+    "content": "สัญญาณแม่ปลาที่มี body ใหญ่และเกิดที่แนวรับแนวต้านมีคุณภาพสูงกว่าสัญญาณที่เกิดในช่วง consolidation"
+  },
+  {
+    "source": "manual-note",
+    "content": "สัญญาณ buy มีน้ำหนักมากขึ้นเมื่อเกิดหลัง liquidity sweep ใต้ low เดิม"
+  }
+]

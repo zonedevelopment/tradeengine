@@ -1,0 +1,1833 @@
+[
+  {
+    "tf_m5_data": {
+      "engulfing_percent": 75,
+      "overlap_pips": 100
+    },
+    "action": "execute_trade",
+    "type": "signal_validation",
+    "tp_target": 300,
+    "signal": "BUY",
+    "ai_confidence_score": 95,
+    "timestamp": "2026-03-17T06:50:00Z",
+    "sl_target": 200,
+    "rule_check": {
+      "not_chasing_price": true,
+      "not_middle_of_range": true
+    }
+  },
+  {
+    "timestamp": "2026-03-17T00:03:09.144Z",
+    "type": "trade_result",
+    "ticket_id": 1773705789144,
+    "result": "SL",
+    "pnl_pips": -6,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T00:43:01.422Z",
+    "type": "trade_result",
+    "ticket_id": 1773708181422,
+    "result": "SL",
+    "pnl_pips": -6,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T00:55:01.110Z",
+    "type": "trade_result",
+    "ticket_id": 1773708901110,
+    "result": "SL",
+    "pnl_pips": -6.23,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T01:11:29.850Z",
+    "type": "trade_result",
+    "ticket_id": 1773709889850,
+    "result": "TP",
+    "pnl_pips": 10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T01:13:31.512Z",
+    "type": "trade_result",
+    "ticket_id": 1773710011512,
+    "result": "TP",
+    "pnl_pips": 10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T01:41:20.206Z",
+    "type": "trade_result",
+    "ticket_id": 1773711680206,
+    "result": "TP",
+    "pnl_pips": 10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T02:00:00Z",
+    "type": "market_context",
+    "mae_pla_zone": {
+      "current_price": 2615,
+      "nearest_h4_grid": 2620,
+      "nearest_h1_grid": 2610,
+      "distance_from_border": 500
+    },
+    "time_behavior_filter": {
+      "current_session": "Asian",
+      "market_phase": "Narrow Sideway",
+      "sl_requirement_pips": 200
+    },
+    "action_recommendation": "pause_ea"
+  },
+  {
+    "timestamp": "2026-03-17T02:05:00Z",
+    "type": "market_context",
+    "news_filter": {
+      "upcoming_high_impact_news": true,
+      "event_name": "US Core CPI",
+      "minutes_to_next_news": 120,
+      "usd_impact_forecast": "strong",
+      "gold_impact_forecast": "bearish"
+    },
+    "action_recommendation": "pause_ea_before_news",
+    "reasoning": "????????????????????????? Core CPI ????????? ????? 2 ??????? ?????????????????????????? (USD Strong) ???????????????????????????????? (Bearish) ???????????? EA ??????????????????????????????????????????????????? ????????????????????????? 30 ????????????????????"
+  },
+  {
+    "timestamp": "2026-03-17T08:58:27Z",
+    "type": "market_context",
+    "news_filter": {
+      "upcoming_high_impact_news": true,
+      "event_name": "Pending Home Sales m/m",
+      "minutes_to_next_news": 120,
+      "usd_impact_forecast": "neutral",
+      "gold_impact_forecast": "neutral"
+    },
+    "action_recommendation": "active",
+    "reasoning": "??????????????????????????????????? (ForexFactory): ?????? (17 ??.?. 2026) ??????????? Pending Home Sales m/m ????? Medium Impact ????????? (???????????) ??????????????????????????????????????? ????????????????????????????????????? FOMC Federal Funds Rate (???????????????????) ??????? ?????? EA ?????????????????????????????????????????????????????????? (?????????????????????????????????)"
+  },
+  {
+    "timestamp": "2026-03-17T08:59:23Z",
+    "type": "market_context",
+    "mae_pla_zone": {
+      "current_price": 2615,
+      "nearest_h4_grid": 2620,
+      "nearest_h1_grid": 2610,
+      "distance_from_border": 0
+    },
+    "time_behavior_filter": {
+      "current_session": "London",
+      "market_phase": "Trending",
+      "sl_requirement_pips": 200
+    },
+    "news_filter": {
+      "upcoming_high_impact_news": false,
+      "event_name": "Pending Home Sales m/m",
+      "minutes_to_next_news": 420,
+      "usd_impact_forecast": "neutral",
+      "gold_impact_forecast": "neutral"
+    },
+    "action_recommendation": "active",
+    "reasoning": "??????????????????????????????????? (ForexFactory): ?????? (17 ??.?. 2026) ??????????? Pending Home Sales m/m ????? Medium Impact ????????????????????????????????????????????? ????????????????????????????????????? FOMC Federal Funds Rate (???????????????????) ??????? ?????? EA ??????????????????????????????????????????????????????????"
+  },
+  {
+    "timestamp": "2026-03-17T02:05:24.849Z",
+    "type": "trade_result",
+    "ticket_id": 1773713124849,
+    "result": "SL",
+    "pnl_pips": -8.92,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T10:52:24.557Z",
+    "type": "trade_result",
+    "ticket_id": 1773744744557,
+    "result": "SL",
+    "pnl_pips": -10.07,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T11:08:35.004Z",
+    "type": "trade_result",
+    "ticket_id": 1773745715004,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T11:45:10.197Z",
+    "type": "trade_result",
+    "ticket_id": 1773747910197,
+    "result": "TP",
+    "pnl_pips": 15,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T13:10:12.315Z",
+    "type": "trade_result",
+    "ticket_id": 1773753012315,
+    "result": "SL",
+    "pnl_pips": -8.63,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T13:22:05.199Z",
+    "type": "trade_result",
+    "ticket_id": 1773753725199,
+    "result": "SL",
+    "pnl_pips": -8.52,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T13:35:23.578Z",
+    "type": "trade_result",
+    "ticket_id": 1773754523578,
+    "result": "SL",
+    "pnl_pips": -7.84,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T14:08:08.540Z",
+    "type": "trade_result",
+    "ticket_id": 1773756488540,
+    "result": "SL",
+    "pnl_pips": -9.21,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T15:17:02.642Z",
+    "type": "trade_result",
+    "ticket_id": 1773760622642,
+    "result": "SL",
+    "pnl_pips": -9,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T15:21:48.021Z",
+    "type": "trade_result",
+    "ticket_id": 1773760908021,
+    "result": "SL",
+    "pnl_pips": -9,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T16:18:03.442Z",
+    "type": "trade_result",
+    "ticket_id": 1773764283442,
+    "result": "TP",
+    "pnl_pips": 13.54,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T16:53:21.915Z",
+    "type": "trade_result",
+    "ticket_id": 1773766401915,
+    "result": "SL",
+    "pnl_pips": -9.47,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T20:04:43.714Z",
+    "type": "trade_result",
+    "ticket_id": 1773777883714,
+    "result": "TP",
+    "pnl_pips": 16.06,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-17T20:45:17.894Z",
+    "type": "trade_result",
+    "ticket_id": 1773780317894,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T22:03:38.213Z",
+    "type": "trade_result",
+    "ticket_id": 1773785018213,
+    "result": "SL",
+    "pnl_pips": -7.81,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T22:32:04.117Z",
+    "type": "trade_result",
+    "ticket_id": 1773786724117,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-17T23:00:42.674Z",
+    "type": "trade_result",
+    "ticket_id": 1773788442674,
+    "result": "TP",
+    "pnl_pips": 15.78,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T00:03:49.253Z",
+    "type": "trade_result",
+    "ticket_id": 1773792229253,
+    "result": "TP",
+    "pnl_pips": 15,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T01:26:02.898Z",
+    "type": "trade_result",
+    "ticket_id": 1773797162898,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T02:30:57.572Z",
+    "type": "trade_result",
+    "ticket_id": 1773801057572,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T05:13:21.853Z",
+    "type": "trade_result",
+    "ticket_id": 1773810801853,
+    "result": "SL",
+    "pnl_pips": -15.42,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T05:35:00.845Z",
+    "type": "trade_result",
+    "ticket_id": 1773812100845,
+    "result": "TP",
+    "pnl_pips": 1.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T05:57:55.325Z",
+    "type": "trade_result",
+    "ticket_id": 1773813475325,
+    "result": "SL",
+    "pnl_pips": -8.48,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T06:09:44.104Z",
+    "type": "trade_result",
+    "ticket_id": 1773814184104,
+    "result": "TP",
+    "pnl_pips": 3.16,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T06:36:25.810Z",
+    "type": "trade_result",
+    "ticket_id": 1773815785810,
+    "result": "TP",
+    "pnl_pips": 13.9,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T07:17:33.129Z",
+    "type": "trade_result",
+    "ticket_id": 1773818253129,
+    "result": "SL",
+    "pnl_pips": -5.35,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T07:37:00.417Z",
+    "type": "trade_result",
+    "ticket_id": 1773819420417,
+    "result": "SL",
+    "pnl_pips": -3.73,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T09:20:38.170Z",
+    "type": "trade_result",
+    "ticket_id": 1773825638170,
+    "result": "TP",
+    "pnl_pips": 1.68,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T10:43:36.895Z",
+    "type": "trade_result",
+    "ticket_id": 1773830616895,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T11:10:59.438Z",
+    "type": "trade_result",
+    "ticket_id": 1773832259438,
+    "result": "TP",
+    "pnl_pips": 2.86,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T11:23:38.979Z",
+    "type": "trade_result",
+    "ticket_id": 1773833018979,
+    "result": "SL",
+    "pnl_pips": -7.46,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T12:55:17.469Z",
+    "type": "trade_result",
+    "ticket_id": 1773838517469,
+    "result": "SL",
+    "pnl_pips": -2.73,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T13:20:47.949Z",
+    "type": "trade_result",
+    "ticket_id": 1773840047949,
+    "result": "TP",
+    "pnl_pips": 6,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T13:25:42.128Z",
+    "type": "trade_result",
+    "ticket_id": 1773840342128,
+    "result": "TP",
+    "pnl_pips": 10.01,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T13:35:08.301Z",
+    "type": "trade_result",
+    "ticket_id": 1773840908301,
+    "result": "TP",
+    "pnl_pips": 3.11,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T13:37:30.072Z",
+    "type": "trade_result",
+    "ticket_id": 1773841050072,
+    "result": "TP",
+    "pnl_pips": 2.87,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-18T13:40:41.238Z",
+    "type": "trade_result",
+    "ticket_id": 1773841241238,
+    "result": "SL",
+    "pnl_pips": -16,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T14:01:43.177Z",
+    "type": "trade_result",
+    "ticket_id": 1773842503177,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-18T17:24:26.579Z",
+    "type": "trade_result",
+    "ticket_id": 1773854666579,
+    "result": "TP",
+    "pnl_pips": 25.37,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T01:46:13.812Z",
+    "type": "trade_result",
+    "ticket_id": 1773884773812,
+    "result": "SL",
+    "pnl_pips": -9.86,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T01:46:14.212Z",
+    "type": "trade_result",
+    "ticket_id": 1773884774212,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T01:47:16.221Z",
+    "type": "trade_result",
+    "ticket_id": 1773884836221,
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T03:17:12.738Z",
+    "type": "trade_result",
+    "ticket_id": 1773890232738,
+    "result": "TP",
+    "pnl_pips": 0.57,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T03:23:23.601Z",
+    "type": "trade_result",
+    "ticket_id": 1773890603601,
+    "result": "SL",
+    "pnl_pips": -4.97,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T04:00:46.301Z",
+    "type": "trade_result",
+    "ticket_id": 1773892846301,
+    "result": "TP",
+    "pnl_pips": 2.92,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T04:47:01.528Z",
+    "type": "trade_result",
+    "ticket_id": 1773895621528,
+    "result": "SL",
+    "pnl_pips": -4.31,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T05:30:01.707Z",
+    "type": "trade_result",
+    "ticket_id": 1773898201707,
+    "result": "SL",
+    "pnl_pips": -16.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T05:30:02.110Z",
+    "type": "trade_result",
+    "ticket_id": 1773898202110,
+    "result": "SL",
+    "pnl_pips": -7.64,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T05:39:02.637Z",
+    "type": "trade_result",
+    "ticket_id": 1773898742637,
+    "result": "TP",
+    "pnl_pips": 5.82,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T05:48:10.945Z",
+    "type": "trade_result",
+    "ticket_id": 1773899290945,
+    "result": "SL",
+    "pnl_pips": -3.96,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T05:56:24.330Z",
+    "type": "trade_result",
+    "ticket_id": 1773899784330,
+    "result": "SL",
+    "pnl_pips": -13.35,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T06:17:19.097Z",
+    "type": "trade_result",
+    "ticket_id": 1773901039097,
+    "result": "SL",
+    "pnl_pips": -23.47,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T06:31:37.785Z",
+    "type": "trade_result",
+    "ticket_id": 1773901897785,
+    "result": "SL",
+    "pnl_pips": -9.71,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T06:45:38.595Z",
+    "type": "trade_result",
+    "ticket_id": 1773902738595,
+    "result": "TP",
+    "pnl_pips": 8.25,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T06:55:26.961Z",
+    "type": "trade_result",
+    "ticket_id": 1773903326961,
+    "result": "TP",
+    "pnl_pips": 8.62,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T07:25:34.993Z",
+    "type": "trade_result",
+    "ticket_id": 1773905134993,
+    "result": "TP",
+    "pnl_pips": 13.65,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T07:27:20.497Z",
+    "type": "trade_result",
+    "ticket_id": 1773905240497,
+    "result": "TP",
+    "pnl_pips": 20.09,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T07:42:20.946Z",
+    "type": "trade_result",
+    "ticket_id": 1773906140946,
+    "result": "TP",
+    "pnl_pips": 8.76,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T07:46:04.695Z",
+    "type": "trade_result",
+    "ticket_id": 1773906364695,
+    "result": "SL",
+    "pnl_pips": -5,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T08:00:22.054Z",
+    "type": "trade_result",
+    "ticket_id": 1773907222054,
+    "result": "SL",
+    "pnl_pips": -7.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T08:10:47.153Z",
+    "type": "trade_result",
+    "ticket_id": 1773907847153,
+    "result": "SL",
+    "pnl_pips": -17.04,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T08:26:08.339Z",
+    "type": "trade_result",
+    "ticket_id": 1773908768339,
+    "result": "SL",
+    "pnl_pips": -9.01,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T08:33:03.886Z",
+    "type": "trade_result",
+    "ticket_id": 1773909183886,
+    "result": "TP",
+    "pnl_pips": 17.17,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T08:45:53.327Z",
+    "type": "trade_result",
+    "ticket_id": 1773909953327,
+    "result": "SL",
+    "pnl_pips": -10.45,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T08:53:32.879Z",
+    "type": "trade_result",
+    "ticket_id": 1773910412879,
+    "result": "TP",
+    "pnl_pips": 16.75,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T09:01:38.297Z",
+    "type": "trade_result",
+    "ticket_id": 1773910898297,
+    "result": "SL",
+    "pnl_pips": -12.8,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T09:10:31.807Z",
+    "type": "trade_result",
+    "ticket_id": 1773911431807,
+    "result": "TP",
+    "pnl_pips": 7.3,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T09:31:12.472Z",
+    "type": "trade_result",
+    "ticket_id": 1773912672472,
+    "result": "SL",
+    "pnl_pips": -14.68,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T09:37:13.099Z",
+    "type": "trade_result",
+    "ticket_id": 1773913033099,
+    "result": "TP",
+    "pnl_pips": 6.85,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T09:51:17.760Z",
+    "type": "trade_result",
+    "ticket_id": 1773913877760,
+    "result": "SL",
+    "pnl_pips": -12.74,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T10:08:50.109Z",
+    "type": "trade_result",
+    "ticket_id": 1773914930109,
+    "result": "TP",
+    "pnl_pips": 14.7,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T10:26:15.963Z",
+    "type": "trade_result",
+    "ticket_id": 1773915975963,
+    "result": "SL",
+    "pnl_pips": -9.67,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T10:36:19.331Z",
+    "type": "trade_result",
+    "ticket_id": 1773916579331,
+    "result": "SL",
+    "pnl_pips": -14.82,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T10:57:11.035Z",
+    "type": "trade_result",
+    "ticket_id": 1773917831035,
+    "result": "TP",
+    "pnl_pips": 9.55,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T11:31:58.790Z",
+    "type": "trade_result",
+    "ticket_id": 1773919918790,
+    "result": "SL",
+    "pnl_pips": -5.13,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T11:36:50.680Z",
+    "type": "trade_result",
+    "ticket_id": 1773920210680,
+    "result": "TP",
+    "pnl_pips": 13.76,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T11:46:24.493Z",
+    "type": "trade_result",
+    "ticket_id": 1773920784493,
+    "result": "TP",
+    "pnl_pips": 4.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T11:50:53.609Z",
+    "type": "trade_result",
+    "ticket_id": 1773921053609,
+    "result": "TP",
+    "pnl_pips": 5.79,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T12:16:50.938Z",
+    "type": "trade_result",
+    "ticket_id": 1773922610938,
+    "result": "SL",
+    "pnl_pips": -10.14,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T12:21:42.444Z",
+    "type": "trade_result",
+    "ticket_id": 1773922902444,
+    "result": "TP",
+    "pnl_pips": 11.69,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T12:40:14.930Z",
+    "type": "trade_result",
+    "ticket_id": 1773924014930,
+    "result": "TP",
+    "pnl_pips": 5.6,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T12:45:13.509Z",
+    "type": "trade_result",
+    "ticket_id": 1773924313509,
+    "result": "TP",
+    "pnl_pips": 11.06,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T12:57:12.324Z",
+    "type": "trade_result",
+    "ticket_id": 1773925032324,
+    "result": "TP",
+    "pnl_pips": 16.15,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T13:05:09.645Z",
+    "type": "trade_result",
+    "ticket_id": 1773925509645,
+    "result": "SL",
+    "pnl_pips": -8.41,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T14:27:00.026Z",
+    "type": "trade_result",
+    "ticket_id": 1773930420026,
+    "result": "SL",
+    "pnl_pips": -13.21,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T14:55:22.671Z",
+    "type": "trade_result",
+    "ticket_id": 1773932122671,
+    "result": "SL",
+    "pnl_pips": -9.04,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T15:00:25.402Z",
+    "type": "trade_result",
+    "ticket_id": 1773932425402,
+    "result": "SL",
+    "pnl_pips": -4.73,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T15:37:25.443Z",
+    "type": "trade_result",
+    "ticket_id": 1773934645443,
+    "result": "TP",
+    "pnl_pips": 5.39,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T15:42:01.952Z",
+    "type": "trade_result",
+    "ticket_id": 1773934921952,
+    "result": "TP",
+    "pnl_pips": 6.35,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T15:48:25.654Z",
+    "type": "trade_result",
+    "ticket_id": 1773935305654,
+    "result": "SL",
+    "pnl_pips": -4.95,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T15:53:34.736Z",
+    "type": "trade_result",
+    "ticket_id": 1773935614736,
+    "result": "TP",
+    "pnl_pips": 15.82,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T16:10:32.665Z",
+    "type": "trade_result",
+    "ticket_id": 1773936632665,
+    "result": "TP",
+    "pnl_pips": 5.69,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T16:16:43.232Z",
+    "type": "trade_result",
+    "ticket_id": 1773937003232,
+    "result": "TP",
+    "pnl_pips": 16.8,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T16:45:11.628Z",
+    "type": "trade_result",
+    "ticket_id": 1773938711628,
+    "result": "SL",
+    "pnl_pips": -5.1,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T17:10:05.973Z",
+    "type": "trade_result",
+    "ticket_id": 1773940205973,
+    "result": "TP",
+    "pnl_pips": 4,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T17:31:37.522Z",
+    "type": "trade_result",
+    "ticket_id": 1773941497522,
+    "result": "SL",
+    "pnl_pips": -12.8,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T17:46:46.888Z",
+    "type": "trade_result",
+    "ticket_id": 1773942406888,
+    "result": "SL",
+    "pnl_pips": -12.43,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T17:52:36.124Z",
+    "type": "trade_result",
+    "ticket_id": 1773942756124,
+    "result": "SL",
+    "pnl_pips": -14.6,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T18:18:22.508Z",
+    "type": "trade_result",
+    "ticket_id": 1773944302508,
+    "result": "SL",
+    "pnl_pips": -4.87,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T18:58:40.662Z",
+    "type": "trade_result",
+    "ticket_id": 1773946720662,
+    "result": "SL",
+    "pnl_pips": -8.12,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T18:58:41.064Z",
+    "type": "trade_result",
+    "ticket_id": 1773946721064,
+    "result": "SL",
+    "pnl_pips": -8.07,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T19:10:12.416Z",
+    "type": "trade_result",
+    "ticket_id": 1773947412416,
+    "result": "SL",
+    "pnl_pips": -5.9,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T19:15:42.032Z",
+    "type": "trade_result",
+    "ticket_id": 1773947742032,
+    "result": "SL",
+    "pnl_pips": -4.92,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T19:20:19.377Z",
+    "type": "trade_result",
+    "ticket_id": 1773948019377,
+    "result": "SL",
+    "pnl_pips": -8.91,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T20:24:34.081Z",
+    "type": "trade_result",
+    "ticket_id": 1773951874081,
+    "result": "TP",
+    "pnl_pips": 4.25,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T20:45:44.838Z",
+    "type": "trade_result",
+    "ticket_id": 1773953144838,
+    "result": "SL",
+    "pnl_pips": -4.46,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T20:50:19.111Z",
+    "type": "trade_result",
+    "ticket_id": 1773953419111,
+    "result": "TP",
+    "pnl_pips": 2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T22:06:15.107Z",
+    "type": "trade_result",
+    "ticket_id": 1773957975107,
+    "result": "TP",
+    "pnl_pips": 2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T22:27:01.311Z",
+    "type": "trade_result",
+    "ticket_id": 1773959221311,
+    "result": "SL",
+    "pnl_pips": -4.13,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T22:37:23.007Z",
+    "type": "trade_result",
+    "ticket_id": 1773959843007,
+    "result": "SL",
+    "pnl_pips": -5.78,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T22:50:40.931Z",
+    "type": "trade_result",
+    "ticket_id": 1773960640931,
+    "result": "TP",
+    "pnl_pips": 2.47,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T22:58:56.175Z",
+    "type": "trade_result",
+    "ticket_id": 1773961136175,
+    "result": "SL",
+    "pnl_pips": -8.88,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T23:20:36.210Z",
+    "type": "trade_result",
+    "ticket_id": 1773962436210,
+    "result": "SL",
+    "pnl_pips": -7.71,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-19T23:41:40.864Z",
+    "type": "trade_result",
+    "ticket_id": 1773963700864,
+    "result": "TP",
+    "pnl_pips": 0.45,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-19T23:48:12.291Z",
+    "type": "trade_result",
+    "ticket_id": 1773964092291,
+    "result": "SL",
+    "pnl_pips": -5.83,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T00:01:15.302Z",
+    "type": "trade_result",
+    "ticket_id": 1773964875302,
+    "result": "TP",
+    "pnl_pips": 3.53,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T00:07:38.308Z",
+    "type": "trade_result",
+    "ticket_id": 1773965258308,
+    "result": "TP",
+    "pnl_pips": 2.3,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T00:39:14.305Z",
+    "type": "trade_result",
+    "ticket_id": 1773967154305,
+    "result": "SL",
+    "pnl_pips": -4.95,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T01:40:24.378Z",
+    "type": "trade_result",
+    "ticket_id": 1773970824378,
+    "firebaseUserId": null,
+    "result": "TP",
+    "pnl_pips": 5.76,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T01:45:40.061Z",
+    "type": "trade_result",
+    "ticket_id": 1773971140061,
+    "firebaseUserId": null,
+    "result": "TP",
+    "pnl_pips": 2.17,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T02:04:04.478Z",
+    "type": "trade_result",
+    "ticket_id": 1773972244478,
+    "firebaseUserId": null,
+    "result": "TP",
+    "pnl_pips": 3.2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T02:06:25.693Z",
+    "type": "trade_result",
+    "ticket_id": 1773972385693,
+    "firebaseUserId": null,
+    "result": "SL",
+    "pnl_pips": -9.75,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T02:10:15.023Z",
+    "type": "trade_result",
+    "ticket_id": 1773972615023,
+    "firebaseUserId": null,
+    "result": "SL",
+    "pnl_pips": -8.92,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T04:47:39.281Z",
+    "type": "trade_result",
+    "ticket_id": 1773982059281,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -7.93,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T05:02:48.553Z",
+    "type": "trade_result",
+    "ticket_id": 1773982968553,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -8.26,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T05:06:12.831Z",
+    "type": "trade_result",
+    "ticket_id": 1773983172831,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 1.92,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T05:16:02.094Z",
+    "type": "trade_result",
+    "ticket_id": 1773983762094,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 3.54,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T05:31:09.602Z",
+    "type": "trade_result",
+    "ticket_id": 1773984669602,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -10.87,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T05:40:34.543Z",
+    "type": "trade_result",
+    "ticket_id": 1773985234543,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 4.38,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T05:50:42.192Z",
+    "type": "trade_result",
+    "ticket_id": 1773985842192,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -4.72,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:02:15.345Z",
+    "type": "trade_result",
+    "ticket_id": 1773986535345,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:03:24.756Z",
+    "type": "trade_result",
+    "ticket_id": 1773986604756,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -10,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:21:19.459Z",
+    "type": "trade_result",
+    "ticket_id": 1773987679459,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -10.56,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:27:47.237Z",
+    "type": "trade_result",
+    "ticket_id": 1773988067237,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -8.25,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:36:32.923Z",
+    "type": "trade_result",
+    "ticket_id": 1773988592923,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -9.51,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:46:22.097Z",
+    "type": "trade_result",
+    "ticket_id": 1773989182097,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -10.35,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-20T06:53:20.426Z",
+    "type": "trade_result",
+    "ticket_id": 1773989600426,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 3.09,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-20T07:12:40.711Z",
+    "type": "trade_result",
+    "ticket_id": 1773990760711,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -11.48,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  }
+]
