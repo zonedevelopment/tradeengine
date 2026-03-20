@@ -157,6 +157,19 @@ app.post("/signal", async (req, res) => {
     const score = evaluateResult.score || 0;
     const finalDecision = decision(evaluateResult);
 
+    console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
+    console.log(`Price: ${price}`);
+    console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
+    if (pattern.structure) {
+      console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
+      console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
+      console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
+    }
+    console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
+    console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
+    console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
+    console.log(`--------------------------------------\n`);
+
     const defensiveFlags = evaluateResult.defensiveFlags || {
       warningMatched: false,
       lotMultiplier: 1,
@@ -300,15 +313,15 @@ app.post("/trade-event", async (req, res) => {
   let message = "";
 
   if (type === "OPEN_ORDER") {
-    message = ` เปิดออเดอร์ใหม่ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+    message = `🟢 เปิดออเดอร์ใหม่ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
   }
 
   if (type === "CLOSE_ORDER") {
-    message = ` ปิดออเดอร์แล้ว (${mode})\nSide: ${side}\nProfit: ${profit}`;
+    message = `🔴 ปิดออเดอร์แล้ว (${mode})\nSide: ${side}\nProfit: ${profit}`;
   }
 
   if (type === "WAIT_ORDER") {
-    message = ` รอเปิดออเดอร์ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+    message = `🔘 รอเปิดออเดอร์ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
   }
 
   if (type === "CANCEL_ORDER") {
@@ -316,7 +329,7 @@ app.post("/trade-event", async (req, res) => {
   }
 
   if (type === "CLOSE_EMERGENCY") {
-    message = ` ปิดออเดอร์หนี (${mode})\nSide: ${side}\nProfit: ${profit}`;
+    message = `🚨 ปิดออเดอร์หนี (${mode})\nSide: ${side}\nnProfit: ${profit}`;
   }
 
   try {
