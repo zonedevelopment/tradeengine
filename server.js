@@ -74,7 +74,7 @@ function normalizeTicketId(value) {
   return Number.isSafeInteger(num) ? num : null;
 }
 
-function calculateAvgRange(candles = [], length = 5) {
+function calculateAvgRange(candles = [], length = 3) {
   if (!Array.isArray(candles) || candles.length < length) return 50;
 
   const recent = candles.slice(-length);
@@ -239,7 +239,7 @@ app.post("/signal", async (req, res) => {
     
     // if (retracePoints < 20) retracePoints = 20;
     // if (retracePoints > 200) retracePoints = 200;
-    const avgRange = calculateAvgRange(candles, 5);
+    const avgRange = calculateAvgRange(candles, 3);
     retracePoints = Math.round(avgRange * 0.6);
     
     let signalStrength = 0;
