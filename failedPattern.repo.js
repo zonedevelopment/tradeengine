@@ -9,75 +9,54 @@ async function findFailedPattern({
   mode,
   contextHash,
 }) {
-  const sqlUser = `
+  const sql = `
     SELECT *
     FROM failed_patterns
-    WHERE user_id <=> ?
-      AND account_id <=> ?
-      AND symbol = ?
+    WHERE symbol = ?
       AND timeframe = ?
       AND side = ?
       AND mode = ?
       AND context_hash = ?
+      AND (
+        (user_id = ?)
+        OR (user_id IS NULL)
+      )
       AND failure_count >= 3
       AND fail_rate >= 0.5000
-    ORDER BY fail_rate DESC, failure_count DESC
+    ORDER BY
+      CASE WHEN user_id = ? THEN 0 ELSE 1 END,
+      failure_count DESC,
+      updated_at DESC
     LIMIT 1
   `;
 
-  const sqlGlobal = `
-    SELECT *
-    FROM failed_patterns
-    WHERE user_id IS NULL
-      AND account_id IS NULL
-      AND symbol = ?
-      AND timeframe = ?
-      AND side = ?
-      AND mode = ?
-      AND context_hash = ?
-      AND failure_count >= 3
-      AND fail_rate >= 0.5000
-    ORDER BY fail_rate DESC, failure_count DESC
-    LIMIT 1
-  `;
-
-  let userRows = [];
-  let globalRows = [];
-
-  if (userId !== null || accountId !== null) {
-    const result = await query(sqlUser, [
-      userId,
-      accountId,
-      symbol,
-      timeframe,
-      side,
-      mode,
-      contextHash,
-    ]);
-
-    // mysql2/promise execute() returns [rows, fields]
-    const rows = Array.isArray(result) && result.length > 0 ? result[0] : [];
-    userRows = Array.isArray(rows) ? rows : [];
-    if (userRows.length > 0) {
-      return userRows[0];
-    }
-  }
-
-  const globalResult = await query(sqlGlobal, [
+  const params = [
     symbol,
     timeframe,
     side,
     mode,
     contextHash,
-  ]);
+    userId,
+    userId,
+  ];
 
-  const globalResultRows = Array.isArray(globalResult) && globalResult.length > 0 ? globalResult[0] : [];
-  globalRows = Array.isArray(globalResultRows) ? globalResultRows : [];
-  if (globalRows.length > 0) {
-    return globalRows[0];
+  try {
+    const rows = await query(sql, params, { retries: 2 });
+    return rows?.[0] || null;
+  } catch (error) {
+    console.error("[failedPattern.repo] findFailedPattern failed:", {
+      code: error.code || null,
+      message: error.message,
+      symbol,
+      timeframe,
+      side,
+      mode,
+      contextHash,
+      userId,
+    });
+
+    return null;
   }
-
-  return null;
 }
 
 module.exports = {

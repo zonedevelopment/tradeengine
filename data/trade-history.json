@@ -5041,5 +5041,35 @@
     "tp": 0,
     "profit": 2.81,
     "mode": "NORMAL"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "side": "BUY",
+    "lot": 0.01,
+    "price": 4697.682,
+    "sl": 13220,
+    "tp": 9600,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-20T07:50:00.970Z"
+  },
+  {
+    "type": "OPEN_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "side": "BUY",
+    "lot": 0.01,
+    "price": 4697.635,
+    "sl": 4684.415,
+    "tp": 4707.235,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-20T07:50:03.218Z"
   }
 ]
