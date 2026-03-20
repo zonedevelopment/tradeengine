@@ -85,9 +85,15 @@ async function evaluateDecision({
 
   const candlesH1 = market && market.candlesH1 ? market.candlesH1 : [];
   const candlesH4 = market && market.candlesH4 ? market.candlesH4 : [];
+  
   const trendContext = detectTrendAndRange(candlesH1, candlesH4);
-
-  if (trendContext.isRanging) {
+  const trendFollow4 = pattern?.trendFollow4 || {
+    direction: "NEUTRAL",
+    volumeConfirmed: false,
+    strength: "WEAK",
+  };
+  
+  if (trendContext.isRanging && !trendContext.volumeConfirmed) {
     tradeMode = "SCALP";
   }
 
@@ -168,6 +174,14 @@ async function evaluateDecision({
       }
     }
 
+    const isBuyPattern =
+    pattern?.pattern === "MOTHER_FISH_BUY" ||
+    pattern?.pattern === "CLAW_BUY";
+  
+  const isSellPattern =
+    pattern?.pattern === "MOTHER_FISH_SELL" ||
+    pattern?.pattern === "CLAW_SELL";
+
     let patternScore = pattern.score || 0;
 
     const strongPatterns = [
@@ -244,6 +258,79 @@ async function evaluateDecision({
           patternScore *= 0.9;
         }
       }
+
+      // ===== 4-candle trend follow confirmation (M5) =====
+if (trendFollow4.direction === "BUY" && isBuyPattern) {
+  patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
+}
+
+if (trendFollow4.direction === "SELL" && isSellPattern) {
+  patternScore *= trendFollow4.volumeConfirmed ? 1.35 : 1.10;
+}
+
+if (trendFollow4.direction === "BUY" && isSellPattern) {
+  patternScore *= 0.75;
+}
+
+if (trendFollow4.direction === "SELL" && isBuyPattern) {
+  patternScore *= 0.75;
+}
+
+if (!trendFollow4.volumeConfirmed && trendFollow4.direction !== "NEUTRAL") {
+  patternScore *= 0.90;
+  if (tradeMode === "NORMAL") {
+    tradeMode = "SCALP";
+  }
+}
+
+// ===== H1/H4 trend alignment + volume confirm =====
+if (trendContext.overallTrend === "BULLISH" && isBuyPattern) {
+  patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
+}
+
+if (trendContext.overallTrend === "BEARISH" && isSellPattern) {
+  patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
+}
+
+if (trendContext.overallTrend === "BULLISH" && isSellPattern) {
+  patternScore *= 0.70;
+}
+
+if (trendContext.overallTrend === "BEARISH" && isBuyPattern) {
+  patternScore *= 0.70;
+}
+
+if (
+  trendContext.overallTrend === "MIXED" &&
+  tradeMode === "NORMAL"
+) {
+  tradeMode = "SCALP";
+  patternScore *= 0.90;
+}
+
+  // ===== Use recentMassive flags จริง =====
+  if (pattern.recentMassiveBull && isSellPattern) {
+    patternScore *= 0.65;
+  }
+  
+  if (pattern.recentMassiveBear && isBuyPattern) {
+    patternScore *= 0.65;
+  }
+  
+  if (pattern.recentMassiveBull && isBuyPattern) {
+    patternScore *= 1.15;
+  }
+  
+  if (pattern.recentMassiveBear && isSellPattern) {
+    patternScore *= 1.15;
+  }
+  
+  if (pattern.isVolumeDrying) {
+    patternScore *= 0.85;
+    if (tradeMode === "NORMAL") {
+      tradeMode = "SCALP";
+    }
+  }
     }
 
     score += patternScore;

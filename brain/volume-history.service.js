@@ -7,7 +7,7 @@ function getHistoricalVolumeContext({
     lookbackRecords = 200
 }) {
     try {
-        const filePath = path.join(__dirname, "data", "candle_training_data.json");
+        const filePath = path.join(__dirname, "..", "data", "candle_training_data.json");
 
         if (!fs.existsSync(filePath)) {
             return {

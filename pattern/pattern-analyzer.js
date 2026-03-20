@@ -1,6 +1,56 @@
 const fs = require("fs");
 const { detectMotherFishPattern } = require("./pattern-rules");
 
+function analyzeM5FourCandleFollow(candles = []) {
+  if (!Array.isArray(candles) || candles.length < 4) {
+    return {
+      direction: "NEUTRAL",
+      volumeConfirmed: false,
+      strength: "WEAK",
+      bullishCount: 0,
+      bearishCount: 0,
+      recentVolumeAvg: 0,
+      priorVolumeAvg: 0,
+    };
+  }
+
+  const last4 = candles.slice(-4);
+
+  let bullishCount = 0;
+  let bearishCount = 0;
+
+  for (const c of last4) {
+    if (Number(c.close) > Number(c.open)) bullishCount++;
+    if (Number(c.close) < Number(c.open)) bearishCount++;
+  }
+
+  const volumes = last4.map(c => Number(c?.tick_volume || 0));
+  const priorVolumeAvg = (volumes[0] + volumes[1]) / 2;
+  const recentVolumeAvg = (volumes[2] + volumes[3]) / 2;
+
+  let direction = "NEUTRAL";
+  if (bullishCount >= 3) direction = "BUY";
+  else if (bearishCount >= 3) direction = "SELL";
+
+  const volumeConfirmed =
+    priorVolumeAvg > 0 &&
+    recentVolumeAvg >= priorVolumeAvg * 1.10;
+
+  let strength = "WEAK";
+  if (direction !== "NEUTRAL" && volumeConfirmed) strength = "STRONG";
+  else if (direction !== "NEUTRAL") strength = "MEDIUM";
+
+  return {
+    direction,
+    volumeConfirmed,
+    strength,
+    bullishCount,
+    bearishCount,
+    recentVolumeAvg: Number(recentVolumeAvg.toFixed(2)),
+    priorVolumeAvg: Number(priorVolumeAvg.toFixed(2)),
+  };
+}
+
 function analyzePattern(signal) {
 
     const weights = loadWeights();
@@ -60,6 +110,8 @@ function analyzePattern(signal) {
     let recentMassiveBear = false;
     let recentMassiveBull = false;
     const candles = signal.candles || [];
+
+    const trendFollow4 = analyzeM5FourCandleFollow(candles);
     
     if (candles.length >= 7) {
         let totalVol = 0;
@@ -108,6 +160,7 @@ function analyzePattern(signal) {
         pattern: result.pattern,
         type: result.type || "Unknown",
         score,
+        trendFollow4,
         strength: result.strength || 0,
         structure: result.structure, // Structure analysis for Decision Engine
         slPrice: result.slPrice, // Dynamic SL Price

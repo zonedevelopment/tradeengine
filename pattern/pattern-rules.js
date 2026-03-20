@@ -300,62 +300,191 @@ function detectMotherFishPattern(data) {
     return patternResult;
 }
 
-function detectTrendAndRange(candlesH1, candlesH4) {
-    let trendH1 = "NEUTRAL";
-    let trendH4 = "NEUTRAL";
-    let rangeWidthH1 = 0;
-    let rangeWidthH4 = 0;
+function avg(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return 0;
+  return arr.reduce((sum, n) => sum + Number(n || 0), 0) / arr.length;
+}
 
-    if (candlesH1 && candlesH1.length >= 2) {
-        const h1_c1 = candlesH1[candlesH1.length - 1];
-        const h1_c2 = candlesH1[candlesH1.length - 2];
-        if (h1_c1.close > h1_c1.open && h1_c2.close > h1_c2.open) trendH1 = "BULLISH";
-        else if (h1_c1.close < h1_c1.open && h1_c2.close < h1_c2.open) trendH1 = "BEARISH";
-        
-        const minLowH1 = Math.min(...candlesH1.map(c => c.low));
-        const maxHighH1 = Math.max(...candlesH1.map(c => c.high));
-        rangeWidthH1 = (maxHighH1 - minLowH1) * 10; // Convert to points
-    }
+function candleBody(c) {
+  return Math.abs(Number(c?.close || 0) - Number(c?.open || 0));
+}
 
-    if (candlesH4 && candlesH4.length >= 2) {
-        const h4_c1 = candlesH4[candlesH4.length - 1];
-        const h4_c2 = candlesH4[candlesH4.length - 2];
-        if (h4_c1.close > h4_c1.open && h4_c2.close > h4_c2.open) trendH4 = "BULLISH";
-        else if (h4_c1.close < h4_c1.open && h4_c2.close < h4_c2.open) trendH4 = "BEARISH";
-        
-        const minLowH4 = Math.min(...candlesH4.map(c => c.low));
-        const maxHighH4 = Math.max(...candlesH4.map(c => c.high));
-        rangeWidthH4 = (maxHighH4 - minLowH4) * 10; // Convert to points
-    }
-
-    let overallTrend = "NEUTRAL";
-    let trendStrength = "WEAK";
-
-    if (trendH1 === "BULLISH" && trendH4 === "BULLISH") {
-        overallTrend = "BULLISH";
-        trendStrength = "STRONG";
-    } else if (trendH1 === "BEARISH" && trendH4 === "BEARISH") {
-        overallTrend = "BEARISH";
-        trendStrength = "STRONG";
-    } else if (trendH1 !== "NEUTRAL" || trendH4 !== "NEUTRAL") {
-        overallTrend = "MIXED";
-        trendStrength = "MEDIUM";
-    }
-
-    let isRanging = false;
-    if (trendStrength === "WEAK" || overallTrend === "MIXED") {
-        if (rangeWidthH1 > 500 && rangeWidthH1 < 2000) { 
-            isRanging = true;
-        }
-    }
-
+function analyzeFourCandleTrend(candles = [], label = "TF") {
+  if (!Array.isArray(candles) || candles.length < 4) {
     return {
-        overallTrend,
-        trendStrength,
-        isRanging,
-        rangeWidthH1,
-        rangeWidthH4
+      label,
+      trend: "NEUTRAL",
+      trendStrength: "WEAK",
+      volumeConfirmed: false,
+      bullishCount: 0,
+      bearishCount: 0,
+      higherHighCount: 0,
+      lowerLowCount: 0,
+      higherLowCount: 0,
+      lowerHighCount: 0,
+      avgBody: 0,
+      avgVolume: 0,
+      recentVolumeAvg: 0,
+      priorVolumeAvg: 0,
+      score: 0,
     };
+  }
+
+  const last4 = candles.slice(-4);
+
+  let bullishCount = 0;
+  let bearishCount = 0;
+  let higherHighCount = 0;
+  let lowerLowCount = 0;
+  let higherLowCount = 0;
+  let lowerHighCount = 0;
+
+  for (let i = 0; i < last4.length; i++) {
+    const c = last4[i];
+    if (Number(c.close) > Number(c.open)) bullishCount++;
+    if (Number(c.close) < Number(c.open)) bearishCount++;
+
+    if (i > 0) {
+      const prev = last4[i - 1];
+      if (Number(c.high) > Number(prev.high)) higherHighCount++;
+      if (Number(c.low) > Number(prev.low)) higherLowCount++;
+      if (Number(c.low) < Number(prev.low)) lowerLowCount++;
+      if (Number(c.high) < Number(prev.high)) lowerHighCount++;
+    }
+  }
+
+  const volumes = last4.map(c => Number(c?.tick_volume || 0));
+  const priorVolumeAvg = avg(volumes.slice(0, 2));
+  const recentVolumeAvg = avg(volumes.slice(2, 4));
+  const avgVolume = avg(volumes);
+  const avgBody = avg(last4.map(candleBody));
+
+  let trend = "NEUTRAL";
+  let trendStrength = "WEAK";
+  let score = 0;
+
+  const bullishStructure =
+    bullishCount >= 3 &&
+    higherHighCount >= 2 &&
+    higherLowCount >= 2;
+
+  const bearishStructure =
+    bearishCount >= 3 &&
+    lowerLowCount >= 2 &&
+    lowerHighCount >= 2;
+
+  if (bullishStructure) {
+    trend = "BULLISH";
+    score += 3;
+    if (bullishCount === 4) score += 1;
+    if (higherHighCount === 3) score += 1;
+    if (higherLowCount === 3) score += 1;
+  } else if (bearishStructure) {
+    trend = "BEARISH";
+    score += 3;
+    if (bearishCount === 4) score += 1;
+    if (lowerLowCount === 3) score += 1;
+    if (lowerHighCount === 3) score += 1;
+  }
+
+  // volume confirm = ชุด 2 แท่งหลังแรงกว่าชุด 2 แท่งแรกอย่างมีนัย
+  const volumeConfirmed =
+    priorVolumeAvg > 0 &&
+    recentVolumeAvg >= priorVolumeAvg * 1.10;
+
+  if (trend !== "NEUTRAL" && volumeConfirmed) {
+    score += 2;
+  }
+
+  if (trend !== "NEUTRAL" && avgBody >= 0.8) {
+    score += 1;
+  }
+
+  if (score >= 6) trendStrength = "STRONG";
+  else if (score >= 4) trendStrength = "MEDIUM";
+
+  return {
+    label,
+    trend,
+    trendStrength,
+    volumeConfirmed,
+    bullishCount,
+    bearishCount,
+    higherHighCount,
+    lowerLowCount,
+    higherLowCount,
+    lowerHighCount,
+    avgBody: Number(avgBody.toFixed(2)),
+    avgVolume: Number(avgVolume.toFixed(2)),
+    recentVolumeAvg: Number(recentVolumeAvg.toFixed(2)),
+    priorVolumeAvg: Number(priorVolumeAvg.toFixed(2)),
+    score,
+  };
+}
+
+function detectTrendAndRange(candlesH1, candlesH4) {
+  const h1 = analyzeFourCandleTrend(candlesH1 || [], "H1");
+  const h4 = analyzeFourCandleTrend(candlesH4 || [], "H4");
+
+  let overallTrend = "NEUTRAL";
+  let trendStrength = "WEAK";
+
+  if (h1.trend === "BULLISH" && h4.trend === "BULLISH") {
+    overallTrend = "BULLISH";
+    trendStrength =
+      h1.volumeConfirmed && h4.volumeConfirmed ? "STRONG" : "MEDIUM";
+  } else if (h1.trend === "BEARISH" && h4.trend === "BEARISH") {
+    overallTrend = "BEARISH";
+    trendStrength =
+      h1.volumeConfirmed && h4.volumeConfirmed ? "STRONG" : "MEDIUM";
+  } else if (
+    (h1.trend === "BULLISH" && h4.trend === "NEUTRAL") ||
+    (h1.trend === "NEUTRAL" && h4.trend === "BULLISH")
+  ) {
+    overallTrend = "BULLISH";
+    trendStrength = "MEDIUM";
+  } else if (
+    (h1.trend === "BEARISH" && h4.trend === "NEUTRAL") ||
+    (h1.trend === "NEUTRAL" && h4.trend === "BEARISH")
+  ) {
+    overallTrend = "BEARISH";
+    trendStrength = "MEDIUM";
+  } else if (h1.trend !== "NEUTRAL" || h4.trend !== "NEUTRAL") {
+    overallTrend = "MIXED";
+    trendStrength = "WEAK";
+  }
+
+  const rangeWidthH1 = Array.isArray(candlesH1) && candlesH1.length > 0
+    ? (Math.max(...candlesH1.map(c => Number(c.high || 0))) -
+       Math.min(...candlesH1.map(c => Number(c.low || 0)))) * 10
+    : 0;
+
+  const rangeWidthH4 = Array.isArray(candlesH4) && candlesH4.length > 0
+    ? (Math.max(...candlesH4.map(c => Number(c.high || 0))) -
+       Math.min(...candlesH4.map(c => Number(c.low || 0)))) * 10
+    : 0;
+
+  const volumeConfirmed = Boolean(h1.volumeConfirmed || h4.volumeConfirmed);
+
+  let isRanging = false;
+  if (
+    (overallTrend === "NEUTRAL" || overallTrend === "MIXED") &&
+    rangeWidthH1 > 500 &&
+    rangeWidthH1 < 2000
+  ) {
+    isRanging = true;
+  }
+
+  return {
+    overallTrend,
+    trendStrength,
+    isRanging,
+    volumeConfirmed,
+    rangeWidthH1,
+    rangeWidthH4,
+    h1,
+    h4,
+  };
 }
 
 module.exports = { detectMotherFishPattern, detectTrendAndRange, detectMarketStructure };
