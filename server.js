@@ -78,13 +78,11 @@ function calculateAvgRange(candles = [], length = 5) {
   if (!Array.isArray(candles) || candles.length < length) return 50;
 
   const recent = candles.slice(-length);
-
   const ranges = recent.map(c =>
     Math.abs(Number(c.high || 0) - Number(c.low || 0)) * 100
   );
 
-  const avg = ranges.reduce((a, b) => a + b, 0) / ranges.length;
-
+  const avg = ranges.reduce((sum, v) => sum + v, 0) / ranges.length;
   return avg;
 }
 
@@ -219,32 +217,28 @@ app.post("/signal", async (req, res) => {
     // }
 
     const avgRange = calculateAvgRange(candles, 5);
-
-    // base retrace จาก volatility
     retracePoints = Math.round(avgRange * 0.6);
     
-    // ปรับตาม score (confidence)
     if (score >= 6) {
-      retracePoints *= 0.3; // มั่นใจมาก → เข้าเร็ว
+      retracePoints = Math.round(retracePoints * 0.35);
     } else if (score >= 4) {
-      retracePoints *= 0.6;
+      retracePoints = Math.round(retracePoints * 0.60);
     } else if (score >= 2) {
-      retracePoints *= 0.9;
+      retracePoints = Math.round(retracePoints * 0.90);
     } else {
-      retracePoints *= 1.2; // ไม่มั่นใจ → รอเยอะ
+      retracePoints = Math.round(retracePoints * 1.20);
     }
     
-    // clamp กันหลุดโลก
+    if (pattern?.isVolumeClimax) {
+      retracePoints = Math.round(retracePoints * 0.80);
+    }
+    
+    if (pattern?.isVolumeDrying) {
+      retracePoints = Math.round(retracePoints * 1.15);
+    }
+    
     if (retracePoints < 20) retracePoints = 20;
     if (retracePoints > 200) retracePoints = 200;
-
-    if (pattern.isVolumeClimax) {
-      retracePoints *= 0.7; // แรงจริง → ไม่ต้องรอเยอะ
-    }
-    
-    if (pattern.isVolumeDrying) {
-      retracePoints *= 1.2; // แรงหมด → รอมากขึ้น
-    }
 
     const hour = new Date().getHours();
 
@@ -271,6 +265,12 @@ app.post("/signal", async (req, res) => {
       // if (Math.abs(score) < 5.5) {
       //   calculatedLot *= 1.5;
       // }
+
+      if (Math.abs(score) >= 6) {
+        calculatedLot *= 1.10;
+      } else if (Math.abs(score) < 3) {
+        calculatedLot *= 0.75;
+      }
 
       lotSize = Number(calculatedLot.toFixed(2));
       if (lotSize < 0.01) lotSize = 0.01;
