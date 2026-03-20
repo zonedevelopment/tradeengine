@@ -291,7 +291,7 @@ async function evaluateDecision({
     const { currentPosition, count } = market.portfolio;
 
     if (currentPosition !== "NONE") {
-      if (currentPosition === "BUY" && score <= -2) {
+      if (currentPosition === "BUY" && score <= -2.15) {
         return {
           action: "NO_TRADE",
           reason: "ANTI_HEDGE_BLOCK",
@@ -299,7 +299,7 @@ async function evaluateDecision({
         };
       }
 
-      if (currentPosition === "SELL" && score >= 2) {
+      if (currentPosition === "SELL" && score >= 2.15) {
         return {
           action: "NO_TRADE",
           reason: "ANTI_HEDGE_BLOCK",
@@ -372,11 +372,11 @@ function decision(evaluation) {
 
   const { score, mode } = evaluation;
 
-  if (score >= 2) {
+  if (score >= 2.15) {
     return mode === "SCALP" ? "ALLOW_BUY_SCALP" : "ALLOW_BUY";
   }
 
-  if (score <= -2) {
+  if (score <= -2.15) {
     return mode === "SCALP" ? "ALLOW_SELL_SCALP" : "ALLOW_SELL";
   }
 
