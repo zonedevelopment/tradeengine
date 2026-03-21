@@ -426,7 +426,7 @@ app.post("/trade-event", async (req, res) => {
 
   try {
     // ปิดการแจ้งเตือน Telegram หากเป็นการรัน Backtest วันหยุด
-    if (message && !isWeekend) {
+    if (message) {
       await sendTelegram(
         process.env.TELEGRAM_BOT_TOKEN,
         process.env.TELEGRAM_CHAT_ID,
