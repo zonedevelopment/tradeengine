@@ -13,7 +13,7 @@ function getRiskState() {
 
 function calculateDynamicRisk(patternScore, patternType, tradeMode = "NORMAL", baseRiskPercentage = 1.0) {
     let risk = baseRiskPercentage;
-    const absScore = Math.abs(patternScore || 0);
+    const absScore = Math.abs(patternScore || 0); // Kept abs for backwards compatibility but we will pass signalStrength directly
 
     // 1. Dynamic risk adjustment based on Pattern Strength
     if (absScore >= 5) {

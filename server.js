@@ -26,6 +26,15 @@ const { insertTradeHistory } = require("./tradeHistory.repo");
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
 
+
+const symbolConfig = {
+  "XAUUSD": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
+  "XAUUSDm": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
+  "BTCUSD": { pipMultiplier: 1, minSL: 15000, maxSL: 150000, minTP: 20000, maxTP: 300000 },
+  "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
+  "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+};
+
 const app = express();
 app.use(express.json());
 
