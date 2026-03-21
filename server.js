@@ -194,81 +194,41 @@ app.post("/signal", async (req, res) => {
     let lotSize = 0.01;
     let retracePoints = 0;
 
-    // if (pattern.slPrice && price) {
-    //   const dynamicSLPips = Math.abs(price - pattern.slPrice) * 100;
-    //   if (dynamicSLPips > 50 && dynamicSLPips < 1500) {
-    //     slPoints = Math.round(dynamicSLPips);
-    //   }
-    // }
-
-    // if (pattern.tpPrice && price) {
-    //   const dynamicTPPips = Math.abs(pattern.tpPrice - price) * 100;
-    //   if (dynamicTPPips > 100 && dynamicTPPips < 3000) {
-    //     tpPoints = Math.round(dynamicTPPips);
-    //   }
-    // }
-
-    if (side === "BUY") {
-      if (pattern.slPrice < price) {
-        slPoints = Math.round((price - pattern.slPrice) * 100);
-      }
-      if (pattern.tpPrice > price) {
-        tpPoints = Math.round((pattern.tpPrice - price) * 100);
-      }
-    }
-    
-    if (side === "SELL") {
-      if (pattern.slPrice > price) {
-        slPoints = Math.round((pattern.slPrice - price) * 100);
-      }
-      if (pattern.tpPrice < price) {
-        tpPoints = Math.round((price - pattern.tpPrice) * 100);
-      }
-    }
-
-    // if (score >= 5) {
-    //   retracePoints = 0;
-    // } else if (score >= 3 && score < 5) {
-    //   retracePoints = 40;
-    // } else {
-    //   retracePoints = 55;
-    // }
-
-    // const avgRange = calculateAvgRange(candles, 5);
-    // retracePoints = Math.round(avgRange * 0.6);
-    
-    // if (score >= 6) {
-    //   retracePoints = Math.round(retracePoints * 0.35);
-    // } else if (score >= 4) {
-    //   retracePoints = Math.round(retracePoints * 0.60);
-    // } else if (score >= 2) {
-    //   retracePoints = Math.round(retracePoints * 0.90);
-    // } else {
-    //   retracePoints = Math.round(retracePoints * 1.20);
-    // }
-    
-    // if (pattern?.isVolumeClimax) {
-    //   retracePoints = Math.round(retracePoints * 0.80);
-    // }
-    
-    // if (pattern?.isVolumeDrying) {
-    //   retracePoints = Math.round(retracePoints * 1.15);
-    // }
-    
-    // if (retracePoints < 20) retracePoints = 20;
-    // if (retracePoints > 200) retracePoints = 200;
-    const avgRange = calculateAvgRange(candles, 3);
-    retracePoints = Math.round(avgRange * 0.6);
-    
     let signalStrength = 0;
-    
     if (side === "BUY") {
       signalStrength = score;
     } else if (side === "SELL") {
       signalStrength = -score;
     }
+
+    const avgRange = calculateAvgRange(candles, 5);
+
+    if (side === "BUY") {
+      if (pattern.slPrice < price) {
+        slPoints = Math.round((price - pattern.slPrice) * 100);
+      } else {
+        slPoints = Math.round(avgRange * 1.2);
+      }
+      if (pattern.tpPrice > price) {
+        tpPoints = Math.round((pattern.tpPrice - price) * 100);
+      } else {
+        tpPoints = Math.round(avgRange * 2.0);
+      }
+    } else if (side === "SELL") {
+      if (pattern.slPrice > price) {
+        slPoints = Math.round((pattern.slPrice - price) * 100);
+      } else {
+        slPoints = Math.round(avgRange * 1.2);
+      }
+      if (pattern.tpPrice < price) {
+        tpPoints = Math.round((price - pattern.tpPrice) * 100);
+      } else {
+        tpPoints = Math.round(avgRange * 2.0);
+      }
+    }
+
+    retracePoints = Math.round(avgRange * 0.6);
     
-    // signalStrength > 0 = คะแนนสนับสนุนฝั่งที่กำลังจะเข้า
     if (signalStrength >= 6) {
       retracePoints = Math.round(retracePoints * 0.35);
     } else if (signalStrength >= 4) {
@@ -286,21 +246,14 @@ app.post("/signal", async (req, res) => {
     if (pattern?.isVolumeDrying) {
       retracePoints = Math.round(retracePoints * 1.15);
     }
+
+    const maxRetraceBySL = Math.round(slPoints * 0.4);
+    if (retracePoints > maxRetraceBySL) {
+      retracePoints = maxRetraceBySL;
+    }
     
     if (retracePoints < 20) retracePoints = 20;
     if (retracePoints > 200) retracePoints = 200;
-
-    // const hour = new Date().getHours();
-
-    // if (!pattern.slPrice && !pattern.tpPrice) {
-    //   if (hour >= 19 && hour <= 23) {
-    //     slPoints = 1000;
-    //     tpPoints = 5000;
-    //   } else if (hour >= 7 && hour <= 8) {
-    //     tpPoints = 300;
-    //     slPoints = 600;
-    //   } 
-    // }
 
     if (balance && balance > 0) {
       const riskPercent = calculateDynamicRisk(
@@ -311,16 +264,6 @@ app.post("/signal", async (req, res) => {
       );
       const riskAmount = balance * (riskPercent / 100);
       let calculatedLot = riskAmount / slPoints;
-
-      // if (Math.abs(score) < 5.5) {
-      //   calculatedLot *= 1.5;
-      // }
-
-      // if (Math.abs(score) >= 6) {
-      //   calculatedLot *= 1.10;
-      // } else if (Math.abs(score) < 3) {
-      //   calculatedLot *= 0.75;
-      // }
 
       if (signalStrength >= 6) {
         calculatedLot *= 1.1;
@@ -333,20 +276,6 @@ app.post("/signal", async (req, res) => {
       if (lotSize > 5.0) lotSize = 5.0;
     }
 
-    // if (Math.abs(score) < 3.0) {
-    //   tpPoints = Math.round(tpPoints * 0.4);
-    // } else if (Math.abs(score) < 5.5) {
-    //   tpPoints = Math.round(tpPoints * 0.7);
-    // }
-
-    // if (Math.abs(score) < 3.0) {
-    //   tpPoints = Math.round(tpPoints * 0.4);
-    //   slPoints = Math.round(slPoints * 0.4);
-    // } else if (Math.abs(score) < 5.5) {
-    //   tpPoints = Math.round(tpPoints * 0.7);
-    //   slPoints = Math.round(slPoints * 0.7);
-    // }
-
     // ===== TP / SL Scaling (USE signalStrength) =====
     if (signalStrength < 3.0) {
       tpPoints = Math.round(tpPoints * 0.4);
@@ -354,6 +283,8 @@ app.post("/signal", async (req, res) => {
     } else if (signalStrength < 5.5) {
       tpPoints = Math.round(tpPoints * 0.7);
       slPoints = Math.round(slPoints * 0.85);
+    } else if (signalStrength >= 6.0) {
+      tpPoints = Math.round(tpPoints * 1.1);
     }
 
     if (defensiveFlags.warningMatched) {
@@ -361,16 +292,14 @@ app.post("/signal", async (req, res) => {
       if (lotSize < 0.01) lotSize = 0.01;
 
       tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
+      tpPoints = Math.round(tpPoints * 0.8);
       evaluateResult.mode = "SCALP";
     }
 
-    if (tpPoints < 200) {
-        tpPoints = 200;
-    }
-      
-    if (slPoints < 150) {
-        slPoints = 150;
-    }
+    if (tpPoints < 200) tpPoints = 200;
+    if (slPoints < 150) slPoints = 150;
+    if (tpPoints > 3000) tpPoints = 3000;
+    if (slPoints > 1500) slPoints = 1500;
 
     return res.json({
       decision: finalDecision,
@@ -421,14 +350,42 @@ app.post("/trade-event", async (req, res) => {
   const resolvedUserId = firebaseUserId || null;
   const normalizedTicketId = normalizeTicketId(ticketId ?? ticket_id);
 
+  // เช็คว่าเป็นเสาร์-อาทิตย์หรือไม่ (0 = Sunday, 6 = Saturday)
+  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+
   console.log("trade-event payload:", {
     ...req.body,
     firebaseUserId: resolvedUserId,
     normalizedTicketId,
+    isWeekend
   });
 
   let message = "";
+  if (isWeekend) {
+  if (type === "OPEN_ORDER") {
+    message = `🟢 เปิดออเดอร์ใหม่ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+  }
 
+  if (type === "CLOSE_ORDER") {
+    message = `🔴 ปิดออเดอร์แล้ว (BACKTEST ${mode})\nSide: ${side}\nProfit: ${profit}`;
+  }
+
+  if (type === "WAIT_ORDER") {
+    message = `🔘 รอเปิดออเดอร์ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+  }
+
+  if (type === "MOVE_TO_BE") {
+    message = `🔘 ย้าย SL (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+  }
+
+  if (type === "CANCEL_ORDER") {
+    message = `⚫ ยกเลิกออเดอร์ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+  }
+
+  if (type === "CLOSE_EMERGENCY") {
+    message = `🚨 ปิดออเดอร์หนี (BACKTEST ${mode})\nSide: ${side}\nnProfit: ${profit}`;
+  }
+} else {
   if (type === "OPEN_ORDER") {
     message = `🟢 เปิดออเดอร์ใหม่ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
   }
@@ -452,9 +409,11 @@ app.post("/trade-event", async (req, res) => {
   if (type === "CLOSE_EMERGENCY") {
     message = `🚨 ปิดออเดอร์หนี (${mode})\nSide: ${side}\nnProfit: ${profit}`;
   }
+}
 
   try {
-    if (message) {
+    // ปิดการแจ้งเตือน Telegram หากเป็นการรัน Backtest วันหยุด
+    if (message && !isWeekend) {
       await sendTelegram(
         process.env.TELEGRAM_BOT_TOKEN,
         process.env.TELEGRAM_CHAT_ID,
@@ -468,7 +427,9 @@ app.post("/trade-event", async (req, res) => {
   try {
     const dataPath = ensureDataDir();
 
-    const historyFile = path.join(dataPath, "trade-history.json");
+    // แยกไฟล์ประวัติการเทรด
+    const historyFileName = isWeekend ? "trade-history-backtest.json" : "trade-history.json";
+    const historyFile = path.join(dataPath, historyFileName);
     const history = safeReadJsonArray(historyFile);
 
     history.push({
@@ -482,7 +443,9 @@ app.post("/trade-event", async (req, res) => {
     safeWriteJson(historyFile, history);
 
     if (type === "CLOSE_ORDER" || type === "CLOSE_EMERGENCY") {
-      const maePlaLogPath = path.join(dataPath, "mae_pla_logs.json");
+      // แยกไฟล์ Mae Pla logs
+      const maePlaLogName = isWeekend ? "mae_pla_logs_backtest.json" : "mae_pla_logs.json";
+      const maePlaLogPath = path.join(dataPath, maePlaLogName);
       const maePlaLogs = safeReadJsonArray(maePlaLogPath);
       const numericProfit = Number(profit || 0);
 
@@ -510,7 +473,8 @@ app.post("/trade-event", async (req, res) => {
   }
 
   try {
-    analyzePerformance();
+    // ไม่คำนวณ Performance ของจริงหากเป็น Backtest
+    if (!isWeekend) analyzePerformance();
   } catch (perfError) {
     console.error("analyzePerformance error:", perfError.message);
   }
@@ -519,20 +483,25 @@ app.post("/trade-event", async (req, res) => {
   let dbInsertError = null;
 
   try {
-    dbInsertResult = await insertTradeHistory({
-      firebaseUserId: resolvedUserId,
-      ticketId: normalizedTicketId,
-      eventType: type,
-      symbol,
-      side,
-      lot,
-      price,
-      sl,
-      tp,
-      profit,
-      mode,
-      eventTime: eventTime ? new Date(eventTime) : new Date(),
-    });
+    // Bypass การบันทึกลงฐานข้อมูล MySQL
+    if (!isWeekend) {
+      dbInsertResult = await insertTradeHistory({
+        firebaseUserId: resolvedUserId,
+        ticketId: normalizedTicketId,
+        eventType: type,
+        symbol,
+        side,
+        lot,
+        price,
+        sl,
+        tp,
+        profit,
+        mode,
+        eventTime: eventTime ? new Date(eventTime) : new Date(),
+      });
+    } else {
+      dbInsertResult = { bypassed: true, note: "Weekend Backtest Bypass" };
+    }
   } catch (dbError) {
     dbInsertError = dbError;
     console.error("Insert trade_history error:", dbError.message);
@@ -542,7 +511,8 @@ app.post("/trade-event", async (req, res) => {
     success: true,
     firebaseUserId: resolvedUserId,
     ticketId: normalizedTicketId,
-    db_saved: !dbInsertError,
+    isWeekend: isWeekend,
+    db_saved: !isWeekend && !dbInsertError,
     db_error: dbInsertError ? dbInsertError.message : null,
     db_result: dbInsertResult || null,
   });
