@@ -210,27 +210,29 @@ app.post("/signal", async (req, res) => {
       signalStrength = -score;
     }
 
-    const avgRange = calculateAvgRange(candles, 5);
+    const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+    const mult = activeCfg.pipMultiplier;
+    const avgRange = calculateAvgRange(candles, 5, mult);
 
     if (side === "BUY") {
       if (pattern.slPrice < price) {
-        slPoints = Math.round((price - pattern.slPrice) * 100);
+        slPoints = Math.round((price - pattern.slPrice) * mult);
       } else {
         slPoints = Math.round(avgRange * 1.2);
       }
       if (pattern.tpPrice > price) {
-        tpPoints = Math.round((pattern.tpPrice - price) * 100);
+        tpPoints = Math.round((pattern.tpPrice - price) * mult);
       } else {
         tpPoints = Math.round(avgRange * 2.0);
       }
     } else if (side === "SELL") {
       if (pattern.slPrice > price) {
-        slPoints = Math.round((pattern.slPrice - price) * 100);
+        slPoints = Math.round((pattern.slPrice - price) * mult);
       } else {
         slPoints = Math.round(avgRange * 1.2);
       }
       if (pattern.tpPrice < price) {
-        tpPoints = Math.round((price - pattern.tpPrice) * 100);
+        tpPoints = Math.round((price - pattern.tpPrice) * mult);
       } else {
         tpPoints = Math.round(avgRange * 2.0);
       }
@@ -261,8 +263,10 @@ app.post("/signal", async (req, res) => {
       retracePoints = maxRetraceBySL;
     }
     
-    if (retracePoints < 20) retracePoints = 20;
-    if (retracePoints > 200) retracePoints = 200;
+    const minR = 20 * (mult / 100);
+    const maxR = 200 * (mult / 100);
+    if (retracePoints < minR) retracePoints = minR;
+    if (retracePoints > maxR) retracePoints = maxR;
 
     if (balance && balance > 0) {
       const riskPercent = calculateDynamicRisk(
@@ -305,10 +309,10 @@ app.post("/signal", async (req, res) => {
       evaluateResult.mode = "SCALP";
     }
 
-    if (tpPoints < 200) tpPoints = 200;
-    if (slPoints < 150) slPoints = 150;
-    if (tpPoints > 3000) tpPoints = 3000;
-    if (slPoints > 1500) slPoints = 1500;
+    if (tpPoints < activeCfg.minTP) tpPoints = activeCfg.minTP;
+    if (slPoints < activeCfg.minSL) slPoints = activeCfg.minSL;
+    if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
+    if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
 
     return res.json({
       decision: finalDecision,
