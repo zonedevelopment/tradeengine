@@ -30,7 +30,7 @@ const { exec } = require("child_process");
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
   "XAUUSDm": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
-  "BTCUSD": { pipMultiplier: 1, minSL: 15000, maxSL: 150000, minTP: 20000, maxTP: 300000 },
+  "BTCUSD": { pipMultiplier: 100, minSL: 5000, maxSL: 50000, minTP: 8000, maxTP: 150000 },
   "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };
@@ -109,6 +109,7 @@ app.post("/signal", async (req, res) => {
   } = req.body;
 
   const resolvedUserId = firebaseUserId || null;
+  const spreadPoints = req.body.spreadPoints || 0;
 
   try {
     try {
@@ -210,7 +211,7 @@ app.post("/signal", async (req, res) => {
       signalStrength = -score;
     }
 
-    const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+        const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const mult = activeCfg.pipMultiplier;
     const avgRange = calculateAvgRange(candles, 5, mult);
 
@@ -225,6 +226,12 @@ app.post("/signal", async (req, res) => {
       } else {
         tpPoints = Math.round(avgRange * 2.0);
       }
+      
+      if (spreadPoints > 0) {
+        slPoints += Math.round(spreadPoints * 1.5);
+        tpPoints += Math.round(spreadPoints * 1.5);
+      }
+      
     } else if (side === "SELL") {
       if (pattern.slPrice > price) {
         slPoints = Math.round((pattern.slPrice - price) * mult);
@@ -235,6 +242,11 @@ app.post("/signal", async (req, res) => {
         tpPoints = Math.round((price - pattern.tpPrice) * mult);
       } else {
         tpPoints = Math.round(avgRange * 2.0);
+      }
+      
+      if (spreadPoints > 0) {
+        slPoints += Math.round(spreadPoints * 1.5);
+        tpPoints += Math.round(spreadPoints * 1.5);
       }
     }
 

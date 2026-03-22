@@ -1,14 +1,4 @@
 {
   "SELL": -3.82,
-  "BUY": -3.81,
-  "Pin_Bar_Shooting_Star": -0.45000000000000007,
-  "Morning_Star_Base_Break": 0.09999999999999998,
-  "Evening_Star_Base_Break": -0.3500000000000001,
-  "Pin_Bar_Hammer": 0.15,
-  "Piercing_Pattern": -0.6,
-  "Waterfall_Drop_Continuation": 0.5,
-  "Dark_Cloud_Cover": 0.6000000000000002,
-  "Bullish_Engulfing": -0.10000000000000003,
-  "Rocket_Surge_Continuation": -0.30000000000000004,
-  "Bearish_Engulfing": -0.20000000000000004
+  "BUY": -3.81
 }
