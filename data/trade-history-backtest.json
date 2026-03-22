@@ -1843,5 +1843,20 @@
     "ticketId": null,
     "ticket_id": null,
     "logged_at": "2026-03-22T01:10:09.802Z"
+  },
+  {
+    "type": "CLOSE_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "side": "SELL",
+    "lot": 0.01,
+    "price": 68903.23,
+    "sl": 0,
+    "tp": 0,
+    "profit": -0.35,
+    "mode": "NORMAL",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-22T01:11:23.411Z"
   }
 ]
