@@ -375,69 +375,29 @@ app.post("/trade-event", async (req, res) => {
   const resolvedUserId = firebaseUserId || null;
   const normalizedTicketId = normalizeTicketId(ticketId ?? ticket_id);
 
-  // เช็คว่าเป็นเสาร์-อาทิตย์หรือไม่ (0 = Sunday, 6 = Saturday)
-  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
-
   console.log("trade-event payload:", {
     ...req.body,
     firebaseUserId: resolvedUserId,
     normalizedTicketId,
-    isWeekend
   });
 
   let message = "";
-  if (isWeekend) {
-  if (type === "OPEN_ORDER") {
-    message = `🟢 เปิดออเดอร์ใหม่ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
 
-  if (type === "CLOSE_ORDER") {
-    message = `🔴 ปิดออเดอร์แล้ว (BACKTEST ${mode})\nSide: ${side}\nProfit: ${profit}`;
-  }
-
-  if (type === "WAIT_ORDER") {
-    message = `🔘 รอเปิดออเดอร์ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "MOVE_TO_BE") {
-    message = `🔘 ย้าย SL (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "CANCEL_ORDER") {
-    message = `⚫ ยกเลิกออเดอร์ (BACKTEST ${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "CLOSE_EMERGENCY") {
-    message = `🚨 ปิดออเดอร์หนี (BACKTEST ${mode})\nSide: ${side}\nnProfit: ${profit}`;
-  }
-} else {
   if (type === "OPEN_ORDER") {
     message = `🟢 เปิดออเดอร์ใหม่ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "CLOSE_ORDER") {
+  } else if (type === "CLOSE_ORDER") {
     message = `🔴 ปิดออเดอร์แล้ว (${mode})\nSide: ${side}\nProfit: ${profit}`;
-  }
-
-  if (type === "WAIT_ORDER") {
+  } else if (type === "WAIT_ORDER") {
     message = `🔘 รอเปิดออเดอร์ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "MOVE_TO_BE") {
+  } else if (type === "MOVE_TO_BE") {
     message = `🔘 ย้าย SL (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
-  }
-
-  if (type === "CANCEL_ORDER") {
+  } else if (type === "CANCEL_ORDER") {
     message = `⚫ ยกเลิกออเดอร์ (${mode})\nSide: ${side}\nLot: ${lot}\nEntry: ${price}\nSL: ${sl}\nTP: ${tp}`;
+  } else if (type === "CLOSE_EMERGENCY") {
+    message = `🚨 ปิดออเดอร์หนี (${mode})\nSide: ${side}\nProfit: ${profit}`;
   }
-
-  if (type === "CLOSE_EMERGENCY") {
-    message = `🚨 ปิดออเดอร์หนี (${mode})\nSide: ${side}\nnProfit: ${profit}`;
-  }
-}
 
   try {
-    // ปิดการแจ้งเตือน Telegram หากเป็นการรัน Backtest วันหยุด
     if (message) {
       await sendTelegram(
         process.env.TELEGRAM_BOT_TOKEN,
@@ -452,9 +412,7 @@ app.post("/trade-event", async (req, res) => {
   try {
     const dataPath = ensureDataDir();
 
-    // แยกไฟล์ประวัติการเทรด
-    const historyFileName = isWeekend ? "trade-history-backtest.json" : "trade-history.json";
-    const historyFile = path.join(dataPath, historyFileName);
+    const historyFile = path.join(dataPath, "trade-history.json");
     const history = safeReadJsonArray(historyFile);
 
     history.push({
@@ -468,9 +426,7 @@ app.post("/trade-event", async (req, res) => {
     safeWriteJson(historyFile, history);
 
     if (type === "CLOSE_ORDER" || type === "CLOSE_EMERGENCY") {
-      // แยกไฟล์ Mae Pla logs
-      const maePlaLogName = isWeekend ? "mae_pla_logs_backtest.json" : "mae_pla_logs.json";
-      const maePlaLogPath = path.join(dataPath, maePlaLogName);
+      const maePlaLogPath = path.join(dataPath, "mae_pla_logs.json");
       const maePlaLogs = safeReadJsonArray(maePlaLogPath);
       const numericProfit = Number(profit || 0);
 
@@ -498,8 +454,7 @@ app.post("/trade-event", async (req, res) => {
   }
 
   try {
-    // ไม่คำนวณ Performance ของจริงหากเป็น Backtest
-    if (!isWeekend) analyzePerformance();
+    analyzePerformance();
   } catch (perfError) {
     console.error("analyzePerformance error:", perfError.message);
   }
@@ -508,25 +463,20 @@ app.post("/trade-event", async (req, res) => {
   let dbInsertError = null;
 
   try {
-    // Bypass การบันทึกลงฐานข้อมูล MySQL
-    if (!isWeekend) {
-      dbInsertResult = await insertTradeHistory({
-        firebaseUserId: resolvedUserId,
-        ticketId: normalizedTicketId,
-        eventType: type,
-        symbol,
-        side,
-        lot,
-        price,
-        sl,
-        tp,
-        profit,
-        mode,
-        eventTime: eventTime ? new Date(eventTime) : new Date(),
-      });
-    } else {
-      dbInsertResult = { bypassed: true, note: "Weekend Backtest Bypass" };
-    }
+    dbInsertResult = await insertTradeHistory({
+      firebaseUserId: resolvedUserId,
+      ticketId: normalizedTicketId,
+      eventType: type,
+      symbol,
+      side,
+      lot,
+      price,
+      sl,
+      tp,
+      profit,
+      mode,
+      eventTime: eventTime ? new Date(eventTime) : new Date(),
+    });
   } catch (dbError) {
     dbInsertError = dbError;
     console.error("Insert trade_history error:", dbError.message);
@@ -536,8 +486,7 @@ app.post("/trade-event", async (req, res) => {
     success: true,
     firebaseUserId: resolvedUserId,
     ticketId: normalizedTicketId,
-    isWeekend: isWeekend,
-    db_saved: !isWeekend && !dbInsertError,
+    db_saved: !dbInsertError,
     db_error: dbInsertError ? dbInsertError.message : null,
     db_result: dbInsertResult || null,
   });
