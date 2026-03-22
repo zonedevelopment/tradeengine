@@ -40582,5 +40582,3437 @@
         "tick_volume": 232
       }
     ]
+  },
+  {
+    "timestamp": "2026-03-22T01:50:02.445Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 68905.06,
+    "candles": [
+      {
+        "open": 68923.21,
+        "close": 69008.45,
+        "high": 69088.03,
+        "low": 68923.21,
+        "tick_volume": 548
+      },
+      {
+        "open": 69006.63,
+        "close": 68845,
+        "high": 69048.05,
+        "low": 68845,
+        "tick_volume": 353
+      },
+      {
+        "open": 68847.48,
+        "close": 68956.17,
+        "high": 68956.17,
+        "low": 68822.88,
+        "tick_volume": 315
+      },
+      {
+        "open": 68950.83,
+        "close": 69036.21,
+        "high": 69070.51,
+        "low": 68883.55,
+        "tick_volume": 378
+      },
+      {
+        "open": 69032.09,
+        "close": 69032.41,
+        "high": 69077.94,
+        "low": 68988.28,
+        "tick_volume": 320
+      },
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T01:55:00.824Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 68942.48,
+    "candles": [
+      {
+        "open": 69006.63,
+        "close": 68845,
+        "high": 69048.05,
+        "low": 68845,
+        "tick_volume": 353
+      },
+      {
+        "open": 68847.48,
+        "close": 68956.17,
+        "high": 68956.17,
+        "low": 68822.88,
+        "tick_volume": 315
+      },
+      {
+        "open": 68950.83,
+        "close": 69036.21,
+        "high": 69070.51,
+        "low": 68883.55,
+        "tick_volume": 378
+      },
+      {
+        "open": 69032.09,
+        "close": 69032.41,
+        "high": 69077.94,
+        "low": 68988.28,
+        "tick_volume": 320
+      },
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:00:01.078Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 68955.45,
+    "candles": [
+      {
+        "open": 68847.48,
+        "close": 68956.17,
+        "high": 68956.17,
+        "low": 68822.88,
+        "tick_volume": 315
+      },
+      {
+        "open": 68950.83,
+        "close": 69036.21,
+        "high": 69070.51,
+        "low": 68883.55,
+        "tick_volume": 378
+      },
+      {
+        "open": 69032.09,
+        "close": 69032.41,
+        "high": 69077.94,
+        "low": 68988.28,
+        "tick_volume": 320
+      },
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:05:00.095Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 68993.86,
+    "candles": [
+      {
+        "open": 68950.83,
+        "close": 69036.21,
+        "high": 69070.51,
+        "low": 68883.55,
+        "tick_volume": 378
+      },
+      {
+        "open": 69032.09,
+        "close": 69032.41,
+        "high": 69077.94,
+        "low": 68988.28,
+        "tick_volume": 320
+      },
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:10:00.383Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 68952.58,
+    "candles": [
+      {
+        "open": 69032.09,
+        "close": 69032.41,
+        "high": 69077.94,
+        "low": 68988.28,
+        "tick_volume": 320
+      },
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:15:00.578Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69022.93,
+    "candles": [
+      {
+        "open": 69029.84,
+        "close": 69014.65,
+        "high": 69043.2,
+        "low": 68970.35,
+        "tick_volume": 208
+      },
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:20:02.637Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69016.08,
+    "candles": [
+      {
+        "open": 69017.69,
+        "close": 68989.31,
+        "high": 69060.61,
+        "low": 68950.04,
+        "tick_volume": 311
+      },
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:25:00.642Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69074.39,
+    "candles": [
+      {
+        "open": 68989.4,
+        "close": 68842.69,
+        "high": 69017.75,
+        "low": 68736.32,
+        "tick_volume": 366
+      },
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:30:00.041Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69325.12,
+    "candles": [
+      {
+        "open": 68844.52,
+        "close": 68828.9,
+        "high": 68896.51,
+        "low": 68802.51,
+        "tick_volume": 232
+      },
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:35:00.254Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69238.81,
+    "candles": [
+      {
+        "open": 68828.97,
+        "close": 68903.98,
+        "high": 68945.75,
+        "low": 68828.97,
+        "tick_volume": 226
+      },
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:40:00.124Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69207.37,
+    "candles": [
+      {
+        "open": 68905.06,
+        "close": 68942.16,
+        "high": 68968.36,
+        "low": 68886.47,
+        "tick_volume": 205
+      },
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:45:01.274Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69216.53,
+    "candles": [
+      {
+        "open": 68942.48,
+        "close": 68953.5,
+        "high": 68976.8,
+        "low": 68915.37,
+        "tick_volume": 193
+      },
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:50:00.656Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69287.86,
+    "candles": [
+      {
+        "open": 68955.45,
+        "close": 68993.58,
+        "high": 69012.12,
+        "low": 68925.43,
+        "tick_volume": 230
+      },
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T02:55:01.875Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69318.33,
+    "candles": [
+      {
+        "open": 68993.86,
+        "close": 68952.04,
+        "high": 69051.64,
+        "low": 68951.42,
+        "tick_volume": 272
+      },
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:00:01.435Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69255,
+    "candles": [
+      {
+        "open": 68952.58,
+        "close": 69022.98,
+        "high": 69065.32,
+        "low": 68926,
+        "tick_volume": 213
+      },
+      {
+        "open": 69022.93,
+        "close": 69017.9,
+        "high": 69084.2,
+        "low": 68987.5,
+        "tick_volume": 187
+      },
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:10:08.197Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69193.7,
+    "candles": [
+      {
+        "open": 69016.08,
+        "close": 69074.54,
+        "high": 69074.54,
+        "low": 68952.59,
+        "tick_volume": 205
+      },
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:15:06.149Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69285.88,
+    "candles": [
+      {
+        "open": 69074.39,
+        "close": 69321.54,
+        "high": 69401.48,
+        "low": 69054.42,
+        "tick_volume": 548
+      },
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:20:02.694Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69298.77,
+    "candles": [
+      {
+        "open": 69325.12,
+        "close": 69239.13,
+        "high": 69346.03,
+        "low": 69200.54,
+        "tick_volume": 415
+      },
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:25:01.441Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69287.41,
+    "candles": [
+      {
+        "open": 69238.81,
+        "close": 69207.72,
+        "high": 69271.26,
+        "low": 69185.3,
+        "tick_volume": 273
+      },
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:30:00.803Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69415.28,
+    "candles": [
+      {
+        "open": 69207.37,
+        "close": 69216.4,
+        "high": 69238.29,
+        "low": 69176.89,
+        "tick_volume": 209
+      },
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:35:00.077Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69382.73,
+    "candles": [
+      {
+        "open": 69216.53,
+        "close": 69284.29,
+        "high": 69332.96,
+        "low": 69181.45,
+        "tick_volume": 322
+      },
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:40:00.506Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69388.84,
+    "candles": [
+      {
+        "open": 69287.86,
+        "close": 69318.26,
+        "high": 69320.58,
+        "low": 69224.86,
+        "tick_volume": 225
+      },
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:45:00.378Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69345.86,
+    "candles": [
+      {
+        "open": 69318.33,
+        "close": 69265.78,
+        "high": 69352.88,
+        "low": 69248.54,
+        "tick_volume": 217
+      },
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:50:00.039Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69303.37,
+    "candles": [
+      {
+        "open": 69255,
+        "close": 69122.57,
+        "high": 69255,
+        "low": 69101.9,
+        "tick_volume": 263
+      },
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T03:55:01.179Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69300.46,
+    "candles": [
+      {
+        "open": 69122.48,
+        "close": 69196.5,
+        "high": 69228.38,
+        "low": 69101.55,
+        "tick_volume": 243
+      },
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:00:01.702Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69323.58,
+    "candles": [
+      {
+        "open": 69193.7,
+        "close": 69285.07,
+        "high": 69324.39,
+        "low": 69193.7,
+        "tick_volume": 216
+      },
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:05:01.445Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69373.18,
+    "candles": [
+      {
+        "open": 69285.88,
+        "close": 69296.07,
+        "high": 69342.66,
+        "low": 69230.07,
+        "tick_volume": 218
+      },
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:10:01.146Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69422.92,
+    "candles": [
+      {
+        "open": 69298.77,
+        "close": 69287.34,
+        "high": 69320.53,
+        "low": 69235.5,
+        "tick_volume": 213
+      },
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:15:01.724Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69431.85,
+    "candles": [
+      {
+        "open": 69287.41,
+        "close": 69413.67,
+        "high": 69529.46,
+        "low": 69269.26,
+        "tick_volume": 457
+      },
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:20:00.355Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69381.74,
+    "candles": [
+      {
+        "open": 69415.28,
+        "close": 69369.18,
+        "high": 69504.48,
+        "low": 69330.69,
+        "tick_volume": 346
+      },
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:25:02.420Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69258.59,
+    "candles": [
+      {
+        "open": 69382.73,
+        "close": 69396.07,
+        "high": 69576.8,
+        "low": 69356.48,
+        "tick_volume": 629
+      },
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:30:03.364Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69250.55,
+    "candles": [
+      {
+        "open": 69388.84,
+        "close": 69344.66,
+        "high": 69388.84,
+        "low": 69287.35,
+        "tick_volume": 227
+      },
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:35:00.309Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69329.27,
+    "candles": [
+      {
+        "open": 69345.86,
+        "close": 69304.85,
+        "high": 69349.59,
+        "low": 69273.47,
+        "tick_volume": 196
+      },
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:40:09.123Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69322.59,
+    "candles": [
+      {
+        "open": 69303.37,
+        "close": 69298.21,
+        "high": 69336.18,
+        "low": 69255.05,
+        "tick_volume": 200
+      },
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:45:02.434Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69334.31,
+    "candles": [
+      {
+        "open": 69300.46,
+        "close": 69322.15,
+        "high": 69362.13,
+        "low": 69297.38,
+        "tick_volume": 150
+      },
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:50:02.595Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69315.27,
+    "candles": [
+      {
+        "open": 69323.58,
+        "close": 69373.71,
+        "high": 69406.87,
+        "low": 69288.68,
+        "tick_volume": 268
+      },
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T04:55:03.385Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69321.26,
+    "candles": [
+      {
+        "open": 69373.18,
+        "close": 69423.83,
+        "high": 69473.85,
+        "low": 69367.03,
+        "tick_volume": 251
+      },
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:00:00.692Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69328.1,
+    "candles": [
+      {
+        "open": 69422.92,
+        "close": 69432.66,
+        "high": 69432.66,
+        "low": 69357.83,
+        "tick_volume": 182
+      },
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:05:00.937Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69270.44,
+    "candles": [
+      {
+        "open": 69431.85,
+        "close": 69383.07,
+        "high": 69517.74,
+        "low": 69376.68,
+        "tick_volume": 303
+      },
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:10:01.154Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69218.67,
+    "candles": [
+      {
+        "open": 69381.74,
+        "close": 69254.97,
+        "high": 69391.89,
+        "low": 69208.8,
+        "tick_volume": 309
+      },
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      },
+      {
+        "open": 69270.44,
+        "close": 69224.18,
+        "high": 69291.43,
+        "low": 69208.16,
+        "tick_volume": 198
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:15:03.947Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69210.44,
+    "candles": [
+      {
+        "open": 69258.59,
+        "close": 69249.86,
+        "high": 69271.32,
+        "low": 69206.63,
+        "tick_volume": 218
+      },
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      },
+      {
+        "open": 69270.44,
+        "close": 69224.18,
+        "high": 69291.43,
+        "low": 69208.16,
+        "tick_volume": 198
+      },
+      {
+        "open": 69218.67,
+        "close": 69214.66,
+        "high": 69262.17,
+        "low": 69193.64,
+        "tick_volume": 136
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:20:00.759Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69224.57,
+    "candles": [
+      {
+        "open": 69250.55,
+        "close": 69329.27,
+        "high": 69352.73,
+        "low": 69191.15,
+        "tick_volume": 314
+      },
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      },
+      {
+        "open": 69270.44,
+        "close": 69224.18,
+        "high": 69291.43,
+        "low": 69208.16,
+        "tick_volume": 198
+      },
+      {
+        "open": 69218.67,
+        "close": 69214.66,
+        "high": 69262.17,
+        "low": 69193.64,
+        "tick_volume": 136
+      },
+      {
+        "open": 69210.44,
+        "close": 69223.96,
+        "high": 69255.87,
+        "low": 69141.9,
+        "tick_volume": 191
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:25:01.570Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69154.16,
+    "candles": [
+      {
+        "open": 69329.27,
+        "close": 69323.09,
+        "high": 69363.41,
+        "low": 69302.84,
+        "tick_volume": 218
+      },
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      },
+      {
+        "open": 69270.44,
+        "close": 69224.18,
+        "high": 69291.43,
+        "low": 69208.16,
+        "tick_volume": 198
+      },
+      {
+        "open": 69218.67,
+        "close": 69214.66,
+        "high": 69262.17,
+        "low": 69193.64,
+        "tick_volume": 136
+      },
+      {
+        "open": 69210.44,
+        "close": 69223.96,
+        "high": 69255.87,
+        "low": 69141.9,
+        "tick_volume": 191
+      },
+      {
+        "open": 69224.57,
+        "close": 69157.97,
+        "high": 69229.3,
+        "low": 69156.09,
+        "tick_volume": 149
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-22T05:30:01.512Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69161.43,
+    "candles": [
+      {
+        "open": 69322.59,
+        "close": 69334.45,
+        "high": 69335.76,
+        "low": 69290.76,
+        "tick_volume": 125
+      },
+      {
+        "open": 69334.31,
+        "close": 69325.47,
+        "high": 69393.49,
+        "low": 69294.37,
+        "tick_volume": 205
+      },
+      {
+        "open": 69315.27,
+        "close": 69314.16,
+        "high": 69331.38,
+        "low": 69276.33,
+        "tick_volume": 161
+      },
+      {
+        "open": 69321.26,
+        "close": 69328.02,
+        "high": 69349.62,
+        "low": 69300.71,
+        "tick_volume": 148
+      },
+      {
+        "open": 69328.1,
+        "close": 69269.98,
+        "high": 69341.82,
+        "low": 69224,
+        "tick_volume": 219
+      },
+      {
+        "open": 69270.44,
+        "close": 69224.18,
+        "high": 69291.43,
+        "low": 69208.16,
+        "tick_volume": 198
+      },
+      {
+        "open": 69218.67,
+        "close": 69214.66,
+        "high": 69262.17,
+        "low": 69193.64,
+        "tick_volume": 136
+      },
+      {
+        "open": 69210.44,
+        "close": 69223.96,
+        "high": 69255.87,
+        "low": 69141.9,
+        "tick_volume": 191
+      },
+      {
+        "open": 69224.57,
+        "close": 69157.97,
+        "high": 69229.3,
+        "low": 69156.09,
+        "tick_volume": 149
+      },
+      {
+        "open": 69154.16,
+        "close": 69161.63,
+        "high": 69214.93,
+        "low": 69139.43,
+        "tick_volume": 154
+      }
+    ]
   }
 ]

@@ -30,7 +30,7 @@ const { exec } = require("child_process");
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
   "XAUUSDm": { pipMultiplier: 100, minSL: 150, maxSL: 1500, minTP: 200, maxTP: 3000 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 5000, maxSL: 8000, minTP: 8000, maxTP: 10000 },
+  "BTCUSDm": { pipMultiplier: 100, minSL: 1000, maxSL: 5000, minTP: 2000, maxTP: 6000 },
   "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };

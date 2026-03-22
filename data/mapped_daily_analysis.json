@@ -4372,5 +4372,32 @@
     "side": "BUY",
     "postMortem": "STOPPED_OUT",
     "contextHash": "e22a2567d57bb13039e82e5916aebdc7fcf3c878634fa82aec829cefb80e4bd4"
+  },
+  {
+    "firebaseUserId": null,
+    "accountId": null,
+    "eventTime": "2026-03-22T01:55:00.824Z",
+    "symbol": "BTCUSDm",
+    "patternType": "NONE",
+    "triggerPattern": "NONE",
+    "mode": "NORMAL",
+    "tickVolume": 205,
+    "microTrend": "BULLISH",
+    "volumeProfile": "DECREASING",
+    "prePatternShape": "SMALL_BEAR,MEDIUM_BEAR,SMALL_BEAR",
+    "rangeState": "CONTRACTING",
+    "sessionName": "ASIAN",
+    "openPrice": 68942.98,
+    "closePrice": 68906.08,
+    "slPrice": 68907.98,
+    "tpPrice": 68974.98,
+    "slPips": 3500,
+    "tpPips": 3200,
+    "rrRatio": 0.9143,
+    "profit": -0.37,
+    "result": "LOSS",
+    "side": "BUY",
+    "postMortem": "TP_TOO_FAR",
+    "contextHash": "9bfd5ea0a92252c777c754da320ffd1ab7cd413eb6011b3db9d21d37c9ec5751"
   }
 ]
