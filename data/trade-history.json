@@ -7906,5 +7906,35 @@
     "ticketId": null,
     "ticket_id": null,
     "logged_at": "2026-03-22T01:41:50.445Z"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "side": "SELL",
+    "lot": 0.01,
+    "price": 68848.97,
+    "sl": 50000,
+    "tp": 80000,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-22T01:45:02.159Z"
+  },
+  {
+    "type": "OPEN_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "side": "SELL",
+    "lot": 0.01,
+    "price": 68849.17,
+    "sl": 69349.17,
+    "tp": 68049.17,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticketId": null,
+    "ticket_id": null,
+    "logged_at": "2026-03-22T01:45:11.192Z"
   }
 ]
