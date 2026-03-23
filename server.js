@@ -29,10 +29,10 @@ const { exec } = require("child_process");
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSD": { pipMultiplier: 100, minSL: 1000, maxSL: 5000, minTP: 2000, maxTP: 6000 },
+  "BTCUSD": { pipMultiplier: 100, minSL: 1500, maxSL: 7000, minTP: 4000, maxTP: 8000 },
   "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 1000, maxSL: 5000, minTP: 2000, maxTP: 6000 },
+  "BTCUSDm": { pipMultiplier: 100, minSL: 1500, maxSL: 7000, minTP: 4000, maxTP: 8000 },
   "EURUSDm": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };
@@ -120,7 +120,7 @@ app.post("/signal", async (req, res) => {
         const trainingDataPath = path.join(dataPath, "candle_training_data.json");
         const trainingLogs = safeReadJsonArray(trainingDataPath);
 
-        const contextCandles = candles.slice(-10);
+        const contextCandles = candles.slice(-15);
         trainingLogs.push({
           timestamp: new Date().toISOString(),
           symbol: symbol,
@@ -221,38 +221,38 @@ app.post("/signal", async (req, res) => {
       if (pattern.slPrice < price) {
         slPoints = Math.round((price - pattern.slPrice) * mult);
       } else {
-        slPoints = Math.round(avgRange * 1.2);
+        slPoints = Math.round(avgRange * 1.4);
       }
       if (pattern.tpPrice > price) {
         tpPoints = Math.round((pattern.tpPrice - price) * mult);
       } else {
-        tpPoints = Math.round(avgRange * 2.0);
+        tpPoints = Math.round(avgRange * 2.2);
       }
       
       if (spreadPoints > 0) {
-        slPoints += Math.round(spreadPoints * 1.5);
-        tpPoints += Math.round(spreadPoints * 1.5);
+        slPoints += Math.round(spreadPoints * 1.75);
+        tpPoints += Math.round(spreadPoints * 1.75);
       }
       
     } else if (side === "SELL") {
       if (pattern.slPrice > price) {
         slPoints = Math.round((pattern.slPrice - price) * mult);
       } else {
-        slPoints = Math.round(avgRange * 1.2);
+        slPoints = Math.round(avgRange * 1.4);
       }
       if (pattern.tpPrice < price) {
         tpPoints = Math.round((price - pattern.tpPrice) * mult);
       } else {
-        tpPoints = Math.round(avgRange * 2.0);
+        tpPoints = Math.round(avgRange * 2.2);
       }
       
       if (spreadPoints > 0) {
-        slPoints += Math.round(spreadPoints * 1.5);
-        tpPoints += Math.round(spreadPoints * 1.5);
+        slPoints += Math.round(spreadPoints * 1.75);
+        tpPoints += Math.round(spreadPoints * 1.75);
       }
     }
 
-    retracePoints = Math.round(avgRange * 0.6);
+    retracePoints = Math.round(avgRange * 0.85);
     
     if (signalStrength >= 6) {
       retracePoints = Math.round(retracePoints * 0.35);
@@ -305,13 +305,13 @@ app.post("/signal", async (req, res) => {
 
     // ===== TP / SL Scaling (USE signalStrength) =====
     if (signalStrength < 3.0) {
-      tpPoints = Math.round(tpPoints * 0.4);
-      slPoints = Math.round(slPoints * 0.7);
-    } else if (signalStrength < 5.5) {
-      tpPoints = Math.round(tpPoints * 0.7);
+      tpPoints = Math.round(tpPoints * 0.6);
       slPoints = Math.round(slPoints * 0.85);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.9);
+      slPoints = Math.round(slPoints * 0.95);
     } else if (signalStrength >= 6.0) {
-      tpPoints = Math.round(tpPoints * 1.1);
+      tpPoints = Math.round(tpPoints * 1.15);
     }
 
     if (defensiveFlags.warningMatched) {
