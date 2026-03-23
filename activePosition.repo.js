@@ -194,7 +194,6 @@ async function getActivePositionsByUser(firebaseUserId, accountId = null) {
       commission,
       open_time,
       event_time,
-      created_at,
       updated_at
     FROM active_positions
     WHERE firebase_user_id = ?
