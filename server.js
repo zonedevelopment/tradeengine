@@ -24,6 +24,7 @@ const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
 const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser } = require("./tradeHistory.repo");
+const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
 
@@ -597,6 +598,58 @@ app.get("/trade-history/:firebaseUserId", async (req, res) => {
     });
   } catch (error) {
     console.error("trade-history error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.post("/active-positions", async (req, res) => {
+  const {
+    firebaseUserId,
+    accountId = null,
+    positions = [],
+    eventTime = null
+  } = req.body;
+
+  try {
+    const result = await upsertActivePositionsSnapshot({
+      firebaseUserId,
+      accountId,
+      positions,
+      eventTime
+    });
+
+    return res.json({
+      success: true,
+      message: "Active positions synced successfully",
+      synced: result.synced
+    });
+  } catch (error) {
+    console.error("active-positions sync error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/active-positions/:firebaseUserId", async (req, res) => {
+  const { firebaseUserId } = req.params;
+  const { accountId = null } = req.query;
+
+  try {
+    const rows = await getActivePositionsByUser(firebaseUserId, accountId);
+
+    return res.json({
+      success: true,
+      data: rows
+    });
+  } catch (error) {
+    console.error("get active-positions error:", error);
+
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
