@@ -125,7 +125,7 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       created_at,
       event_time
     FROM trade_history
-    WHERE firebase_user_id = ?
+    WHERE firebase_user_id = ? AND event_type = 'CLOSE_ORDER'
     ORDER BY id DESC
     LIMIT ?
     OFFSET ?
