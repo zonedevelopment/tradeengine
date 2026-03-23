@@ -576,7 +576,7 @@ app.get("/trade-history/:firebaseUserId", async (req, res) => {
 
   try {
     const total = await countTradeHistoryByUser(firebaseUserId);
-    const rows = await getTradeHistoryByUserPaged(firebaseUserId, limit, page);
+    const rows = await getTradeHistoryByUser(firebaseUserId, limit, page);
 
     return res.json({
       success: true,
