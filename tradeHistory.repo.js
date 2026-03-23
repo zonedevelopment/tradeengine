@@ -134,11 +134,11 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
 
     LEFT JOIN trade_history o
       ON c.ticket_id = o.ticket_id
-      AND o.event_type = 'OPEN_ORDER'
+      AND o.event_type = 'OPEN_ORDER' AND c.ticket_id = o.ticket_id
 
     WHERE
       c.firebase_user_id = ?
-      AND c.event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+      AND c.event_type = 'CLOSE_ORDER'
 
     ORDER BY c.id DESC
     LIMIT ?
