@@ -41,7 +41,7 @@ const symbolConfig = {
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: ["https://tradeengineapi.zonedevnode.com"],
+  origin: ["https://tradeengine.zonedevnode.com"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
