@@ -22,7 +22,7 @@ const { findFailedPattern } = require("./failedPattern.repo");
 const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
-const { insertTradeHistory } = require("./tradeHistory.repo");
+const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser } = require("./tradeHistory.repo");
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
 
@@ -560,6 +560,40 @@ app.post("/webhook/mae-pla", async (req, res) => {
   } catch (error) {
     console.error("Webhook Error:", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get("/trade-history/:firebaseUserId", async (req, res) => {
+  const { firebaseUserId } = req.params;
+  const { limit = 50, page = 1 } = req.query;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  try {
+    const total = await countTradeHistoryByUser(firebaseUserId);
+    const rows = await getTradeHistoryByUserPaged(firebaseUserId, limit, page);
+
+    return res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit || 50))
+      }
+    });
+  } catch (error) {
+    console.error("trade-history error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
   }
 });
 

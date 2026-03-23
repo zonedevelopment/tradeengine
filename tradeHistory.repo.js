@@ -103,8 +103,10 @@ async function insertTradeHistory(data) {
   }
 }
 
-async function getTradeHistoryByUser(firebaseUserId, limit = 100) {
-  const safeLimit = Math.max(1, Math.min(1000, normalizeNumber(limit, 100)));
+async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
+  const safeLimit = Math.max(1, Math.min(1000, normalizeNumber(limit, 50)));
+  const safePage = Math.max(1, normalizeNumber(page, 1));
+  const offset = (safePage - 1) * safeLimit;
 
   const sql = `
     SELECT
@@ -126,12 +128,25 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100) {
     WHERE firebase_user_id = ?
     ORDER BY id DESC
     LIMIT ?
+    OFFSET ?
   `;
 
-  return await query(sql, [firebaseUserId, safeLimit]);
+  return await query(sql, [firebaseUserId, safeLimit, offset]);
+}
+
+async function countTradeHistoryByUser(firebaseUserId) {
+  const sql = `
+    SELECT COUNT(*) AS total
+    FROM trade_history
+    WHERE firebase_user_id = ?
+  `;
+
+  const rows = await query(sql, [firebaseUserId]);
+  return rows?.[0]?.total ? Number(rows[0].total) : 0;
 }
 
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
+  countTradeHistoryByUser
 };
