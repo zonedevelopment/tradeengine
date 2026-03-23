@@ -1,4 +1,5 @@
 require("dotenv").config();
+var cors = require('cors')
 const express = require("express");
 const cron = require("node-cron");
 const { testConnection } = require("./db");
@@ -39,6 +40,12 @@ const symbolConfig = {
 
 const app = express();
 app.use(express.json());
+app.use(cors({
+  origin: ["https://tradeengineapi.zonedevnode.com"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 function ensureDataDir() {
   const dataPath = path.join(__dirname, "data");
