@@ -110,23 +110,37 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
 
   const sql = `
     SELECT
-      id,
-      firebase_user_id,
-      ticket_id,
-      event_type,
-      symbol,
-      side,
-      lot,
-      price,
-      sl,
-      tp,
-      profit,
-      mode,
-      created_at,
-      event_time
-    FROM trade_history
-    WHERE firebase_user_id = ? AND event_type = 'CLOSE_ORDER'
-    ORDER BY id DESC
+      c.id,
+      c.firebase_user_id,
+      c.ticket_id,
+
+      c.symbol,
+      c.side,
+      c.lot,
+
+      o.price AS entry_price,
+      c.price AS close_price,
+
+      o.sl,
+      o.tp,
+
+      c.profit,
+      c.mode,
+
+      o.event_time AS open_time,
+      c.event_time AS close_time
+
+    FROM trade_history c
+
+    LEFT JOIN trade_history o
+      ON c.ticket_id = o.ticket_id
+      AND o.event_type = 'OPEN_ORDER'
+
+    WHERE
+      c.firebase_user_id = ?
+      AND c.event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+
+    ORDER BY c.id DESC
     LIMIT ?
     OFFSET ?
   `;
@@ -136,10 +150,11 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
 
 async function countTradeHistoryByUser(firebaseUserId) {
   const sql = `
-    SELECT COUNT(*) AS total
-    FROM trade_history
-    WHERE firebase_user_id = ?
-  `;
+  SELECT COUNT(*) AS total
+  FROM trade_history
+  WHERE firebase_user_id = ?
+    AND event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+`;
 
   const rows = await query(sql, [firebaseUserId]);
   return rows?.[0]?.total ? Number(rows[0].total) : 0;

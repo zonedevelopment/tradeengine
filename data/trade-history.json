@@ -17611,5 +17611,20 @@
     "mode": "SCALP",
     "ticket_id": 2822119709,
     "logged_at": "2026-03-23T17:55:18.468Z"
+  },
+  {
+    "type": "CLOSE_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "ticketId": 2561629484,
+    "side": "BUY",
+    "lot": 0.01,
+    "price": 4414.694,
+    "sl": 0,
+    "tp": 0,
+    "profit": -8,
+    "mode": "SCALP",
+    "ticket_id": 2561629484,
+    "logged_at": "2026-03-23T18:07:26.383Z"
   }
 ]
