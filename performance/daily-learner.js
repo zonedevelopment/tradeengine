@@ -400,7 +400,7 @@ async function runDailyLearning() {
             const sessionName = getSessionName(matchedCandleLog.timestamp);
 
             const learningItem = {
-                userId: openOrder.userId || null,
+                userId: openOrder.firebaseUserId || null,
                 accountId: openOrder.accountId || null,
                 symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
                 timeframe: openOrder.timeframe || "M5",
@@ -435,32 +435,6 @@ async function runDailyLearning() {
                 postMortem,
                 minPriceDiff: minDiff,
             };
-
-            // mappedResults.push({
-            //     timestamp: matchedCandleLog.timestamp,
-            //     symbol: learningItem.symbol,
-            //     patternType,
-            //     triggerPattern,
-            //     mode: learningItem.mode,
-            //     tickVolume,
-            //     microTrend,
-            //     volumeProfile,
-            //     prePatternShape,
-            //     rangeState,
-            //     sessionName,
-            //     openPrice: openOrder.price,
-            //     closePrice: t.price,
-            //     slPrice: openOrder.sl,
-            //     tpPrice: openOrder.tp,
-            //     slPips,
-            //     tpPips,
-            //     rrRatio,
-            //     profit: t.profit,
-            //     result: learningItem.result,
-            //     side: openOrder.side,
-            //     postMortem,
-            //     contextHash: learningItem.contextHash,
-            // });
 
             mappedResults.push({
                 firebaseUserId: learningItem.userId || null,
