@@ -211,7 +211,7 @@ app.post("/signal", async (req, res) => {
       signalStrength = -score;
     }
 
-        const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+    const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const mult = activeCfg.pipMultiplier;
     const avgRange = calculateAvgRange(candles, 5, mult);
 
@@ -317,7 +317,7 @@ app.post("/signal", async (req, res) => {
       if (lotSize < 0.01) lotSize = 0.01;
 
       tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
-      tpPoints = Math.round(tpPoints * 0.8);
+      // tpPoints = Math.round(tpPoints * 0.8);
       evaluateResult.mode = "SCALP";
     }
 
