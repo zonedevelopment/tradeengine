@@ -493,89 +493,13 @@ app.post("/trade-event", async (req, res) => {
 });
 
 app.post("/check-exit-signal", async (req, res) => {
-  // const {
-  //   firebaseUserId,
-  //   openPosition,
-  //   candles,
-  //   currentProfit,
-  //   symbol = "XAUUSD",
-  //   mode = "NORMAL",
-  // } = req.body;
-  const {
-    firebaseUserId,
-    openPosition,
-    candles,
-    currentProfit,
-    symbol = "XAUUSD",
-    mode = "NORMAL",
-    tpPoints,
-    slPoints,
-  } = req.body;
-
-  if (!openPosition || !candles) {
-    return res.status(400).json({
-      error: "Missing required data: openPosition and candles",
-    });
-  }
-
-  const resolvedUserId = firebaseUserId || null;
-
-  try {
-    const pattern = detectMotherFishPattern({ candles });
-
-    const contextFeatures = buildContextFeatures({
-      symbol,
-      timeframe: "M5",
-      side: openPosition.side,
-      mode,
-      pattern,
-      marketPrice: openPosition.price || openPosition.entryPrice || 0,
-      candles,
-      now: new Date(),
-    });
-
-    const contextHash = buildContextHash(contextFeatures);
-
-    const failedPattern = await findFailedPattern({
-      userId: resolvedUserId,
-      accountId: null,
-      symbol,
-      timeframe: "M5",
-      side: openPosition.side,
-      mode,
-      contextHash,
-    });
-
-    // const exitDecision = analyzeEarlyExit({
-    //   firebaseUserId: resolvedUserId,
-    //   openPosition,
-    //   currentProfit,
-    //   candles,
-    //   failedPattern,
-    // });
-    const exitDecision = analyzeEarlyExit({
-        firebaseUserId: resolvedUserId,
-        openPosition,
-        currentProfit,
-        candles,
-        failedPattern,
-        mode,
-        tpPoints,
-        slPoints,
-      });
-
-    console.log(
-      `-> ️ Early Exit [${resolvedUserId}] ${openPosition.side}: ${exitDecision.action} - ${exitDecision.reason}`
-    );
-
-    return res.json(exitDecision);
-  } catch (error) {
-    console.error("Early Exit analysis failed:", error.message);
-    return res.status(500).json({
-      action: "HOLD",
-      reason: "Analysis engine error.",
-    });
-  }
+  // BYPASS EARLY EXIT TEMPORARILY
+  return res.json({
+    action: "HOLD",
+    reason: "Early exit bypassed manually to prevent panic closes.",
+    riskLevel: "LOW",
+    score: 0
+  });
 });
 
 app.post("/webhook/mae-pla", async (req, res) => {
