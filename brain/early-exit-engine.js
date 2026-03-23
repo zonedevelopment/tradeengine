@@ -12,44 +12,64 @@
  */
 const { analyzePattern } = require("../pattern/pattern-analyzer");
 
-function shouldMoveToBreakEven({
-      mode,
-      currentProfit,
-      tpPoints,
-      slPoints,
-      pattern,
-      side,
-    }) {
-      if (mode !== "NORMAL") return false;
-      if (!tpPoints || !slPoints) return false;
-    
-      const profitToTP = currentProfit / tpPoints;
-      const profitToSL = currentProfit / slPoints;
-    
-      let allowBE = false;
-    
-      if (profitToTP >= 0.4 || profitToSL >= 0.8) {
-        allowBE = true;
-      }
-    
-      if (pattern?.isVolumeClimax) {
-        allowBE = false;
-      }
-    
-      if (pattern?.isVolumeDrying) {
-        allowBE = true;
-      }
-    
-      if (pattern?.recentMassiveBull && side === "BUY") {
-        allowBE = false;
-      }
-    
-      if (pattern?.recentMassiveBear && side === "SELL") {
-        allowBE = false;
-      }
-    
-      return allowBE;
+function shouldMoveToBreakeven(openPosition, currentProfit = 0, side = "") {
+    if (!openPosition) return false;
+
+    const entryPrice = Number(
+        openPosition.entryPrice ??
+        openPosition.entry_price ??
+        openPosition.entry ??
+        openPosition.price ??
+        0
+    );
+
+    const currentPrice = Number(
+        openPosition.currentPrice ??
+        openPosition.current_price ??
+        openPosition.marketPrice ??
+        openPosition.market_price ??
+        0
+    );
+
+    const stopLossPrice = Number(
+        openPosition.sl ??
+        openPosition.stopLoss ??
+        openPosition.stop_loss ??
+        0
+    );
+
+    if (!entryPrice || !currentPrice || !stopLossPrice) {
+        return false;
     }
+
+    const normalizedSide = String(side || "").toUpperCase();
+
+    let initialRiskDistance = 0;
+    let currentProfitDistance = 0;
+
+    if (normalizedSide === "BUY") {
+        initialRiskDistance = Math.abs(entryPrice - stopLossPrice);
+        currentProfitDistance = currentPrice - entryPrice;
+    } else if (normalizedSide === "SELL") {
+        initialRiskDistance = Math.abs(stopLossPrice - entryPrice);
+        currentProfitDistance = entryPrice - currentPrice;
+    } else {
+        return false;
+    }
+
+    if (initialRiskDistance <= 0) return false;
+    if (currentProfitDistance <= 0) return false;
+
+    const progressRatio = currentProfitDistance / initialRiskDistance;
+
+    // ไปทางบวกมากพอสมควร = อย่างน้อยประมาณ 0.8R
+    // และ currentProfit ต้องบวกจริง
+    if (currentProfit > 0 && progressRatio >= 0.8) {
+        return true;
+    }
+
+    return false;
+}
 
 // function analyzeEarlyExit({
 //     firebaseUserId = null,
@@ -59,15 +79,15 @@ function shouldMoveToBreakEven({
 //     failedPattern = null
 // }) {
 function analyzeEarlyExit({
-      firebaseUserId,
-      openPosition,
-      currentProfit,
-      candles,
-      failedPattern,
-      mode = "NORMAL",
-      tpPoints = 0,
-      slPoints = 0,
-    }) {
+    firebaseUserId,
+    openPosition,
+    currentProfit,
+    candles,
+    failedPattern,
+    mode = "NORMAL",
+    tpPoints = 0,
+    slPoints = 0,
+}) {
     // =========================
     // 1. VALIDATION
     // =========================
@@ -177,21 +197,33 @@ function analyzeEarlyExit({
     }
 
     // 2) move to break-even
-      if (
-        shouldMoveToBreakEven({
-          mode,
-          currentProfit,
-          tpPoints,
-          slPoints,
-          pattern,
-          side,
-        })
-      ) {
-        return {
-          action: "MOVE_TO_BE",
-          reason: "Profit has reached a safe threshold for break-even protection.",
-        };
-      }
+    // if (
+    //     shouldMoveToBreakEven({
+    //         mode,
+    //         currentProfit,
+    //         tpPoints,
+    //         slPoints,
+    //         pattern,
+    //         side,
+    //     })
+    // ) {
+    //     return {
+    //         action: "MOVE_TO_BE",
+    //         reason: "Profit has reached a safe threshold for break-even protection.",
+    //     };
+    // }
+    if (currentProfit > 0) {
+        const moveToBreakeven = shouldMoveToBreakeven(openPosition, currentProfit, side);
+
+        if (moveToBreakeven) {
+            return {
+                action: "MOVE_TO_BE",
+                reason: "Price moved enough in favor, move SL to breakeven",
+                riskLevel,
+                score: adjustedScore
+            };
+        }
+    }
 
     // =========================
     // 5. PROFIT PROTECTION / TAKE SMALL PROFIT

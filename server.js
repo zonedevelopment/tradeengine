@@ -228,12 +228,12 @@ app.post("/signal", async (req, res) => {
       } else {
         tpPoints = Math.round(avgRange * 2.2);
       }
-      
+
       if (spreadPoints > 0) {
         slPoints += Math.round(spreadPoints * 1.75);
         tpPoints += Math.round(spreadPoints * 1.75);
       }
-      
+
     } else if (side === "SELL") {
       if (pattern.slPrice > price) {
         slPoints = Math.round((pattern.slPrice - price) * mult);
@@ -245,7 +245,7 @@ app.post("/signal", async (req, res) => {
       } else {
         tpPoints = Math.round(avgRange * 2.2);
       }
-      
+
       if (spreadPoints > 0) {
         slPoints += Math.round(spreadPoints * 1.75);
         tpPoints += Math.round(spreadPoints * 1.75);
@@ -253,7 +253,7 @@ app.post("/signal", async (req, res) => {
     }
 
     retracePoints = Math.round(avgRange * 0.85);
-    
+
     if (signalStrength >= 6) {
       retracePoints = Math.round(retracePoints * 0.35);
     } else if (signalStrength >= 4) {
@@ -263,11 +263,11 @@ app.post("/signal", async (req, res) => {
     } else {
       retracePoints = Math.round(retracePoints * 1.20);
     }
-    
+
     if (pattern?.isVolumeClimax) {
       retracePoints = Math.round(retracePoints * 0.80);
     }
-    
+
     if (pattern?.isVolumeDrying) {
       retracePoints = Math.round(retracePoints * 1.15);
     }
@@ -276,7 +276,7 @@ app.post("/signal", async (req, res) => {
     if (retracePoints > maxRetraceBySL) {
       retracePoints = maxRetraceBySL;
     }
-    
+
     const minR = 20 * (mult / 100);
     const maxR = 200 * (mult / 100);
     if (retracePoints < minR) retracePoints = minR;
@@ -494,14 +494,46 @@ app.post("/trade-event", async (req, res) => {
   });
 });
 
+// app.post("/check-exit-signal", async (req, res) => {
+//   // BYPASS EARLY EXIT TEMPORARILY
+//   return res.json({
+//     action: "HOLD",
+//     reason: "Early exit bypassed manually to prevent panic closes.",
+//     riskLevel: "LOW",
+//     score: 0
+//   });
+// });
 app.post("/check-exit-signal", async (req, res) => {
-  // BYPASS EARLY EXIT TEMPORARILY
-  return res.json({
-    action: "HOLD",
-    reason: "Early exit bypassed manually to prevent panic closes.",
-    riskLevel: "LOW",
-    score: 0
-  });
+  const {
+    firebaseUserId,
+    openPosition,
+    candles,
+    currentProfit,
+    failedPattern = null
+  } = req.body;
+
+  const resolvedUserId = firebaseUserId || null;
+
+  try {
+    const result = analyzeEarlyExit({
+      firebaseUserId: resolvedUserId,
+      openPosition,
+      currentProfit,
+      candles,
+      failedPattern
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("check-exit-signal error:", error);
+
+    return res.status(500).json({
+      action: "HOLD",
+      reason: error.message || "Internal server error",
+      riskLevel: "UNKNOWN",
+      score: 0
+    });
+  }
 });
 
 app.post("/webhook/mae-pla", async (req, res) => {
