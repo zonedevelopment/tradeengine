@@ -22936,5 +22936,50 @@
     "mode": "NORMAL",
     "ticket_id": 2569861832,
     "logged_at": "2026-03-24T14:45:25.672Z"
+  },
+  {
+    "type": "CLOSE_EMERGENCY",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "ticketId": 2831066639,
+    "side": "BUY",
+    "lot": 0,
+    "price": 0,
+    "sl": 0,
+    "tp": 0,
+    "profit": 0.64,
+    "mode": "SCALP",
+    "ticket_id": 2831066639,
+    "logged_at": "2026-03-24T14:46:10.989Z"
+  },
+  {
+    "type": "CLOSE_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "ticketId": 2569870586,
+    "side": "BUY",
+    "lot": 0.01,
+    "price": 4411.107,
+    "sl": 4402.692,
+    "tp": 4420.692,
+    "profit": 0.56,
+    "mode": "SCALP",
+    "ticket_id": 2569870586,
+    "logged_at": "2026-03-24T14:46:11.494Z"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "ticketId": 0,
+    "side": "SELL",
+    "lot": 0.03,
+    "price": 69602.57,
+    "sl": 12500,
+    "tp": 18000,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticket_id": 0,
+    "logged_at": "2026-03-24T14:50:01.308Z"
   }
 ]
