@@ -121,8 +121,8 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       o.price AS entry_price,
       c.price AS close_price,
 
-      o.sl,
-      o.tp,
+      c.sl,
+      c.tp,
 
       c.profit,
       c.mode,
@@ -133,7 +133,7 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
     FROM trade_history c
 
     LEFT JOIN trade_history o
-      ON c.ticket_id = o.ticket_id
+      ON c.price = o.price
       AND o.event_type = 'OPEN_ORDER'
 
     WHERE
