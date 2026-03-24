@@ -27,6 +27,10 @@ const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser } = r
 const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
+const {
+  upsertAccountSnapshot,
+  getAccountSnapshotByUser
+} = require("./accountSnapshot.repo");
 
 
 const symbolConfig = {
@@ -651,6 +655,95 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
   } catch (error) {
     console.error("get active-positions error:", error);
 
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.post("/account-snapshot", async (req, res) => {
+  const {
+    firebaseUserId,
+    accountId,
+    balance,
+    equity,
+    margin,
+    freeMargin,
+    floatingProfit,
+    dailyProfit,
+    todayWinTrades,
+    todayLossTrades,
+    openPositionsCount,
+    maxPositions,
+    eventTime
+  } = req.body;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  try {
+    console.log("[account-snapshot] incoming:", {
+      firebaseUserId,
+      balance,
+      equity,
+      dailyProfit,
+      floatingProfit,
+      openPositionsCount
+    });
+
+    await upsertAccountSnapshot({
+      firebaseUserId,
+      accountId,
+      balance,
+      equity,
+      margin,
+      freeMargin,
+      floatingProfit,
+      dailyProfit,
+      todayWinTrades,
+      todayLossTrades,
+      openPositionsCount,
+      maxPositions,
+      eventTime
+    });
+
+    return res.json({
+      success: true,
+      message: "Account snapshot saved successfully"
+    });
+  } catch (error) {
+    console.error("account-snapshot error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
+  const { firebaseUserId } = req.params;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  try {
+    const row = await getAccountSnapshotByUser(firebaseUserId);
+
+    return res.json({
+      success: true,
+      data: row
+    });
+  } catch (error) {
+    console.error("get account-snapshot error:", error);
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
