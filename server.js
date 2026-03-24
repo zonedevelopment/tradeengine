@@ -904,7 +904,7 @@ app.get("/commands/pending", async (req, res) => {
       });
     }
 
-    await markEmergencyCommandProcessing(command.command_id);
+    // await markEmergencyCommandProcessing(command.command_id);
 
     return res.json({
       success: true,
