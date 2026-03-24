@@ -140,7 +140,7 @@
 //     syncActivePositionsToMongo,
 //     getActivePositionsByUserAndSymbol,
 // };
-const ActivePosition = require("../models/ActivePosition");
+const ActivePosition = require("./models/ActivePosition");
 
 function normalizeNumber(value, fallback = 0) {
     if (value === undefined || value === null || value === "") {
