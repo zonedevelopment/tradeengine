@@ -42,6 +42,11 @@ const {
   expireOldPendingCommands
 } = require("./emergencyCommand.repo");
 
+const {
+  syncActivePositionsToMongo,
+  getActivePositionsByUserAndSymbol,
+} = require("./activePosition.mongo.repo");
+
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
@@ -635,9 +640,17 @@ app.post("/active-positions", async (req, res) => {
     //   eventTime
     // });
 
-    const result = await syncActivePositionsToFirebase({
+    // const result = await syncActivePositionsToFirebase({
+    //   firebaseUserId,
+    //   accountId,
+    //   positions,
+    //   eventTime,
+    // });
+
+    const result = await syncActivePositionsToMongo({
       firebaseUserId,
       accountId,
+      symbol,
       positions,
       eventTime,
     });
@@ -658,12 +671,18 @@ app.post("/active-positions", async (req, res) => {
   }
 });
 
-app.get("/active-positions/:firebaseUserId", async (req, res) => {
-  const { firebaseUserId } = req.params;
-  const { accountId = null } = req.query;
+// app.get("/active-positions/:firebaseUserId", async (req, res) => {
+//   const { firebaseUserId } = req.params;
+//   const { accountId = null } = req.query;
+app.get("/active-positions/:firebaseUserId/:symbol", async (req, res) => {
+  const { firebaseUserId, symbol } = req.params;
 
   try {
-    const rows = await getActivePositionsByUser(firebaseUserId, accountId);
+    // const rows = await getActivePositionsByUser(firebaseUserId, accountId);
+    const rows = await getActivePositionsByUserAndSymbol({
+      firebaseUserId,
+      symbol,
+    });
 
     return res.json({
       success: true,
