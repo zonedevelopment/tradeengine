@@ -6808,5 +6808,70 @@
       "side": "BUY"
     },
     "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-24T15:11:59.126Z",
+    "type": "trade_result",
+    "ticket_id": 2831351197,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.43,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:11:59.569Z",
+    "type": "trade_result",
+    "ticket_id": 2570225564,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.49,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:14:50.558Z",
+    "type": "trade_result",
+    "ticket_id": 2570247748,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "SL",
+    "pnl_pips": -16.1,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-24T15:23:54.068Z",
+    "type": "trade_result",
+    "ticket_id": 2831488419,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 1.77,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:23:54.508Z",
+    "type": "trade_result",
+    "ticket_id": 2570327701,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 2.02,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
   }
 ]

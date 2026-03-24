@@ -196,7 +196,7 @@ async function syncActivePositionsToMongo({
     const incomingTicketIds = [];
     const bulkOps = [];
 
-    if (positions) {
+    if (positions.length > 0) {
         for (const position of positions) {
             const ticketId = normalizeTicketId(position.ticketId ?? position.ticket_id);
             if (!ticketId) continue;
@@ -273,14 +273,7 @@ async function syncActivePositionsToMongo({
                 }
             }
         }
-    }
-
-    // if (bulkOps.length > 0) {
-    //     await ActivePosition.bulkWrite(bulkOps, { ordered: false });
-    // }
-
-    if (incomingTicketIds.length === 0) {
-        // ไม่มีออเดอร์แล้ว -> ลบทั้งหมดของ user + symbol นี้
+    } else {
         const deleted = await ActivePosition.deleteMany({
             firebaseUserId: safeFirebaseUserId
         });
@@ -293,6 +286,25 @@ async function syncActivePositionsToMongo({
             deletedCount: deleted.deletedCount || 0,
         };
     }
+
+    // if (bulkOps.length > 0) {
+    //     await ActivePosition.bulkWrite(bulkOps, { ordered: false });
+    // }
+
+    // if (incomingTicketIds.length === 0) {
+    //     // ไม่มีออเดอร์แล้ว -> ลบทั้งหมดของ user + symbol นี้
+    //     const deleted = await ActivePosition.deleteMany({
+    //         firebaseUserId: safeFirebaseUserId
+    //     });
+
+    //     return {
+    //         success: true,
+    //         firebaseUserId: safeFirebaseUserId,
+    //         symbol: safeSymbol,
+    //         count: 0,
+    //         deletedCount: deleted.deletedCount || 0,
+    //     };
+    // }
 
     // ลบ ticket ที่ไม่อยู่ใน snapshot ล่าสุด
     const deleted = await ActivePosition.deleteMany({
