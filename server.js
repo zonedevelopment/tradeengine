@@ -33,6 +33,15 @@ const {
 } = require("./accountSnapshot.repo");
 const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
 
+const {
+  insertEmergencyCommand,
+  getPendingEmergencyCommand,
+  markEmergencyCommandProcessing,
+  updateEmergencyCommandResult,
+  getEmergencyCommandById,
+  expireOldPendingCommands
+} = require("./emergencyCommand.repo");
+
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
@@ -752,6 +761,208 @@ app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
     });
   } catch (error) {
     console.error("get account-snapshot error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+//Emergency close
+app.post("/commands/emergency-close", async (req, res) => {
+  const {
+    firebaseUserId,
+    accountId,
+    symbol,
+    scope = "ONE",
+    ticketId = null,
+    eventTime
+  } = req.body;
+
+  if (!accountId) {
+    return res.status(400).json({
+      success: false,
+      error: "accountId is required"
+    });
+  }
+
+  if (!symbol) {
+    return res.status(400).json({
+      success: false,
+      error: "symbol is required"
+    });
+  }
+
+  const safeScope = String(scope || "").trim().toUpperCase();
+
+  if (!["ALL", "ONE"].includes(safeScope)) {
+    return res.status(400).json({
+      success: false,
+      error: "scope must be ALL or ONE"
+    });
+  }
+
+  if (safeScope === "ONE" && !ticketId) {
+    return res.status(400).json({
+      success: false,
+      error: "ticketId is required when scope is ONE"
+    });
+  }
+
+  try {
+    const command = await insertEmergencyCommand({
+      firebaseUserId,
+      accountId,
+      symbol,
+      type: safeScope === "ONE" ? "CLOSE_POSITION" : "EMERGENCY_CLOSE",
+      scope: safeScope,
+      ticketId,
+      eventTime
+    });
+
+    console.log("[emergency-close] command created:", command);
+
+    return res.json({
+      success: true,
+      message: "Emergency command created successfully",
+      data: command
+    });
+  } catch (error) {
+    console.error("emergency-close error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/commands/pending", async (req, res) => {
+  const { accountId, symbol } = req.query;
+
+  if (!accountId) {
+    return res.status(400).json({
+      success: false,
+      hasCommand: false,
+      error: "accountId is required"
+    });
+  }
+
+  if (!symbol) {
+    return res.status(400).json({
+      success: false,
+      hasCommand: false,
+      error: "symbol is required"
+    });
+  }
+
+  try {
+    await expireOldPendingCommands(5);
+
+    const command = await getPendingEmergencyCommand(accountId, symbol);
+
+    if (!command) {
+      return res.json({
+        success: true,
+        hasCommand: false
+      });
+    }
+
+    await markEmergencyCommandProcessing(command.command_id);
+
+    return res.json({
+      success: true,
+      hasCommand: true,
+      commandId: command.command_id,
+      type: command.type,
+      scope: command.scope,
+      ticketId: command.ticket_id ? String(command.ticket_id) : "",
+      symbol: command.symbol
+    });
+  } catch (error) {
+    console.error("commands/pending error:", error);
+
+    return res.status(500).json({
+      success: false,
+      hasCommand: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.post("/commands/result", async (req, res) => {
+  const {
+    commandId,
+    status,
+    message,
+    eventTime
+  } = req.body;
+
+  if (!commandId) {
+    return res.status(400).json({
+      success: false,
+      error: "commandId is required"
+    });
+  }
+
+  if (!status) {
+    return res.status(400).json({
+      success: false,
+      error: "status is required"
+    });
+  }
+
+  try {
+    await updateEmergencyCommandResult({
+      commandId,
+      status,
+      message,
+      eventTime
+    });
+
+    const command = await getEmergencyCommandById(commandId);
+
+    console.log("[commands/result] updated:", {
+      commandId,
+      status,
+      message
+    });
+
+    return res.json({
+      success: true,
+      message: "Command result updated successfully",
+      data: command
+    });
+  } catch (error) {
+    console.error("commands/result error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/commands/:commandId", async (req, res) => {
+  const { commandId } = req.params;
+
+  if (!commandId) {
+    return res.status(400).json({
+      success: false,
+      error: "commandId is required"
+    });
+  }
+
+  try {
+    const command = await getEmergencyCommandById(commandId);
+
+    return res.json({
+      success: true,
+      data: command || null
+    });
+  } catch (error) {
+    console.error("get command by id error:", error);
+
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
