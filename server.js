@@ -47,6 +47,8 @@ const {
   getActivePositionsByUserAndSymbol,
 } = require("./activePosition.mongo.repo");
 
+const database = require('./config/mongoDB')
+
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
@@ -1055,6 +1057,7 @@ testConnection().catch((err) => {
   console.error("MySQL connection error:", err.message);
 });
 
-app.listen(5000, () => {
+app.listen(5000, async () => {
+  await database.connect();
   console.log("Trading AI Engine running");
 });
