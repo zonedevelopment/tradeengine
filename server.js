@@ -23,7 +23,7 @@ const { findFailedPattern } = require("./failedPattern.repo");
 const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
-const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser } = require("./tradeHistory.repo");
+const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getTradeHistoryDetailFromCommands } = require("./tradeHistory.repo");
 const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
@@ -931,6 +931,8 @@ app.post("/commands/result", async (req, res) => {
     commandId,
     status,
     message,
+    closePrice,
+    closeProfit,
     eventTime
   } = req.body;
 
@@ -963,6 +965,32 @@ app.post("/commands/result", async (req, res) => {
       status,
       message
     });
+
+    //Update trade history
+    let dbInsertResult = null;
+    let dbInsertError = null;
+
+    const tradeHistory = await getTradeHistoryDetailFromCommands(commandId);
+
+    try {
+      dbInsertResult = await insertTradeHistory({
+        firebaseUserId: tradeHistory.firebase_user_id,
+        ticketId: tradeHistory.ticket_id,
+        eventType: "CLOSE_ORDER",
+        symbol: tradeHistory.symbol,
+        side: tradeHistory.side,
+        lot: tradeHistory.lot,
+        closePrice,
+        sl: tradeHistory.sl,
+        tp: tradeHistory.tp,
+        closeProfit,
+        mode: tradeHistory.mode,
+        eventTime: new Date(),
+      });
+    } catch (dbError) {
+      dbInsertError = dbError;
+      console.error("Insert trade_history error:", dbError.message);
+    }
 
     return res.json({
       success: true,
