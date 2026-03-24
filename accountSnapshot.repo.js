@@ -47,7 +47,6 @@ async function upsertAccountSnapshot(data) {
       today_win_trades,
       today_loss_trades,
       open_positions_count,
-      max_positions,
       event_time
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
@@ -61,7 +60,6 @@ async function upsertAccountSnapshot(data) {
       today_win_trades = VALUES(today_win_trades),
       today_loss_trades = VALUES(today_loss_trades),
       open_positions_count = VALUES(open_positions_count),
-      max_positions = VALUES(max_positions),
       event_time = VALUES(event_time)
   `;
 
@@ -77,7 +75,6 @@ async function upsertAccountSnapshot(data) {
         normalizeInt(data.todayWinTrades, 0),
         normalizeInt(data.todayLossTrades, 0),
         normalizeInt(data.openPositionsCount, 0),
-        normalizeInt(data.maxPositions, 0),
         normalizeDate(data.eventTime),
     ];
 
@@ -99,7 +96,6 @@ async function getAccountSnapshotByUser(firebaseUserId) {
       today_win_trades,
       today_loss_trades,
       open_positions_count,
-      max_positions,
       event_time,
       created_at,
       updated_at
