@@ -48,7 +48,7 @@ async function upsertAccountSnapshot(data) {
       today_loss_trades,
       open_positions_count,
       event_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       account_id = VALUES(account_id),
       balance = VALUES(balance),
