@@ -6873,5 +6873,57 @@
       "side": "BUY"
     },
     "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:29:18.148Z",
+    "type": "trade_result",
+    "ticket_id": 2570376884,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -3.75,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-03-24T15:30:54.099Z",
+    "type": "trade_result",
+    "ticket_id": 2831599193,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 2.83,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:30:54.513Z",
+    "type": "trade_result",
+    "ticket_id": 2570390568,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 2.89,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T15:31:54.240Z",
+    "type": "trade_result",
+    "ticket_id": 2570398957,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 1.8,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
   }
 ]
