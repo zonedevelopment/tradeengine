@@ -183,7 +183,7 @@ async function syncActivePositionsToMongo({
 }) {
     const safeFirebaseUserId = normalizeString(firebaseUserId);
     const safeAccountId = normalizeString(accountId, "");
-    const safeSymbol = normalizeString(symbol, "").toUpperCase();
+    const safeSymbol = normalizeString(symbol, "");
 
     if (!safeFirebaseUserId) {
         throw new Error("firebaseUserId is required");
@@ -202,41 +202,80 @@ async function syncActivePositionsToMongo({
 
         incomingTicketIds.push(ticketId);
 
-        bulkOps.push({
-            updateOne: {
-                filter: {
-                    firebaseUserId: safeFirebaseUserId,
-                    symbol: safeSymbol,
-                    ticketId,
-                },
-                update: {
-                    $set: {
-                        ticketId,
-                        firebaseUserId: safeFirebaseUserId,
-                        accountId: safeAccountId,
-                        symbol: normalizeString(position.symbol || safeSymbol).toUpperCase(),
-                        side: normalizeString(position.side, "").toUpperCase(),
-                        lot: normalizeNumber(position.lot, 0),
-                        entryPrice: normalizeNumber(position.entryPrice, 0),
-                        currentPrice: normalizeNumber(position.currentPrice, 0),
-                        sl: normalizeNumber(position.sl, 0),
-                        tp: normalizeNumber(position.tp, 0),
-                        profit: normalizeNumber(position.profit, 0),
-                        swap: normalizeNumber(position.swap, 0),
-                        commission: normalizeNumber(position.commission, 0),
-                        openTime: normalizeDate(position.openTime),
-                        eventTime: normalizeDate(eventTime || position.eventTime),
-                        updatedAt: new Date(),
-                    },
-                },
-                upsert: true,
+        // bulkOps.push({
+        //     updateOne: {
+        //         filter: {
+        //             firebaseUserId: safeFirebaseUserId,
+        //             symbol: safeSymbol,
+        //             ticketId,
+        //         },
+        //         update: {
+        //             $set: {
+        //                 ticketId,
+        //                 firebaseUserId: safeFirebaseUserId,
+        //                 accountId: safeAccountId,
+        //                 symbol: normalizeString(position.symbol || safeSymbol).toUpperCase(),
+        //                 side: normalizeString(position.side, "").toUpperCase(),
+        //                 lot: normalizeNumber(position.lot, 0),
+        //                 entryPrice: normalizeNumber(position.entryPrice, 0),
+        //                 currentPrice: normalizeNumber(position.currentPrice, 0),
+        //                 sl: normalizeNumber(position.sl, 0),
+        //                 tp: normalizeNumber(position.tp, 0),
+        //                 profit: normalizeNumber(position.profit, 0),
+        //                 swap: normalizeNumber(position.swap, 0),
+        //                 commission: normalizeNumber(position.commission, 0),
+        //                 openTime: normalizeDate(position.openTime),
+        //                 eventTime: normalizeDate(eventTime || position.eventTime),
+        //                 updatedAt: new Date(),
+        //             },
+        //         },
+        //         upsert: true,
+        //     },
+        // });
+        const filter = {
+            firebaseUserId: safeFirebaseUserId,
+            symbol: safeSymbol,
+            ticketId,
+        };
+
+        const update = {
+            $set: {
+                accountId: safeAccountId,
+                symbol: safeSymbol,
+                side: normalizeString(position.side, "").toUpperCase(),
+                lot: normalizeNumber(position.lot, 0),
+                entryPrice: normalizeNumber(position.entryPrice, 0),
+                currentPrice: normalizeNumber(position.currentPrice, 0),
+                sl: normalizeNumber(position.sl, 0),
+                tp: normalizeNumber(position.tp, 0),
+                profit: normalizeNumber(position.profit, 0),
+                swap: normalizeNumber(position.swap, 0),
+                commission: normalizeNumber(position.commission, 0),
+                openTime: normalizeDate(position.openTime),
+                eventTime: normalizeDate(eventTime || position.eventTime),
+                updatedAt: new Date(),
             },
-        });
+            $setOnInsert: {
+                ticketId,
+                firebaseUserId: safeFirebaseUserId,
+            },
+        };
+
+        try {
+            await ActivePosition.updateOne(filter, update, { upsert: true });
+        } catch (error) {
+            if (error.code === 11000) {
+                // 🔥 ถ้าซ้ำ → update ซ้ำอีกที (safe)
+                await ActivePosition.updateOne(filter, { $set: update.$set });
+            } else {
+                throw error;
+            }
+        }
     }
 
-    if (bulkOps.length > 0) {
-        await ActivePosition.bulkWrite(bulkOps, { ordered: false });
-    }
+    // if (bulkOps.length > 0) {
+    //     await ActivePosition.bulkWrite(bulkOps, { ordered: false });
+    // }
 
     if (incomingTicketIds.length === 0) {
         // ไม่มีออเดอร์แล้ว -> ลบทั้งหมดของ user + symbol นี้

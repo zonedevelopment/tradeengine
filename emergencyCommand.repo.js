@@ -84,7 +84,7 @@ async function insertEmergencyCommand(data) {
         commandId,
         normalizeString(data.firebaseUserId) || null,
         normalizeString(data.accountId),
-        normalizeString(data.symbol).toUpperCase(),
+        normalizeString(data.symbol),
         safeType,
         safeScope,
         safeTicketId,
@@ -135,7 +135,7 @@ async function getPendingEmergencyCommand(accountId, symbol) {
 
     const rows = await query(sql, [
         normalizeString(accountId),
-        normalizeString(symbol).toUpperCase(),
+        normalizeString(symbol),
     ]);
 
     return rows[0] || null;
