@@ -20701,5 +20701,20 @@
     "mode": "SCALP",
     "ticket_id": 0,
     "logged_at": "2026-03-24T08:35:01.935Z"
+  },
+  {
+    "type": "CANCEL_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "ticketId": 0,
+    "side": "BUY",
+    "lot": 0.01,
+    "price": 4396.771,
+    "sl": 8000,
+    "tp": 10000,
+    "profit": 0,
+    "mode": "SCALP",
+    "ticket_id": 0,
+    "logged_at": "2026-03-24T08:40:01.749Z"
   }
 ]
