@@ -663,7 +663,7 @@ app.post("/active-positions", async (req, res) => {
     //   eventTime,
     // });
 
-    console.log(req.body)
+    // console.log(req.body)
 
     const result = await syncActivePositionsToMongo({
       firebaseUserId,
