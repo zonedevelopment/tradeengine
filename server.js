@@ -62,12 +62,25 @@ const symbolConfig = {
 
 const app = express();
 app.use(express.json());
-app.use(cors({
-  origin: ["https://tradeengine.zonedevnode.com"],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+// app.use(cors({
+//   origin: ["https://tradeengine.zonedevnode.com"],
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"]
+// }));
+const whiteList = ['https://tradeengine.zonedevnode.com'];
+var corsOptionsDelegate = function (req, callback) {
+  var corsOptions;
+  if (whiteList.indexOf(req.header('Origin')) !== -1) {
+    corsOptions = { origin: true }
+  } else {
+    corsOptions = { origin: false }
+  }
+
+  callback(null, corsOptions)
+}
+
+app.use(cors(corsOptionsDelegate));
 
 function ensureDataDir() {
   const dataPath = path.join(__dirname, "data");
