@@ -628,6 +628,7 @@ app.post("/active-positions", async (req, res) => {
   const {
     firebaseUserId,
     accountId = null,
+    symbol = "",
     positions = [],
     eventTime = null
   } = req.body;
