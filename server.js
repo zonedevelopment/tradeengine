@@ -621,6 +621,7 @@ app.post("/active-positions", async (req, res) => {
       eventTime
     });
 
+    console.error("active-positions req.body:", req.body);
     return res.json({
       success: true,
       message: "Active positions synced successfully",

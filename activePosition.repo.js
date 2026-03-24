@@ -26,12 +26,13 @@ function normalizeTicketId(value) {
     }
 
     const str = String(value).trim();
+
+    // รองรับ string digit
     if (!/^\d+$/.test(str)) {
         return null;
     }
 
-    const num = Number(str);
-    return Number.isSafeInteger(num) ? num : null;
+    return str; // ✅ เก็บเป็น string ไปเลย
 }
 
 function normalizeSide(value) {
@@ -45,22 +46,19 @@ async function upsertActivePositionsSnapshot({
     positions = [],
     eventTime = null
 }) {
-    const conn = await getConnection();
+    const safeFirebaseUserId = firebaseUserId ? String(firebaseUserId).trim() : "";
+    const safeAccountId = accountId ? String(accountId).trim() : "";
+
+    if (!safeFirebaseUserId) {
+        throw new Error("firebaseUserId is required");
+    }
+
+    const safePositions = Array.isArray(positions) ? positions : [];
+    const eventTimeValue = normalizeDate(eventTime);
+    const validTickets = [];
 
     try {
-        await conn.beginTransaction();
-
-        const safeFirebaseUserId = firebaseUserId ? String(firebaseUserId).trim() : "";
-        const safeAccountId = accountId ? String(accountId).trim() : "";
-
-        if (!safeFirebaseUserId) {
-            throw new Error("firebaseUserId is required");
-        }
-
-        const safePositions = Array.isArray(positions) ? positions : [];
-        const eventTimeValue = normalizeDate(eventTime);
-        const validTickets = [];
-
+        // 🔥 1. UPSERT ทีละตัว
         for (const item of safePositions) {
             const ticketId = normalizeTicketId(item.ticketId ?? item.ticket_id ?? item.ticket);
             if (!ticketId) continue;
@@ -119,9 +117,10 @@ async function upsertActivePositionsSnapshot({
                 eventTimeValue
             ];
 
-            await conn.query(sql, params);
+            await query(sql, params);
         }
 
+        // 🔥 2. ลบ ticket ที่หายไป
         if (validTickets.length > 0) {
             const placeholders = validTickets.map(() => "?").join(",");
 
@@ -134,7 +133,7 @@ async function upsertActivePositionsSnapshot({
           AND ticket_id NOT IN (${placeholders})
       `;
 
-            await conn.query(deleteSql, [
+            await query(deleteSql, [
                 safeFirebaseUserId,
                 safeAccountId || null,
                 safeAccountId || null,
@@ -150,7 +149,7 @@ async function upsertActivePositionsSnapshot({
           )
       `;
 
-            await conn.query(deleteAllSql, [
+            await query(deleteAllSql, [
                 safeFirebaseUserId,
                 safeAccountId || null,
                 safeAccountId || null,
@@ -158,17 +157,14 @@ async function upsertActivePositionsSnapshot({
             ]);
         }
 
-        await conn.commit();
-
         return {
             success: true,
             synced: validTickets.length
         };
+
     } catch (error) {
-        await conn.rollback();
+        console.error("upsertActivePositionsSnapshot error:", error);
         throw error;
-    } finally {
-        conn.release();
     }
 }
 
