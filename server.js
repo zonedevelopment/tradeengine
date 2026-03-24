@@ -667,7 +667,7 @@ app.post("/active-positions", async (req, res) => {
       firebaseUserId,
       accountId,
       symbol,
-      positions,
+      positions: Array.isArray(positions) ? positions : [],
       eventTime,
     });
 

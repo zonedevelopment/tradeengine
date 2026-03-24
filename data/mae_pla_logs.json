@@ -6353,5 +6353,96 @@
       "side": "SELL"
     },
     "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:30:13.246Z",
+    "type": "trade_result",
+    "ticket_id": 2829465431,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 3.42,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:30:13.687Z",
+    "type": "trade_result",
+    "ticket_id": 2568355710,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 3.2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:33:35.247Z",
+    "type": "trade_result",
+    "ticket_id": 2829304530,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.87,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:33:35.678Z",
+    "type": "trade_result",
+    "ticket_id": 2568386857,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.87,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:37:31.037Z",
+    "type": "trade_result",
+    "ticket_id": 2568442282,
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "result": "TP",
+    "pnl_pips": 9.75,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:44:50.118Z",
+    "type": "trade_result",
+    "ticket_id": 2829557083,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.14,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-03-24T12:44:50.556Z",
+    "type": "trade_result",
+    "ticket_id": 2568520821,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.16,
+    "market_conditions_at_entry": {
+      "symbol": "BTCUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
   }
 ]
