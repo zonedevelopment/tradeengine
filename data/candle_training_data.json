@@ -159209,5 +159209,118 @@
         "tick_volume": 5560
       }
     ]
+  },
+  {
+    "timestamp": "2026-03-24T16:10:00.142Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "price": 69849.03,
+    "candles": [
+      {
+        "open": 69864.67,
+        "close": 69840.93,
+        "high": 70018.18,
+        "low": 69661.39,
+        "tick_volume": 1199
+      },
+      {
+        "open": 69843.16,
+        "close": 69949.09,
+        "high": 70025.02,
+        "low": 69840.02,
+        "tick_volume": 1197
+      },
+      {
+        "open": 69946.6,
+        "close": 69938.01,
+        "high": 70027.61,
+        "low": 69885.61,
+        "tick_volume": 828
+      },
+      {
+        "open": 69937.79,
+        "close": 69922.91,
+        "high": 70006.94,
+        "low": 69812.59,
+        "tick_volume": 730
+      },
+      {
+        "open": 69922.7,
+        "close": 69929.44,
+        "high": 69996.86,
+        "low": 69872.2,
+        "tick_volume": 667
+      },
+      {
+        "open": 69929.91,
+        "close": 70169.54,
+        "high": 70243.11,
+        "low": 69881.16,
+        "tick_volume": 779
+      },
+      {
+        "open": 70167.13,
+        "close": 70002.54,
+        "high": 70220.08,
+        "low": 69975.37,
+        "tick_volume": 550
+      },
+      {
+        "open": 70005.26,
+        "close": 69883.27,
+        "high": 70048.56,
+        "low": 69735.71,
+        "tick_volume": 667
+      },
+      {
+        "open": 69883.89,
+        "close": 70062.09,
+        "high": 70142.26,
+        "low": 69872.27,
+        "tick_volume": 590
+      },
+      {
+        "open": 70060.84,
+        "close": 70023.67,
+        "high": 70129.18,
+        "low": 69971.6,
+        "tick_volume": 443
+      },
+      {
+        "open": 70021.06,
+        "close": 70030.06,
+        "high": 70040.3,
+        "low": 69921.12,
+        "tick_volume": 423
+      },
+      {
+        "open": 70026.94,
+        "close": 70064.53,
+        "high": 70168.35,
+        "low": 70017.76,
+        "tick_volume": 443
+      },
+      {
+        "open": 70065.41,
+        "close": 69835.82,
+        "high": 70065.41,
+        "low": 69823.93,
+        "tick_volume": 526
+      },
+      {
+        "open": 69833.7,
+        "close": 69803.51,
+        "high": 69857.54,
+        "low": 69770.81,
+        "tick_volume": 525
+      },
+      {
+        "open": 69805.5,
+        "close": 69848.91,
+        "high": 69879.13,
+        "low": 69756.7,
+        "tick_volume": 464
+      }
+    ]
   }
 ]

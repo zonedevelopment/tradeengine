@@ -183,7 +183,7 @@ async function syncActivePositionsToMongo({
 }) {
     const safeFirebaseUserId = normalizeString(firebaseUserId);
     const safeAccountId = normalizeString(accountId, "");
-    const safeSymbol = normalizeString(symbol, "").toUpperCase();
+    let safeSymbol = normalizeString(symbol, "").toUpperCase();
 
     if (!safeFirebaseUserId) {
         throw new Error("firebaseUserId is required");
@@ -202,6 +202,9 @@ async function syncActivePositionsToMongo({
             if (!ticketId) continue;
 
             incomingTicketIds.push(ticketId);
+
+            safeSymbol = normalizeString(position.symbol, "").toUpperCase();
+
 
             // bulkOps.push({
             //     updateOne: {
