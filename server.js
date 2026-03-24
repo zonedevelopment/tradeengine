@@ -1006,54 +1006,67 @@ app.get("/commands/:commandId", async (req, res) => {
   }
 });
 
-cron.schedule("0 */1 * * *", () => {
-  runDailyLearning();
-});
-
-cron.schedule("0 6 * * *", () => {
-  console.log("[AI Cron] Waking up AI for Morning Brief...");
-  exec('openclaw chat "สรุปข่าวเศรษฐกิจ XAUUSD ของวันนี้ และส่ง news_filter เข้า webhook"');
-});
-
-cron.schedule("0 7 * * *", () => {
-  console.log("[AI Cron] Waking up AI for Asian Session...");
-  exec('openclaw chat "ส่ง market_context บอก EA ให้ระวัง Sideway บีบตัว หรือ pause_ea"');
-});
-
-cron.schedule("0 14 * * *", () => {
-  console.log("[AI Cron] Waking up AI for London Session...");
-  exec('openclaw chat "ประเมินโครงสร้าง H1/H4 ปัจจุบัน แล้วส่ง market_context อนุญาตให้ EA กลับมาเทรด (active)"');
-});
-
-cron.schedule("0 18 * * *", async () => {
-  console.log("[AI Cron] Waking up AI for US Session...");
-  exec('openclaw chat "อัปเดตข่าวค่ำนี้ และเตรียมขยับ SL/TP ของ EA เป็น 300/500 จุดผ่าน webhook"');
-});
-
-cron.schedule("30 23 * * *", () => {
-  console.log("[AI Cron] Waking up AI for Daily Review...");
-  exec('openclaw chat "สรุปบทเรียนจากไม้ที่ปิดไปวันนี้ใน mae_pla_logs.json และหาจุดอ่อนเพื่อปรับปรุงระบบ"');
-});
-
-async function updateNewsAnalysis() {
+app.get("/runDailyLearning", async (req, res) => {
   try {
-    const news = await fetchNews();
-    const analysis = await analyzeWithGemini(process.env.GEMINI_API_KEY, news);
-    writeFilter("./trade-filter.json", analysis);
-  } catch (err) {
-    console.log("news error", err);
+    runDailyLearning();
+
+    return res.json({
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
   }
-}
-
-cron.schedule("* 4 * * *", updateNewsAnalysis);
-
-cron.schedule("0 0 * * *", () => {
-  learnPatternWeights();
 });
 
-analyzePerformance();
+app.get("/learnPatternWeights", async (req, res) => {
+  try {
+    learnPatternWeights();
 
-cron.schedule("0 4 * * *", async () => {
+    return res.json({
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/analyzePerformance", async (req, res) => {
+  try {
+    analyzePerformance();
+
+    return res.json({
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/updateNewsAnalysis", async (req, res) => {
+  try {
+    updateNewsAnalysis();
+
+    return res.json({
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/updateSummary", async (req, res) => {
   try {
     const result = analyzePerformance();
 
@@ -1067,9 +1080,70 @@ cron.schedule("0 4 * * *", async () => {
   }
 });
 
-testConnection().catch((err) => {
-  console.error("MySQL connection error:", err.message);
-});
+// cron.schedule("0 */1 * * *", () => {
+//   runDailyLearning();
+// });
+
+// cron.schedule("0 6 * * *", () => {
+//   console.log("[AI Cron] Waking up AI for Morning Brief...");
+//   exec('openclaw chat "สรุปข่าวเศรษฐกิจ XAUUSD ของวันนี้ และส่ง news_filter เข้า webhook"');
+// });
+
+// cron.schedule("0 7 * * *", () => {
+//   console.log("[AI Cron] Waking up AI for Asian Session...");
+//   exec('openclaw chat "ส่ง market_context บอก EA ให้ระวัง Sideway บีบตัว หรือ pause_ea"');
+// });
+
+// cron.schedule("0 14 * * *", () => {
+//   console.log("[AI Cron] Waking up AI for London Session...");
+//   exec('openclaw chat "ประเมินโครงสร้าง H1/H4 ปัจจุบัน แล้วส่ง market_context อนุญาตให้ EA กลับมาเทรด (active)"');
+// });
+
+// cron.schedule("0 18 * * *", async () => {
+//   console.log("[AI Cron] Waking up AI for US Session...");
+//   exec('openclaw chat "อัปเดตข่าวค่ำนี้ และเตรียมขยับ SL/TP ของ EA เป็น 300/500 จุดผ่าน webhook"');
+// });
+
+// cron.schedule("30 23 * * *", () => {
+//   console.log("[AI Cron] Waking up AI for Daily Review...");
+//   exec('openclaw chat "สรุปบทเรียนจากไม้ที่ปิดไปวันนี้ใน mae_pla_logs.json และหาจุดอ่อนเพื่อปรับปรุงระบบ"');
+// });
+
+async function updateNewsAnalysis() {
+  try {
+    const news = await fetchNews();
+    const analysis = await analyzeWithGemini(process.env.GEMINI_API_KEY, news);
+    writeFilter("./trade-filter.json", analysis);
+  } catch (err) {
+    console.log("news error", err);
+  }
+}
+
+// cron.schedule("* 4 * * *", updateNewsAnalysis);
+
+// cron.schedule("0 0 * * *", () => {
+//   learnPatternWeights();
+// });
+
+// analyzePerformance();
+
+// cron.schedule("0 4 * * *", async () => {
+//   try {
+//     const result = analyzePerformance();
+
+//     await sendTelegram(
+//       process.env.TELEGRAM_BOT_TOKEN,
+//       process.env.TELEGRAM_CHAT_ID,
+//       `AI GOLD BOT\n\n สรุปผลการเทรดประจำวัน\n\nTrades: ${result.summary.totalTrades}\nWins: ${result.summary.wins}\nLosses: ${result.summary.losses}\nWinRate: ${result.summary.winRate}%\nProfit: ${result.summary.totalProfit}`
+//     );
+//   } catch (err) {
+//     console.error("Performance Report Error:", err.message);
+//   }
+// });
+
+// testConnection().catch((err) => {
+//   console.error("MySQL connection error:", err.message);
+// });
 
 app.listen(5000, async () => {
   await database.connect();
