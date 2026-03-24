@@ -36,10 +36,10 @@ const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.ser
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSD": { pipMultiplier: 100, minSL: 1500, maxSL: 7000, minTP: 4000, maxTP: 8000 },
+  "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1800, maxTP: 6000 },
   "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 1500, maxSL: 7000, minTP: 4000, maxTP: 8000 },
+  "BTCUSDm": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1800, maxTP: 6000 },
   "EURUSDm": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };
