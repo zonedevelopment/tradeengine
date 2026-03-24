@@ -117,21 +117,20 @@ async function syncActivePositionsToMongo({
     };
 }
 
-async function getActivePositionsByUserAndSymbol({ firebaseUserId, symbol }) {
+async function getActivePositionsByUserAndSymbol({ firebaseUserId }) {
     const safeFirebaseUserId = normalizeString(firebaseUserId);
-    const safeSymbol = normalizeString(symbol, "").toUpperCase();
+    // const safeSymbol = normalizeString(symbol, "").toUpperCase();
 
     if (!safeFirebaseUserId) {
         throw new Error("firebaseUserId is required");
     }
 
-    if (!safeSymbol) {
-        throw new Error("symbol is required");
-    }
+    // if (!safeSymbol) {
+    //     throw new Error("symbol is required");
+    // }
 
     return await ActivePosition.find({
         firebaseUserId: safeFirebaseUserId,
-        symbol: safeSymbol,
     })
         .sort({ openTime: -1, updatedAt: -1, _id: -1 })
         .lean();

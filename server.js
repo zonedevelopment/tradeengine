@@ -690,14 +690,13 @@ app.post("/active-positions", async (req, res) => {
 // app.get("/active-positions/:firebaseUserId", async (req, res) => {
 //   const { firebaseUserId } = req.params;
 //   const { accountId = null } = req.query;
-app.get("/active-positions/:firebaseUserId/:symbol", async (req, res) => {
-  const { firebaseUserId, symbol } = req.params;
+app.get("/active-positions/:firebaseUserId", async (req, res) => {
+  const { firebaseUserId } = req.params;
 
   try {
     // const rows = await getActivePositionsByUser(firebaseUserId, accountId);
     const rows = await getActivePositionsByUserAndSymbol({
-      firebaseUserId,
-      symbol,
+      firebaseUserId
     });
 
     return res.json({
