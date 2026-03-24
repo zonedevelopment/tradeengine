@@ -189,9 +189,9 @@ async function syncActivePositionsToMongo({
         throw new Error("firebaseUserId is required");
     }
 
-    if (!safeSymbol) {
-        throw new Error("symbol is required");
-    }
+    // if (!safeSymbol) {
+    //     throw new Error("symbol is required");
+    // }
 
     const incomingTicketIds = [];
     const bulkOps = [];

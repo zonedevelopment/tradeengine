@@ -643,7 +643,7 @@ app.post("/active-positions", async (req, res) => {
   const {
     firebaseUserId,
     accountId = null,
-    symbol = "",
+    symbol,
     positions = [],
     eventTime = null
   } = req.body;
@@ -662,6 +662,8 @@ app.post("/active-positions", async (req, res) => {
     //   positions,
     //   eventTime,
     // });
+
+    //console.log(req.body)
 
     const result = await syncActivePositionsToMongo({
       firebaseUserId,

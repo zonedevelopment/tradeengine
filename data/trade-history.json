@@ -21991,5 +21991,20 @@
     "mode": "NORMAL",
     "ticket_id": 2568520821,
     "logged_at": "2026-03-24T12:44:50.553Z"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "ticketId": 0,
+    "side": "BUY",
+    "lot": 0.02,
+    "price": 70959.56,
+    "sl": 12500,
+    "tp": 18000,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticket_id": 0,
+    "logged_at": "2026-03-24T12:55:01.587Z"
   }
 ]
