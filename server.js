@@ -31,6 +31,7 @@ const {
   upsertAccountSnapshot,
   getAccountSnapshotByUser
 } = require("./accountSnapshot.repo");
+const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
 
 
 const symbolConfig = {
@@ -618,11 +619,18 @@ app.post("/active-positions", async (req, res) => {
   } = req.body;
 
   try {
-    const result = await upsertActivePositionsSnapshot({
+    // const result = await upsertActivePositionsSnapshot({
+    //   firebaseUserId,
+    //   accountId,
+    //   positions,
+    //   eventTime
+    // });
+
+    const result = await syncActivePositionsToFirebase({
       firebaseUserId,
       accountId,
       positions,
-      eventTime
+      eventTime,
     });
 
     console.error("active-positions req.body:", req.body);
