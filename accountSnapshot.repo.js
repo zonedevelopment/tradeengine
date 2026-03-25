@@ -102,6 +102,7 @@ async function getAccountSnapshotByUser(firebaseUserId) {
       free_margin,
       floating_profit,
       daily_profit,
+      daily_net_profit,
       today_win_trades,
       today_loss_trades,
       open_positions_count,
