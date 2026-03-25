@@ -1158,7 +1158,7 @@ app.get("/commands/:commandId", async (req, res) => {
 
 app.get("/runDailyLearning", async (req, res) => {
   try {
-    const result = await runDailyLearning();
+    await runDailyLearning();
 
     return res.json({
       success: true,
@@ -1234,9 +1234,9 @@ app.get("/updateSummary", async (req, res) => {
   }
 });
 
-// cron.schedule("0 */1 * * *", () => {
-//   runDailyLearning();
-// });
+cron.schedule("0 */1 * * *", () => {
+  runDailyLearning();
+});
 
 // cron.schedule("0 6 * * *", () => {
 //   console.log("[AI Cron] Waking up AI for Morning Brief...");
