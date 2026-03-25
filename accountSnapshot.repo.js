@@ -47,8 +47,11 @@ async function upsertAccountSnapshot(data) {
       today_win_trades,
       today_loss_trades,
       open_positions_count,
-      event_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      event_time,
+      daily_loss,
+      daily_net_profit,
+      today_closed_trades
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       account_id = VALUES(account_id),
       balance = VALUES(balance),
@@ -60,7 +63,10 @@ async function upsertAccountSnapshot(data) {
       today_win_trades = VALUES(today_win_trades),
       today_loss_trades = VALUES(today_loss_trades),
       open_positions_count = VALUES(open_positions_count),
-      event_time = VALUES(event_time)
+      event_time = VALUES(event_time),
+      daily_loss = VALUES(daily_loss),
+      daily_net_profit = VALUES(daily_net_profit),
+      today_closed_trades = VALUES(today_closed_trades)
   `;
 
     const params = [
@@ -76,6 +82,9 @@ async function upsertAccountSnapshot(data) {
         normalizeInt(data.todayLossTrades, 0),
         normalizeInt(data.openPositionsCount, 0),
         normalizeDate(data.eventTime),
+        normalizeNumber(data.dailyLoss, 0),
+        normalizeNumber(data.dailyNetProfit, 0),
+        normalizeInt(data.todayClosedTrades, 0),
     ];
 
     return await query(sql, params);

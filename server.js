@@ -725,8 +725,11 @@ app.post("/account-snapshot", async (req, res) => {
     freeMargin,
     floatingProfit,
     dailyProfit,
+    dailyLoss,
+    dailyNetProfit,
     todayWinTrades,
     todayLossTrades,
+    todayClosedTrades,
     openPositionsCount,
     maxPositions,
     eventTime
@@ -758,8 +761,11 @@ app.post("/account-snapshot", async (req, res) => {
       freeMargin,
       floatingProfit,
       dailyProfit,
+      dailyLoss,
+      dailyNetProfit,
       todayWinTrades,
       todayLossTrades,
+      todayClosedTrades,
       openPositionsCount,
       maxPositions,
       eventTime
