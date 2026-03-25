@@ -5,7 +5,7 @@ const { detectMotherFishPattern } = require("../pattern/pattern-rules");
 const { query } = require("../db");
 
 const { insertManyMappedTradeAnalysis } = require("../mappedTradeAnalysis.repo");
-const { getTradeEventsForLearning } = require("../tradeHistory.repo")
+const { getTradeEventsForLearning, getHistoryLearnWeight } = require("../tradeHistory.repo")
 
 function bucketizePoints(points) {
     const p = Number(points || 0);
@@ -310,7 +310,7 @@ async function runDailyLearning() {
 
     // const tradeHistPath = path.join(dataDir, "trade-history.json");
     const candleDataPath = path.join(dataDir, "candle_training_data.json");
-    const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
+    // const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
     const weightPath = path.join(learningDir, "pattern-weight.json");
 
     if (!fs.existsSync(candleDataPath)) {
@@ -319,14 +319,14 @@ async function runDailyLearning() {
     }
 
     let trades = await getTradeEventsForLearning();
-    let candleLogs = [];
-    try {
-        trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
-        candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
-    } catch (e) {
-        console.log("[Daily Learner] JSON parse error:", e.message);
-        return;
-    }
+    let candleLogs = await getHistoryLearnWeight();
+    // try {
+    //     trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
+    //     candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+    // } catch (e) {
+    //     console.log("[Daily Learner] JSON parse error:", e.message);
+    //     return;
+    // }
 
     let weights = {};
     if (fs.existsSync(weightPath)) {
