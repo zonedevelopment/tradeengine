@@ -27,10 +27,17 @@ const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getT
 const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
+// const {
+//   upsertAccountSnapshot,
+//   getAccountSnapshotByUser
+// } = require("./accountSnapshot.repo");
+
 const {
-  upsertAccountSnapshot,
-  getAccountSnapshotByUser
+  upsertDailyAccountSnapshot,
+  getTodayAccountSnapshotByUser,
+  getAccountSnapshotsByUser
 } = require("./accountSnapshot.repo");
+
 const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
 
 const {
@@ -649,22 +656,6 @@ app.post("/active-positions", async (req, res) => {
   } = req.body;
 
   try {
-    // const result = await upsertActivePositionsSnapshot({
-    //   firebaseUserId,
-    //   accountId,
-    //   positions,
-    //   eventTime
-    // });
-
-    // const result = await syncActivePositionsToFirebase({
-    //   firebaseUserId,
-    //   accountId,
-    //   positions,
-    //   eventTime,
-    // });
-
-    // console.log(req.body)
-
     const result = await syncActivePositionsToMongo({
       firebaseUserId,
       accountId,
@@ -673,7 +664,6 @@ app.post("/active-positions", async (req, res) => {
       eventTime,
     });
 
-    //console.error("active-positions req.body:", req.body);
     return res.json({
       success: true,
       message: "Active positions synced successfully",
@@ -689,14 +679,10 @@ app.post("/active-positions", async (req, res) => {
   }
 });
 
-// app.get("/active-positions/:firebaseUserId", async (req, res) => {
-//   const { firebaseUserId } = req.params;
-//   const { accountId = null } = req.query;
 app.get("/active-positions/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
 
   try {
-    // const rows = await getActivePositionsByUser(firebaseUserId, accountId);
     const rows = await getActivePositionsByUserAndSymbol({
       firebaseUserId
     });
@@ -714,6 +700,75 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
     });
   }
 });
+
+// app.post("/account-snapshot", async (req, res) => {
+//   const {
+//     firebaseUserId,
+//     accountId,
+//     balance,
+//     equity,
+//     margin,
+//     freeMargin,
+//     floatingProfit,
+//     dailyProfit,
+//     dailyLoss,
+//     dailyNetProfit,
+//     todayWinTrades,
+//     todayLossTrades,
+//     todayClosedTrades,
+//     openPositionsCount,
+//     maxPositions,
+//     eventTime
+//   } = req.body;
+
+//   if (!firebaseUserId) {
+//     return res.status(400).json({
+//       success: false,
+//       error: "firebaseUserId is required"
+//     });
+//   }
+
+//   try {
+//     console.log("[account-snapshot] incoming:", {
+//       firebaseUserId,
+//       balance,
+//       equity,
+//       dailyProfit,
+//       floatingProfit,
+//       openPositionsCount
+//     });
+
+//     await upsertAccountSnapshot({
+//       firebaseUserId,
+//       accountId,
+//       balance,
+//       equity,
+//       margin,
+//       freeMargin,
+//       floatingProfit,
+//       dailyProfit,
+//       dailyLoss,
+//       dailyNetProfit,
+//       todayWinTrades,
+//       todayLossTrades,
+//       todayClosedTrades,
+//       openPositionsCount,
+//       maxPositions,
+//       eventTime
+//     });
+
+//     return res.json({
+//       success: true,
+//       message: "Account snapshot saved successfully"
+//     });
+//   } catch (error) {
+//     console.error("account-snapshot error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message || "Internal server error"
+//     });
+//   }
+// });
 
 app.post("/account-snapshot", async (req, res) => {
   const {
@@ -745,14 +800,18 @@ app.post("/account-snapshot", async (req, res) => {
   try {
     console.log("[account-snapshot] incoming:", {
       firebaseUserId,
+      accountId,
       balance,
       equity,
       dailyProfit,
+      dailyLoss,
+      dailyNetProfit,
       floatingProfit,
-      openPositionsCount
+      openPositionsCount,
+      eventTime
     });
 
-    await upsertAccountSnapshot({
+    await upsertDailyAccountSnapshot({
       firebaseUserId,
       accountId,
       balance,
@@ -773,7 +832,7 @@ app.post("/account-snapshot", async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Account snapshot saved successfully"
+      message: "Daily account snapshot saved successfully"
     });
   } catch (error) {
     console.error("account-snapshot error:", error);
@@ -784,8 +843,35 @@ app.post("/account-snapshot", async (req, res) => {
   }
 });
 
-app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
+// app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
+//   const { firebaseUserId } = req.params;
+
+//   if (!firebaseUserId) {
+//     return res.status(400).json({
+//       success: false,
+//       error: "firebaseUserId is required"
+//     });
+//   }
+
+//   try {
+//     const row = await getAccountSnapshotByUser(firebaseUserId);
+
+//     return res.json({
+//       success: true,
+//       data: row
+//     });
+//   } catch (error) {
+//     console.error("get account-snapshot error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message || "Internal server error"
+//     });
+//   }
+// });
+
+app.get("/account-snapshots/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
+  const { limit = 30, page = 1 } = req.query;
 
   if (!firebaseUserId) {
     return res.status(400).json({
@@ -795,14 +881,18 @@ app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
   }
 
   try {
-    const row = await getAccountSnapshotByUser(firebaseUserId);
+    const rows = await getAccountSnapshotsByUser(firebaseUserId, limit, page);
 
     return res.json({
       success: true,
-      data: row
+      data: rows,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit)
+      }
     });
   } catch (error) {
-    console.error("get account-snapshot error:", error);
+    console.error("get account-snapshots error:", error);
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
