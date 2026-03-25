@@ -1158,10 +1158,11 @@ app.get("/commands/:commandId", async (req, res) => {
 
 app.get("/runDailyLearning", async (req, res) => {
   try {
-    await runDailyLearning();
+    const result = await runDailyLearning();
 
     return res.json({
-      success: true
+      success: true,
+      data: result || null
     });
   } catch (error) {
     return res.status(500).json({
@@ -1173,10 +1174,11 @@ app.get("/runDailyLearning", async (req, res) => {
 
 app.get("/learnPatternWeights", async (req, res) => {
   try {
-    await learnPatternWeights();
+    const result = await learnPatternWeights();
 
     return res.json({
-      success: true
+      success: true,
+      data: result || null
     });
   } catch (error) {
     return res.status(500).json({
@@ -1188,10 +1190,11 @@ app.get("/learnPatternWeights", async (req, res) => {
 
 app.get("/analyzePerformance", async (req, res) => {
   try {
-    await analyzePerformance();
+    const result = await analyzePerformance();
 
     return res.json({
-      success: true
+      success: true,
+      data: result || null
     });
   } catch (error) {
     return res.status(500).json({
@@ -1203,10 +1206,11 @@ app.get("/analyzePerformance", async (req, res) => {
 
 app.get("/updateNewsAnalysis", async (req, res) => {
   try {
-    await updateNewsAnalysis();
+    const result = await updateNewsAnalysis();
 
     return res.json({
-      success: true
+      success: true,
+      data: result || null
     });
   } catch (error) {
     return res.status(500).json({
@@ -1220,11 +1224,11 @@ app.get("/updateSummary", async (req, res) => {
   try {
     const result = await analyzePerformance();
 
-    await sendTelegram(
-      process.env.TELEGRAM_BOT_TOKEN,
-      process.env.TELEGRAM_CHAT_ID,
-      `AI GOLD BOT\n\n สรุปผลการเทรดประจำวัน\n\nTrades: ${result.summary.totalTrades}\nWins: ${result.summary.wins}\nLosses: ${result.summary.losses}\nWinRate: ${result.summary.winRate}%\nProfit: ${result.summary.totalProfit}`
-    );
+    // await sendTelegram(
+    //   process.env.TELEGRAM_BOT_TOKEN,
+    //   process.env.TELEGRAM_CHAT_ID,
+    //   `AI GOLD BOT\n\n สรุปผลการเทรดประจำวัน\n\nTrades: ${result.summary.totalTrades}\nWins: ${result.summary.wins}\nLosses: ${result.summary.losses}\nWinRate: ${result.summary.winRate}%\nProfit: ${result.summary.totalProfit}`
+    // );
   } catch (err) {
     console.error("Performance Report Error:", err.message);
   }
