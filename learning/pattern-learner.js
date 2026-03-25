@@ -1,15 +1,16 @@
 const fs = require("fs");
+const path = require("path");
 
 function learnPatternWeights() {
 
     const dataDir = path.join(__dirname, "../data");
-    const learningDir = path.join(__dirname, "learning");
+    // const learningDir = path.join(__dirname, "learning");
 
     // const historyFile = "../data/trade-history.json";
     // const weightFile = "./pattern-weight.json";
 
     const historyFile = path.join(dataDir, "trade-history.json");
-    const weightFile = path.join(learningDir, "pattern-weight.json");
+    const weightFile = path.join(__dirname, "pattern-weight.json");
 
     if (!fs.existsSync(historyFile)) return;
 
