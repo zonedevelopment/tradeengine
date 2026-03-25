@@ -3,7 +3,7 @@ const fs = require("fs");
 function learnPatternWeights() {
 
     const dataDir = path.join(__dirname, "../data");
-    const learningDir = path.join(__dirname, "../learning");
+    const learningDir = path.join(__dirname, "learning");
 
     // const historyFile = "../data/trade-history.json";
     // const weightFile = "./pattern-weight.json";
