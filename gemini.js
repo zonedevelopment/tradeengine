@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-async function analyzeWithGemini(apiKey, newsItems) {
+async function analyzeWithGemini(apiKey) {
     // const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 

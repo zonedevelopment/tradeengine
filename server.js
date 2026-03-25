@@ -1268,11 +1268,14 @@ app.get("/updateSummary", async (req, res) => {
 //   exec('openclaw chat "สรุปบทเรียนจากไม้ที่ปิดไปวันนี้ใน mae_pla_logs.json และหาจุดอ่อนเพื่อปรับปรุงระบบ"');
 // });
 
+
 async function updateNewsAnalysis() {
   try {
-    const news = await fetchNews();
-    const analysis = await analyzeWithGemini(process.env.GEMINI_API_KEY, news);
-    writeFilter("./trade-filter.json", analysis);
+    // const news = await fetchNews();
+    const analysis = await analyzeWithGemini(process.env.GEMINI_API_KEY);
+
+    const tradeFilter = path.join(__dirname, "trade-filter.json");
+    writeFilter(tradeFilter, analysis);
   } catch (err) {
     console.log("news error", err);
   }
