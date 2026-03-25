@@ -33,10 +33,12 @@ function analyzePerformance() {
     };
 
     for (const t of history) {
+        if (t.type !== "CLOSE_ORDER" && t.type !== "CLOSE_EMERGENCY") continue;
+
         summary.totalTrades++;
         summary.totalProfit += Number(t.profit || 0);
 
-        if (t.type === "CLOSE_ORDER") {
+        if (true) {
             if (t.profit > 0) {
                 summary.wins++;
             } else {
