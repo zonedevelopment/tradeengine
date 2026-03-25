@@ -5,6 +5,7 @@ const cron = require("node-cron");
 const { testConnection } = require("./db");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { fetchNews } = require("./news");
 const { analyzeWithGemini, analyzeMotherFishWithGemini } = require("./gemini");
 const { writeFilter, readFilter } = require("./filter-writer");
@@ -24,13 +25,22 @@ const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
 const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getTradeHistoryDetailFromCommands } = require("./tradeHistory.repo");
-const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
+
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
 // const {
 //   upsertAccountSnapshot,
 //   getAccountSnapshotByUser
 // } = require("./accountSnapshot.repo");
+
+const {
+  registerSseClient,
+  unregisterSseClient,
+  startActivePositionChangeStream,
+  buildClientKey,
+  sendSse
+} = require("./activePosition.stream");
+const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 
 const {
   upsertDailyAccountSnapshot,
@@ -1307,7 +1317,65 @@ async function updateNewsAnalysis() {
 //   console.error("MySQL connection error:", err.message);
 // });
 
+app.get("/active-positions/stream", async (req, res) => {
+  const { firebaseUserId } = req.query;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+
+  if (res.flushHeaders) res.flushHeaders();
+
+  const clientId = crypto.randomUUID();
+
+  registerSseClient({
+    clientId,
+    firebaseUserId,
+    res
+  });
+
+  // ส่ง initial snapshot ตอนเชื่อมต่อ
+  try {
+    const query = { firebaseUserId };
+    // if (symbol) query.symbol = String(symbol).toUpperCase();
+
+    const rows = await ActivePosition.find(query)
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    sendSse(res, "active-positions-init", {
+      action: "init",
+      firebaseUserId,
+      rows
+    });
+  } catch (err) {
+    sendSse(res, "error", { message: err.message });
+  }
+
+  // keep-alive
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (_) { }
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(keepAlive);
+    unregisterSseClient(clientId);
+    res.end();
+  });
+});
+
 app.listen(5000, async () => {
   await database.connect();
+  startActivePositionChangeStream();
   console.log("Trading AI Engine running");
 });

@@ -1,14 +1,14 @@
 {
   "SELL": -1.14,
   "BUY": -1.05,
-  "Pin_Bar_Shooting_Star": -0.5999999999999991,
+  "Pin_Bar_Shooting_Star": -1.2000000000000013,
   "Morning_Star_Base_Break": 0,
-  "Evening_Star_Base_Break": -0.8999999999999996,
+  "Evening_Star_Base_Break": -1.6500000000000004,
   "Pin_Bar_Hammer": 2,
-  "Piercing_Pattern": 0.6000000000000006,
+  "Piercing_Pattern": 1.2000000000000013,
   "Waterfall_Drop_Continuation": 1.7999999999999998,
   "Dark_Cloud_Cover": 1.9,
-  "Bullish_Engulfing": -1.5000000000000027,
-  "Rocket_Surge_Continuation": 1.1999999999999988,
+  "Bullish_Engulfing": -1.8000000000000003,
+  "Rocket_Surge_Continuation": 1.5499999999999994,
   "Bearish_Engulfing": -1.8000000000000003
 }
