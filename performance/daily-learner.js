@@ -488,7 +488,7 @@ async function runDailyLearning() {
     fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
     try {
-        await insertManyMappedTradeAnalysis(mappedResults);
+        return await insertManyMappedTradeAnalysis(mappedResults);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
     }
