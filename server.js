@@ -1158,7 +1158,7 @@ app.get("/commands/:commandId", async (req, res) => {
 
 app.get("/runDailyLearning", async (req, res) => {
   try {
-    runDailyLearning();
+    await runDailyLearning();
 
     return res.json({
       success: true
@@ -1173,7 +1173,7 @@ app.get("/runDailyLearning", async (req, res) => {
 
 app.get("/learnPatternWeights", async (req, res) => {
   try {
-    learnPatternWeights();
+    await learnPatternWeights();
 
     return res.json({
       success: true
@@ -1188,7 +1188,7 @@ app.get("/learnPatternWeights", async (req, res) => {
 
 app.get("/analyzePerformance", async (req, res) => {
   try {
-    analyzePerformance();
+    await analyzePerformance();
 
     return res.json({
       success: true
@@ -1203,7 +1203,7 @@ app.get("/analyzePerformance", async (req, res) => {
 
 app.get("/updateNewsAnalysis", async (req, res) => {
   try {
-    updateNewsAnalysis();
+    await updateNewsAnalysis();
 
     return res.json({
       success: true
@@ -1218,7 +1218,7 @@ app.get("/updateNewsAnalysis", async (req, res) => {
 
 app.get("/updateSummary", async (req, res) => {
   try {
-    const result = analyzePerformance();
+    const result = await analyzePerformance();
 
     await sendTelegram(
       process.env.TELEGRAM_BOT_TOKEN,
