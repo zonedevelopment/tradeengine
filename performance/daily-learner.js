@@ -20,10 +20,15 @@ function getSessionName(timestamp) {
     const date = new Date(timestamp);
     const bangkokHour = (date.getUTCHours() + 7) % 24;
 
+    // if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
+    // if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
+    // if (bangkokHour >= 19 || bangkokHour < 1) return "NEWYORK";
+    // if (bangkokHour >= 19 && bangkokHour < 23) return "OVERLAP";
+    // return "UNKNOWN";
     if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
     if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
-    if (bangkokHour >= 19 || bangkokHour < 1) return "NEWYORK";
-    if (bangkokHour >= 19 && bangkokHour < 23) return "OVERLAP";
+    if (bangkokHour >= 19 && bangkokHour < 23) return "NEWYORK";
+    if (bangkokHour >= 23 || bangkokHour < 1) return "OVERLAP";
     return "UNKNOWN";
 }
 
