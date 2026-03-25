@@ -239,10 +239,124 @@ async function getTradeEventsForAnalysis({
   return await query(sql, params);
 }
 
+async function getTradeEventsForLearning() {
+  const sql = `
+    SELECT
+      id,
+      firebase_user_id,
+      ticket_id,
+      event_type,
+      symbol,
+      side,
+      lot,
+      price,
+      sl,
+      tp,
+      profit,
+      mode,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE event_type = 'OPEN_ORDER'
+    ORDER BY COALESCE(event_time, created_at) ASC, id ASC`;
+
+  return await query(sql);
+}
+
+/*async function getHistoryLearnWeight() {
+  const safeLimit = Math.max(1, Math.min(2500, normalizeNumber(limit, 2500)));
+
+  const conditions = [
+    `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`,
+    `COALESCE(event_time, created_at) >= DATE_SUB(NOW(), INTERVAL 1 DAY)`
+  ];
+
+  const params = [];
+
+  const sql = `
+    SELECT
+      id,
+      firebase_user_id,
+      ticket_id,
+      event_type,
+      symbol,
+      side,
+      lot,
+      price,
+      sl,
+      tp,
+      profit,
+      CASE 
+        WHEN profit > 0 THEN 'WIN'
+        ELSE 'LOSE'
+      END AS result
+      mode,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY COALESCE(event_time, created_at) DESC, id DESC
+    LIMIT ?
+  `;
+
+  params.push(safeLimit);
+
+  return await query(sql, params);
+}*/
+
+async function getHistoryLearnWeight() {
+  const safeLimit = Math.max(1, Math.min(2000, Number(limit) || 2500));
+
+  const conditions = [
+    `event_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)`,
+    `event_time <= NOW()`,
+    `result IN ('WIN', 'LOSS')`
+  ];
+
+  const params = [];
+
+  const sql = `
+    SELECT
+      firebase_user_id,
+      account_id,
+      event_time,
+      symbol,
+      pattern_type,
+      trigger_pattern,
+      mode,
+      tick_volume,
+      micro_trend,
+      volume_profile,
+      pre_pattern_shape,
+      range_state,
+      session_name,
+      open_price,
+      close_price,
+      sl_price,
+      tp_price,
+      sl_pips,
+      tp_pips,
+      rr_ratio,
+      profit,
+      result,
+      side
+    FROM mapped_trade_analysis
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY event_time DESC
+    LIMIT ?
+  `;
+
+  params.push(safeLimit);
+
+  return await query(sql, params);
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
   countTradeHistoryByUser,
   getTradeHistoryDetailFromCommands,
-  getTradeEventsForAnalysis
+  getTradeEventsForAnalysis,
+  getTradeEventsForLearning,
+  getHistoryLearnWeight
 };

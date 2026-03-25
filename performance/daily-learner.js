@@ -5,6 +5,7 @@ const { detectMotherFishPattern } = require("../pattern/pattern-rules");
 const { query } = require("../db");
 
 const { insertManyMappedTradeAnalysis } = require("../mappedTradeAnalysis.repo");
+const { getTradeEventsForLearning } = require("../tradeHistory.repo")
 
 function bucketizePoints(points) {
     const p = Number(points || 0);
@@ -19,12 +20,6 @@ function bucketizePoints(points) {
 function getSessionName(timestamp) {
     const date = new Date(timestamp);
     const bangkokHour = (date.getUTCHours() + 7) % 24;
-
-    // if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
-    // if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
-    // if (bangkokHour >= 19 || bangkokHour < 1) return "NEWYORK";
-    // if (bangkokHour >= 19 && bangkokHour < 23) return "OVERLAP";
-    // return "UNKNOWN";
     if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
     if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
     if (bangkokHour >= 19 && bangkokHour < 23) return "NEWYORK";
@@ -313,17 +308,17 @@ async function runDailyLearning() {
 
     if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
 
-    const tradeHistPath = path.join(dataDir, "trade-history.json");
+    // const tradeHistPath = path.join(dataDir, "trade-history.json");
     const candleDataPath = path.join(dataDir, "candle_training_data.json");
     const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
     const weightPath = path.join(learningDir, "pattern-weight.json");
 
-    if (!fs.existsSync(tradeHistPath) || !fs.existsSync(candleDataPath)) {
+    if (!fs.existsSync(candleDataPath)) {
         console.log("[Daily Learner] Missing data files. Skipping learning.");
         return;
     }
 
-    let trades = [];
+    let trades = await getTradeEventsForLearning();
     let candleLogs = [];
     try {
         trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
@@ -408,7 +403,7 @@ async function runDailyLearning() {
                 userId: openOrder.firebaseUserId || null,
                 accountId: openOrder.accountId || null,
                 symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
-                timeframe: openOrder.timeframe || "M5",
+                timeframe: "M5",
                 side: openOrder.side,
                 mode: openOrder.mode || "NORMAL",
                 triggerPattern,
