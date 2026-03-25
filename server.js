@@ -869,9 +869,8 @@ app.post("/account-snapshot", async (req, res) => {
 //   }
 // });
 
-app.get("/account-snapshots/:firebaseUserId", async (req, res) => {
+app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
-  const { limit = 30, page = 1 } = req.query;
 
   if (!firebaseUserId) {
     return res.status(400).json({
@@ -881,24 +880,51 @@ app.get("/account-snapshots/:firebaseUserId", async (req, res) => {
   }
 
   try {
-    const rows = await getAccountSnapshotsByUser(firebaseUserId, limit, page);
+    const row = await getTodayAccountSnapshotByUser(firebaseUserId);
 
     return res.json({
       success: true,
-      data: rows,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit)
-      }
+      data: row || null
     });
   } catch (error) {
-    console.error("get account-snapshots error:", error);
+    console.error("get account-snapshot error:", error);
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
     });
   }
 });
+
+// app.get("/account-snapshots/:firebaseUserId", async (req, res) => {
+//   const { firebaseUserId } = req.params;
+//   const { limit = 30, page = 1 } = req.query;
+
+//   if (!firebaseUserId) {
+//     return res.status(400).json({
+//       success: false,
+//       error: "firebaseUserId is required"
+//     });
+//   }
+
+//   try {
+//     const rows = await getAccountSnapshotsByUser(firebaseUserId, limit, page);
+
+//     return res.json({
+//       success: true,
+//       data: rows,
+//       pagination: {
+//         page: Number(page),
+//         limit: Number(limit)
+//       }
+//     });
+//   } catch (error) {
+//     console.error("get account-snapshots error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message || "Internal server error"
+//     });
+//   }
+// });
 
 //Emergency close
 app.post("/commands/emergency-close", async (req, res) => {
