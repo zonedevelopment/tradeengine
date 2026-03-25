@@ -134,7 +134,7 @@ function normalizeTicketId(value) {
   return Number.isSafeInteger(num) ? num : null;
 }
 
-function calculateAvgRange(candles = [], length = 3) {
+function calculateAvgRange(candles = [], length = 3, pipMultiplier) {
   if (!Array.isArray(candles) || candles.length < length) return 50;
 
   const recent = candles.slice(-length);
@@ -143,7 +143,7 @@ function calculateAvgRange(candles = [], length = 3) {
   );
 
   const avg = ranges.reduce((sum, v) => sum + v, 0) / ranges.length;
-  return avg;
+  return (avg * pipMultiplier);
 }
 
 app.post("/signal", async (req, res) => {
