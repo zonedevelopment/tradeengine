@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { getTradeEventsForAnalysis } = require("./tradeHistory.repo");
 
 function safeReadJson(file, fallback) {
     try {
@@ -15,16 +16,23 @@ function safeReadJson(file, fallback) {
     }
 }
 
-function analyzePerformance() {
+
+async function analyzePerformance(firebaseUserId, symbol, mode) {
     const dataDir = path.join(__dirname, "../data");
     const learningDir = path.join(__dirname, "../learning");
 
     const weightFile = path.join(learningDir, "pattern-weight.json");
-    const historyFile = path.join(dataDir, "../data/trade-history.json");
+    // const historyFile = path.join(dataDir, "../data/trade-history.json");
     const stateFile = path.join(__dirname, "performance-state.json");
     //const weightFile = path.join(__dirname, "../learning/pattern-weight.json");
 
-    const history = safeReadJson(historyFile, []);
+    // const history = safeReadJson(historyFile, []);
+    const history = await getTradeEventsForAnalysis({
+        firebaseUserId,
+        symbol,
+        mode,
+        limit: 5000
+    });
 
     const summary = {
         totalTrades: 0,

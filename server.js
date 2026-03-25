@@ -505,7 +505,7 @@ app.post("/trade-event", async (req, res) => {
   }
 
   try {
-    analyzePerformance();
+    analyzePerformance(resolvedUserId, symbol, mode);
   } catch (perfError) {
     console.error("analyzePerformance error:", perfError.message);
   }
@@ -1115,7 +1115,7 @@ app.post("/commands/result", async (req, res) => {
     }
 
     try {
-      analyzePerformance();
+      analyzePerformance(tradeHistory.firebase_user_id, tradeHistory.symbol, tradeHistory.mode);
     } catch (perfError) {
       console.error("analyzePerformance error:", perfError.message);
     }
@@ -1195,7 +1195,7 @@ app.get("/learnPatternWeights", async (req, res) => {
 
 app.get("/analyzePerformance", async (req, res) => {
   try {
-    const result = await analyzePerformance();
+    //const result = await analyzePerformance();
 
     return res.json({
       success: true,

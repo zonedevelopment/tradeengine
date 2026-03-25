@@ -184,9 +184,65 @@ async function getTradeHistoryDetailFromCommands(commandId) {
   return await query(sql, [commandId]);
 }
 
+async function getTradeEventsForAnalysis({
+  firebaseUserId = null,
+  symbol = null,
+  mode = null,
+  limit = 5000,
+} = {}) {
+  const safeLimit = Math.max(1, Math.min(50000, normalizeNumber(limit, 5000)));
+
+  const conditions = [
+    `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`
+  ];
+  const params = [];
+
+  if (firebaseUserId) {
+    conditions.push(`firebase_user_id = ?`);
+    params.push(String(firebaseUserId).trim());
+  }
+
+  if (symbol) {
+    conditions.push(`symbol = ?`);
+    params.push(String(symbol).trim());
+  }
+
+  if (mode && ALLOWED_MODES.includes(mode)) {
+    conditions.push(`mode = ?`);
+    params.push(mode);
+  }
+
+  const sql = `
+    SELECT
+      id,
+      firebase_user_id,
+      ticket_id,
+      event_type,
+      symbol,
+      side,
+      lot,
+      price,
+      sl,
+      tp,
+      profit,
+      mode,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY COALESCE(event_time, created_at) ASC, id ASC
+    LIMIT ?
+  `;
+
+  params.push(safeLimit);
+
+  return await query(sql, params);
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
   countTradeHistoryByUser,
-  getTradeHistoryDetailFromCommands
+  getTradeHistoryDetailFromCommands,
+  getTradeEventsForAnalysis
 };
