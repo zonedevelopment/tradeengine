@@ -169,7 +169,7 @@ app.post("/signal", async (req, res) => {
         const trainingDataPath = path.join(dataPath, "candle_training_data.json");
         const trainingLogs = safeReadJsonArray(trainingDataPath);
 
-        const contextCandles = candles.slice(-15);
+        const contextCandles = candles.slice(-10);
         trainingLogs.push({
           timestamp: new Date().toISOString(),
           symbol: symbol,
@@ -1161,8 +1161,7 @@ app.get("/runDailyLearning", async (req, res) => {
     await runDailyLearning();
 
     return res.json({
-      success: true,
-      data: result || null
+      success: true
     });
   } catch (error) {
     return res.status(500).json({
@@ -1234,9 +1233,9 @@ app.get("/updateSummary", async (req, res) => {
   }
 });
 
-cron.schedule("0 */1 * * *", () => {
-  runDailyLearning();
-});
+// cron.schedule("0 */1 * * *", () => {
+//   runDailyLearning();
+// });
 
 // cron.schedule("0 6 * * *", () => {
 //   console.log("[AI Cron] Waking up AI for Morning Brief...");

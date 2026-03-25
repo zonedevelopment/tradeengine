@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const { detectMotherFishPattern } = require("./pattern-rules");
 
 function analyzeM5FourCandleFollow(candles = []) {
@@ -79,7 +80,7 @@ function analyzePattern(signal) {
         };
     }
 
-    const research = loadMotherFishState();
+    // const research = loadMotherFishState();
     
     // Fallback to pattern name if specific type weight is missing
     const weightKey = weights[result.type] ? result.type : result.pattern;
@@ -88,16 +89,16 @@ function analyzePattern(signal) {
         score += (score > 0 ? weights[weightKey] : -weights[weightKey]);
     }
 
-    if (research && Array.isArray(research.patterns)) {
-        let found = research.patterns.find(p => p.type === result.type);
-        if (!found) {
-            found = research.patterns.find(p => p.name === result.pattern);
-        }
+    // if (research && Array.isArray(research.patterns)) {
+    //     let found = research.patterns.find(p => p.type === result.type);
+    //     if (!found) {
+    //         found = research.patterns.find(p => p.name === result.pattern);
+    //     }
 
-        if (found) {
-            score = score * Number(found.confidence || 1);
-        }
-    }
+    //     if (found) {
+    //         score = score * Number(found.confidence || 1);
+    //     }
+    // }
 
     // Overlap bonus (e.g., tight stops, high RR)
     if (signal.overlapPips && signal.overlapPips <= 200 && score !== 0) {
@@ -174,17 +175,19 @@ function analyzePattern(signal) {
 }
 
 function loadWeights() {
-    const file = "../learning/pattern-weight.json";
+    const learningDir = path.join(__dirname, "../learning");
+    const file = path.join(learningDir, "pattern-weight.json");
+    // const file = "../learning/pattern-weight.json";
     if (!fs.existsSync(file)) {
         return {};
     }
     return JSON.parse(fs.readFileSync(file));
 }
 
-function loadMotherFishState() {
-    const file = "../research/mother-fish-state.json";
-    if (!fs.existsSync(file)) return null;
-    return JSON.parse(fs.readFileSync(file, "utf8"));
-}
+// function loadMotherFishState() {
+//     const file = "../research/mother-fish-state.json";
+//     if (!fs.existsSync(file)) return null;
+//     return JSON.parse(fs.readFileSync(file, "utf8"));
+// }
 
 module.exports = { analyzePattern };
