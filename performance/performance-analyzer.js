@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { getTradeEventsForAnalysis } = require("./tradeHistory.repo");
+const { getTradeEventsForAnalysis } = require("../tradeHistory.repo");
 
 function safeReadJson(file, fallback) {
     try {
