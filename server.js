@@ -1114,6 +1114,12 @@ app.post("/commands/result", async (req, res) => {
       console.error("Insert trade_history error:", dbError.message);
     }
 
+    try {
+      analyzePerformance();
+    } catch (perfError) {
+      console.error("analyzePerformance error:", perfError.message);
+    }
+
     return res.json({
       success: true,
       message: "Command result updated successfully",

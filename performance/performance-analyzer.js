@@ -16,9 +16,13 @@ function safeReadJson(file, fallback) {
 }
 
 function analyzePerformance() {
-    const historyFile = path.join(__dirname, "../data/trade-history.json");
-    const stateFile = path.join(__dirname, "./performance-state.json");
-    const weightFile = path.join(__dirname, "../learning/pattern-weight.json");
+    const dataDir = path.join(__dirname, "../data");
+    const learningDir = path.join(__dirname, "../learning");
+
+    const weightFile = path.join(learningDir, "pattern-weight.json");
+    const historyFile = path.join(dataDir, "../data/trade-history.json");
+    const stateFile = path.join(__dirname, "performance-state.json");
+    //const weightFile = path.join(__dirname, "../learning/pattern-weight.json");
 
     const history = safeReadJson(historyFile, []);
 
