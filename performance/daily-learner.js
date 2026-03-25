@@ -479,7 +479,7 @@ async function runDailyLearning() {
         openOrder = null;
     }
 
-    fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
+    // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
     fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
     try {

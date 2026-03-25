@@ -26,7 +26,7 @@ async function learnPatternWeights() {
     // const historyFile = path.join(dataDir, "trade-history.json");
     const weightFile = path.join(__dirname, "pattern-weight.json");
 
-    if (!fs.existsSync(historyFile)) return;
+    //if (!fs.existsSync(historyFile)) return;
 
     const history = await getHistoryLearnWeight();
 
