@@ -65,7 +65,17 @@ async function analyzePattern(signal) {
 
     let score = 0;
 
-    if (result.pattern === "CLAW_BUY") {
+    // if (result.pattern === "CLAW_BUY") {
+    //     score = 2;
+    // } else if (result.pattern === "CLAW_SELL") {
+    //     score = -2;
+    // }
+
+    if (result.pattern === "CLAW_BUY" && result.type === "Rocket_Surge_Continuation") {
+        score = 2.5;
+    } else if (result.pattern === "CLAW_SELL" && result.type === "Waterfall_Drop_Continuation") {
+        score = -2.5;
+    } else if (result.pattern === "CLAW_BUY") {
         score = 2;
     } else if (result.pattern === "CLAW_SELL") {
         score = -2;

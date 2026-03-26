@@ -251,7 +251,7 @@ function detectMotherFishPattern(data) {
     if (patternResult.pattern === "NONE" && ppProps) {
         // Sell Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งแดงใหญ่ทะลวงทุบลงมา (Body > 2.0 ดอลลาร์) 
         // ตามด้วยแท่งพักตัวสีเขียวเล็กๆ หรือ Doji (Body < 40% ของแท่งแดงใหญ่) 
-        if (ppProps.isBear && ppProps.body > 2.0 && pProps.isBull && pProps.body < ppProps.body * 0.4 && cProps.body < ppProps.body * 0.4) {
+        if (ppProps.isBear && ppProps.body > 2.0 && pProps.isBull && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
             if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งทุบวอลุ่มต้องสูงกว่าแท่งเด้งเยอะๆ (เด้งหลอก)
                 patternResult = {
                     pattern: "CLAW_SELL",
@@ -265,7 +265,7 @@ function detectMotherFishPattern(data) {
         
         // Buy Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งเขียวใหญ่พุ่งทะยาน (Body > 2.0 ดอลลาร์)
         // ตามด้วยแท่งพักตัวสีแดงเล็กๆ (Body < 40% ของแท่งเขียวใหญ่)
-        if (ppProps.isBull && ppProps.body > 2.0 && pProps.isBear && pProps.body < ppProps.body * 0.4 && cProps.body < ppProps.body * 0.4) {
+        if (ppProps.isBull && ppProps.body > 2.0 && pProps.isBear && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
             if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งพุ่งวอลุ่มต้องสูงกว่าแท่งพักตัว
                 patternResult = {
                     pattern: "CLAW_BUY",
