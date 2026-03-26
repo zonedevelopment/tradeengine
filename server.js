@@ -326,7 +326,7 @@ app.post("/signal", async (req, res) => {
 
     const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const mult = activeCfg.pipMultiplier;
-    const avgRange = calculateAvgRange(candles, 2, mult);
+    const avgRange = calculateAvgRange(candles, 3, mult);
 
     if (side === "BUY") {
       if (pattern.slPrice < price) {
