@@ -319,14 +319,14 @@ async function runDailyLearning() {
     }
 
     let trades = await getTradeEventsForLearning();
-    let candleLogs = await getHistoryLearnWeight();
-    // try {
-    //     trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
-    //     candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
-    // } catch (e) {
-    //     console.log("[Daily Learner] JSON parse error:", e.message);
-    //     return;
-    // }
+    // let candleLogs = await getHistoryLearnWeight();
+    try {
+        // trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
+        candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+    } catch (e) {
+        console.log("[Daily Learner] JSON parse error:", e.message);
+        return;
+    }
 
     let weights = {};
     if (fs.existsSync(weightPath)) {

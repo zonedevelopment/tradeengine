@@ -181,7 +181,7 @@ async function getTradeEventsForAnalysis({
   mode = null,
   limit = 5000,
 } = {}) {
-  const safeLimit = Math.max(1, Math.min(50000, normalizeNumber(limit, 5000)));
+  const safeLimit = Math.max(1, Math.min(2500, normalizeNumber(limit, 2000)));
 
   const conditions = [
     `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`
