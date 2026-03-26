@@ -749,7 +749,7 @@ app.get("/active-positions/stream", async (req, res) => {
 
   try {
     const query = { firebaseUserId };
-    if (symbol) query.symbol = String(symbol).toUpperCase();
+    // if (symbol) query.symbol = String(symbol).toUpperCase();
 
     const rows = await ActivePosition.find(query)
       .sort({ updatedAt: -1 })
