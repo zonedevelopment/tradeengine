@@ -376,7 +376,6 @@ async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eve
       COALESCE(SUM(CASE WHEN profit < 0 THEN profit ELSE 0 END), 0) AS dailyLoss
     FROM trade_history
     WHERE firebase_user_id = ?
-      AND account_id = ?
       AND event_type IN ('OPEN_ORDER', 'CLOSE_ORDER', 'CLOSE_EMERGENCY')
       AND DATE(event_time) >= ?
       AND DATE(event_time) <= ?
