@@ -33,14 +33,7 @@ const { exec } = require("child_process");
 //   getAccountSnapshotByUser
 // } = require("./accountSnapshot.repo");
 
-const {
-  registerSseClient,
-  unregisterSseClient,
-  startActivePositionChangeStream,
-  buildClientKey,
-  sendSse
-} = require("./activePosition.stream");
-const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
+// const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 
 const {
   upsertDailyAccountSnapshot,
@@ -63,6 +56,11 @@ const {
   syncActivePositionsToMongo,
   getActivePositionsByUserAndSymbol,
 } = require("./activePosition.mongo.repo");
+const {
+  sendSse,
+  registerSseClient,
+  unregisterSseClient,
+} = require("./activePosition.stream");
 
 const database = require('./config/mongoDB')
 
@@ -154,98 +152,6 @@ function calculateAvgRange(candles = [], length = 3, pipMultiplier) {
 
   const avg = ranges.reduce((sum, v) => sum + v, 0) / ranges.length;
   return (avg * pipMultiplier);
-}
-
-const activePositionClients = new Map();
-
-// function sendSse(res, eventName, payload) {
-//   res.write(`event: ${eventName}\n`);
-//   res.write(`data: ${JSON.stringify(payload)}\n\n`);
-// }
-
-function registerActivePositionClient({ clientId, firebaseUserId, res }) {
-  activePositionClients.set(clientId, {
-    res,
-    firebaseUserId,
-  });
-}
-
-function unregisterActivePositionClient(clientId) {
-  activePositionClients.delete(clientId);
-}
-
-function broadcastActivePositionUpdate(payload) {
-  for (const [clientId, client] of activePositionClients.entries()) {
-    try {
-      const sameUser = client.firebaseUserId === payload.firebaseUserId;
-      const sameSymbol = !client.symbol || client.symbol === String(payload.symbol || "").toUpperCase();
-
-      if (!sameUser || !sameSymbol) continue;
-
-      sendSse(client.res, "active-position-update", payload);
-    } catch (error) {
-      try { client.res.end(); } catch (_) { }
-      activePositionClients.delete(clientId);
-    }
-  }
-}
-
-let activePositionStreamStarted = false;
-
-function startActivePositionChangeStream() {
-  if (activePositionStreamStarted) return;
-  activePositionStreamStarted = true;
-
-  try {
-    const changeStream = ActivePosition.watch([], { fullDocument: "updateLookup" });
-
-    changeStream.on("change", async (change) => {
-      try {
-        if (change.operationType === "delete") {
-          return;
-        }
-
-        const doc = change.fullDocument;
-        if (!doc) return;
-
-        broadcastActivePositionUpdate({
-          action: change.operationType,
-          _id: doc._id,
-          ticketId: doc.ticketId,
-          firebaseUserId: doc.firebaseUserId,
-          accountId: doc.accountId,
-          symbol: doc.symbol,
-          side: doc.side,
-          lot: doc.lot,
-          entryPrice: doc.entryPrice,
-          currentPrice: doc.currentPrice,
-          sl: doc.sl,
-          tp: doc.tp,
-          profit: doc.profit,
-          swap: doc.swap,
-          commission: doc.commission,
-          openTime: doc.openTime,
-          eventTime: doc.eventTime,
-          updatedAt: doc.updatedAt
-        });
-      } catch (err) {
-        console.error("[ActivePositionChangeStream] handle error:", err);
-      }
-    });
-
-    changeStream.on("error", (err) => {
-      console.error("[ActivePositionChangeStream] stream error:", err);
-      activePositionStreamStarted = false;
-
-      setTimeout(() => {
-        startActivePositionChangeStream();
-      }, 3000);
-    });
-
-    console.log("[ActivePositionChangeStream] started");
-  } catch (err) {
-    console.error("[ActivePositionChangeStream] start failed:", err);
-  }
 }
 
 app.post("/signal", async (req, res) => {
@@ -815,7 +721,7 @@ app.get("/active-positions", async (req, res) => {
 });
 
 app.get("/active-positions/stream", async (req, res) => {
-  const { firebaseUserId } = req.query;
+  const { firebaseUserId, symbol = "" } = req.query;
 
   if (!firebaseUserId) {
     return res.status(400).json({
@@ -836,13 +742,13 @@ app.get("/active-positions/stream", async (req, res) => {
   registerSseClient({
     clientId,
     firebaseUserId,
+    symbol,
     res
   });
 
-  // ส่ง initial snapshot ตอนเชื่อมต่อ
   try {
     const query = { firebaseUserId };
-    // if (symbol) query.symbol = String(symbol).toUpperCase();
+    if (symbol) query.symbol = String(symbol).toUpperCase();
 
     const rows = await ActivePosition.find(query)
       .sort({ updatedAt: -1 })
@@ -851,13 +757,15 @@ app.get("/active-positions/stream", async (req, res) => {
     sendSse(res, "active-positions-init", {
       action: "init",
       firebaseUserId,
+      symbol: symbol || "",
       rows
     });
-  } catch (err) {
-    sendSse(res, "error", { message: err.message });
+  } catch (error) {
+    sendSse(res, "error", {
+      message: error.message || "Failed to load initial active positions"
+    });
   }
 
-  // keep-alive
   const keepAlive = setInterval(() => {
     try {
       res.write(": ping\n\n");
@@ -867,7 +775,7 @@ app.get("/active-positions/stream", async (req, res) => {
   req.on("close", () => {
     clearInterval(keepAlive);
     unregisterSseClient(clientId);
-    res.end();
+    try { res.end(); } catch (_) { }
   });
 });
 
@@ -1370,6 +1278,6 @@ async function updateNewsAnalysis() {
 
 app.listen(5000, async () => {
   await database.connect();
-  startActivePositionChangeStream();
+  //startActivePositionChangeStream();
   console.log("Trading AI Engine running");
 });

@@ -141,6 +141,12 @@
 //     getActivePositionsByUserAndSymbol,
 // };
 const ActivePosition = require("./models/ActivePosition");
+const {
+    sendSse,
+    registerSseClient,
+    unregisterSseClient,
+    broadcastActivePositionChange
+} = require("./activePosition.stream");
 
 function normalizeNumber(value, fallback = 0) {
     if (value === undefined || value === null || value === "") {
@@ -195,6 +201,7 @@ async function syncActivePositionsToMongo({
 
     const incomingTicketIds = [];
     const bulkOps = [];
+    let synced = 0;
 
     if (positions.length > 0) {
         for (const position of positions) {
@@ -205,37 +212,6 @@ async function syncActivePositionsToMongo({
 
             safeSymbol = normalizeString(position.symbol, "").toUpperCase();
 
-
-            // bulkOps.push({
-            //     updateOne: {
-            //         filter: {
-            //             firebaseUserId: safeFirebaseUserId,
-            //             symbol: safeSymbol,
-            //             ticketId,
-            //         },
-            //         update: {
-            //             $set: {
-            //                 ticketId,
-            //                 firebaseUserId: safeFirebaseUserId,
-            //                 accountId: safeAccountId,
-            //                 symbol: normalizeString(position.symbol || safeSymbol).toUpperCase(),
-            //                 side: normalizeString(position.side, "").toUpperCase(),
-            //                 lot: normalizeNumber(position.lot, 0),
-            //                 entryPrice: normalizeNumber(position.entryPrice, 0),
-            //                 currentPrice: normalizeNumber(position.currentPrice, 0),
-            //                 sl: normalizeNumber(position.sl, 0),
-            //                 tp: normalizeNumber(position.tp, 0),
-            //                 profit: normalizeNumber(position.profit, 0),
-            //                 swap: normalizeNumber(position.swap, 0),
-            //                 commission: normalizeNumber(position.commission, 0),
-            //                 openTime: normalizeDate(position.openTime),
-            //                 eventTime: normalizeDate(eventTime || position.eventTime),
-            //                 updatedAt: new Date(),
-            //             },
-            //         },
-            //         upsert: true,
-            //     },
-            // });
             const filter = {
                 firebaseUserId: safeFirebaseUserId,
                 symbol: safeSymbol,
@@ -275,6 +251,44 @@ async function syncActivePositionsToMongo({
                     throw error;
                 }
             }
+
+            const savedDoc = await ActivePosition.findOne({
+                firebaseUserId
+            }).lean();
+
+            if (savedDoc) {
+                broadcastActivePositionChange({
+                    action: "upsert",
+                    ...savedDoc
+                });
+            }
+            synced++;
+        }
+
+        const staleQuery = {
+            firebaseUserId,
+            symbol: normalizedSymbol
+        };
+
+        if (incomingTicketIds.length > 0) {
+            staleQuery.ticketId = { $nin: incomingTicketIds };
+        }
+
+        const staleDocs = await ActivePosition.find(staleQuery).lean();
+
+        if (staleDocs.length > 0) {
+            await ActivePosition.deleteMany(staleQuery);
+
+            for (const doc of staleDocs) {
+                broadcastActivePositionChange({
+                    action: "delete",
+                    _id: doc._id,
+                    ticketId: doc.ticketId,
+                    firebaseUserId: doc.firebaseUserId,
+                    accountId: doc.accountId,
+                    symbol: doc.symbol
+                });
+            }
         }
     } else {
         const deleted = await ActivePosition.deleteMany({
@@ -289,25 +303,6 @@ async function syncActivePositionsToMongo({
             deletedCount: deleted.deletedCount || 0,
         };
     }
-
-    // if (bulkOps.length > 0) {
-    //     await ActivePosition.bulkWrite(bulkOps, { ordered: false });
-    // }
-
-    // if (incomingTicketIds.length === 0) {
-    //     // ไม่มีออเดอร์แล้ว -> ลบทั้งหมดของ user + symbol นี้
-    //     const deleted = await ActivePosition.deleteMany({
-    //         firebaseUserId: safeFirebaseUserId
-    //     });
-
-    //     return {
-    //         success: true,
-    //         firebaseUserId: safeFirebaseUserId,
-    //         symbol: safeSymbol,
-    //         count: 0,
-    //         deletedCount: deleted.deletedCount || 0,
-    //     };
-    // }
 
     // ลบ ticket ที่ไม่อยู่ใน snapshot ล่าสุด
     const deleted = await ActivePosition.deleteMany({
