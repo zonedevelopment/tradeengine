@@ -39,7 +39,7 @@ function analyzeICT(candles) {
  */
 function findOrderBlocks(candles, type) {
     const blocks = [];
-    const lookback = Math.min(candles.length, 30); // Look back up to 30 candles
+    const lookback = Math.min(candles.length, 20); // Look back up to 30 candles
 
     for (let i = 1; i < lookback; i++) {
         const prevCandle = candles[candles.length - i - 1];

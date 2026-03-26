@@ -109,7 +109,9 @@ async function analyzePattern(signal) {
         let totalVol = 0;
         let count = 0;
         // หาค่าเฉลี่ย Volume ของ 5 แท่งในอดีต (ไม่นับ 2 แท่งล่าสุดที่เป็นสัญญาณ)
-        for (let i = candles.length - 7; i < candles.length - 2; i++) {
+        let useCandles = (candles.length - 15);
+        // for (let i = candles.length - 7; i < candles.length - 2; i++) {
+        for (let i = useCandles; i < useCandles - 2; i++) {
             if (i >= 0 && candles[i].tick_volume) {
                 totalVol += Number(candles[i].tick_volume);
                 count++;

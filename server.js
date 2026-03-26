@@ -113,28 +113,6 @@ const symbolConfig = {
 const app = express();
 app.use(express.json());
 
-// app.use(cors({
-//   origin: "https://tradeengine.zonedevnode.com",
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "Authorization"],
-//   credentials: false
-// }));
-
-// app.options("*", cors({
-//   origin: "https://tradeengine.zonedevnode.com"
-// }));
-
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", "https://tradeengine.zonedevnode.com");
-//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-//   if (req.method === "OPTIONS") {
-//     return res.sendStatus(204);
-//   }
-
-//   next();
-// });
 const whiteList = ['https://tradeengine.zonedevnode.com'];
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions;
@@ -240,7 +218,7 @@ app.post("/signal", async (req, res) => {
           candles: contextCandles,
         });
 
-        if (trainingLogs.length > 2500) {
+        if (trainingLogs.length > 1500) {
           trainingLogs.shift();
         }
 
