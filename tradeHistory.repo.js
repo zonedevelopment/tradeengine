@@ -301,6 +301,38 @@ async function getHistoryLearnWeight() {
   return await query(sql, params);
 }
 
+function normalizeNumber(value, fallback = 0) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizeString(value, fallback = "") {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+
+  return String(value).trim();
+}
+
+function normalizeTicketId(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const str = String(value).trim();
+
+  if (!/^\d+$/.test(str)) {
+    return null;
+  }
+
+  const num = Number(str);
+  return Number.isSafeInteger(num) ? num : null;
+}
+
 function normalizeDate(value) {
   if (!value) return new Date();
 
@@ -368,6 +400,7 @@ async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eve
   const row = rows?.[0] || {};
 
   return {
+    datequery: formattedDateLocal,
     todayClosedTrades: Number(row.todayClosedTrades || 0),
     todayWinTrades: Number(row.todayWinTrades || 0),
     todayLossTrades: Number(row.todayLossTrades || 0),

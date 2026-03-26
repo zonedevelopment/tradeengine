@@ -94,6 +94,7 @@ const {
 
 const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
+const { trace } = require("console");
 
 
 const symbolConfig = {
@@ -971,6 +972,8 @@ app.post("/account-snapshot", async (req, res) => {
       body.accountId,
       body.eventTime
     );
+
+    console.log(tradeStats)
 
     const payloadToSave = {
       firebaseUserId,
