@@ -731,9 +731,9 @@ app.post("/active-positions", async (req, res) => {
     });
 
     // ดึงข้อมูลล่าสุดหลัง sync
-    // const rows = await ActivePosition.find({ firebaseUserId })
-    //   .sort({ updatedAt: -1 })
-    //   .lean();
+    const rows = await ActivePosition.find({ firebaseUserId })
+      .sort({ updatedAt: -1 })
+      .lean();
 
     // const origin = req.headers.origin;
     // if (origin === "https://tradeengine.zonedevnode.com") {
@@ -748,18 +748,25 @@ app.post("/active-positions", async (req, res) => {
     // res.flushHeaders?.();
 
     // broadcast ไป frontend
-    broadcastActivePositionChange({
+    // await broadcastActivePositionChange({
+    //   firebaseUserId,
+    //   symbol,
+    //   eventName: "active-position-update",
+    //   payload: {
+    //     action: "sync",
+    //     firebaseUserId,
+    //     symbol: symbol || "",
+    //     data: rows,
+    //     eventTime,
+    //     synced: result?.synced || 0
+    //   }
+    // });
+
+    sendSse(res, "active-positions-update", {
+      action: "update",
       firebaseUserId,
-      symbol,
-      eventName: "active-position-update",
-      payload: {
-        action: "sync",
-        firebaseUserId,
-        symbol: symbol || "",
-        data: rows,
-        eventTime,
-        synced: result?.synced || 0
-      }
+      symbol: symbol || "",
+      data: rows
     });
 
     return res.json({
