@@ -301,6 +301,29 @@ async function getHistoryLearnWeight() {
   return await query(sql, params);
 }
 
+function normalizeDate(value) {
+  if (!value) return new Date();
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? new Date() : value;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function getDayRangeFromEventTime(eventTime) {
+  const base = normalizeDate(eventTime);
+
+  const start = new Date(base);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(base);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
 async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eventTime) {
   const safeFirebaseUserId = normalizeString(firebaseUserId);
   const safeAccountId = normalizeString(accountId);
