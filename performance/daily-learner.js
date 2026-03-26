@@ -324,7 +324,7 @@ async function runDailyLearning() {
     // const tradeHistPath = path.join(dataDir, "trade-history.json");
     const candleDataPath = path.join(dataDir, "candle_training_data.json");
     // const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
-    const weightPath = path.join(learningDir, "pattern-weight.json");
+    // const weightPath = path.join(learningDir, "pattern-weight.json");
 
     if (!fs.existsSync(candleDataPath)) {
         console.log("[Daily Learner] Missing data files. Skipping learning.");
@@ -350,15 +350,12 @@ async function runDailyLearning() {
 
     let weights = {};
     try {
-        const [rows] = await query("SELECT pattern_name, weight_score FROM strategy_weights");
-        // weights = rows.reduce((acc, row) => {
-        //     acc[row.pattern_name] = Number(row.weight_score);
-        //     return acc;
-        // }, {});
+        const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
         if (rows) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             weights = rows.reduce((acc, row) => {
-                acc[row.pattern_name] = Number(row.weight_score);
+                const hasUserScore = row.is_use_user_score === 1 && row.user_score !== null;
+                acc[row.pattern_name] = hasUserScore ? Number(row.user_score) : Number(row.weight_score);
                 return acc;
             }, {});
             console.log("[Daily Learner] Weights loaded from Database.");

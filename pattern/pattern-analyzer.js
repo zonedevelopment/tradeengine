@@ -175,7 +175,7 @@ function loadWeights() {
     return JSON.parse(fs.readFileSync(file));
 }
 
-async function loadWeightsFromDB(db) {
+async function loadWeightsFromDB() {
     const initialDefaultWeights = {
         "Pin_Bar_Shooting_Star": -0.5,
         "Morning_Star_Base_Break": 0,
@@ -190,10 +190,12 @@ async function loadWeightsFromDB(db) {
     };
 
     try {
-        const [rows] = await query("SELECT pattern_name, weight_score FROM strategy_weights");
+        const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
 
         if (rows.length > 0) {
             return rows.reduce((acc, row) => {
+                const hasUserScore = row.is_use_user_score === 1 && row.user_score !== null;
+                acc[row.pattern_name] = hasUserScore ? Number(row.user_score) : Number(row.weight_score);
                 acc[row.pattern_name] = Number(row.weight_score);
                 return acc;
             }, {});
