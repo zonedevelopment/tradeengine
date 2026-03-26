@@ -158,10 +158,10 @@ function calculateAvgRange(candles = [], length = 3, pipMultiplier) {
 
 const activePositionClients = new Map();
 
-function sendSse(res, eventName, payload) {
-  res.write(`event: ${eventName}\n`);
-  res.write(`data: ${JSON.stringify(payload)}\n\n`);
-}
+// function sendSse(res, eventName, payload) {
+//   res.write(`event: ${eventName}\n`);
+//   res.write(`data: ${JSON.stringify(payload)}\n\n`);
+// }
 
 function registerActivePositionClient({ clientId, firebaseUserId, res }) {
   activePositionClients.set(clientId, {
