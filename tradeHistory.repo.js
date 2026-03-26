@@ -345,16 +345,24 @@ async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eve
     FROM trade_history
     WHERE firebase_user_id = ?
       AND account_id = ?
-      AND event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
-      AND event_time >= ?
-      AND event_time <= ?
+      AND event_type IN ('OPEN_ORDER', 'CLOSE_ORDER', 'CLOSE_EMERGENCY')
+      AND DATE(event_time) >= ?
+      AND DATE(event_time) <= ?
   `;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  // getMonth() is zero-based, so add 1
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  const formattedDateLocal = `${year}-${month}-${day}`;
 
   const rows = await query(sql, [
     safeFirebaseUserId,
     safeAccountId,
-    start,
-    end
+    formattedDateLocal,
+    formattedDateLocal
   ]);
 
   const row = rows?.[0] || {};
