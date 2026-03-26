@@ -252,14 +252,14 @@ async function syncActivePositionsToMongo({
                 }
             }
 
-            const savedDoc = await ActivePosition.findOne({
+            const savedDoc = await ActivePosition.find({
                 firebaseUserId
-            }).lean();
+            }).sort({ updatedAt: -1 }).lean();
 
             if (savedDoc) {
                 broadcastActivePositionChange({
-                    action: "upsert",
-                    ...savedDoc
+                    action: "sync",
+                    positions: savedDoc
                 });
             }
             synced++;
