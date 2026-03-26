@@ -35,19 +35,35 @@ const { exec } = require("child_process");
 
 // const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
 
+// const {
+//   upsertDailyAccountSnapshot,
+//   getTodayAccountSnapshotByUser,
+//   getAccountSnapshotsByUser
+// } = require("./accountSnapshot.repo");
+
+// const {
+//   upsertLiveAccountSnapshot,
+//   getLiveAccountSnapshotByUserAndAccount
+// } = require("./accountSnapshotLive.repo");
+
+// const {
+//   getAccountSnapshotStreamKey,
+//   addAccountSnapshotClient,
+//   removeAccountSnapshotClient,
+//   sendSse,
+//   broadcastAccountSnapshot,
+//   initSseHeaders
+// } = require("./accountSnapshot.stream");
 const {
-  upsertDailyAccountSnapshot,
-  getTodayAccountSnapshotByUser,
-  getAccountSnapshotsByUser
+  upsertDailyAccountSnapshot
 } = require("./accountSnapshot.repo");
 
 const {
   upsertLiveAccountSnapshot,
-  getLiveAccountSnapshotByUserAndAccount
+  getAggregatedLiveAccountSnapshotByUser
 } = require("./accountSnapshotLive.repo");
 
 const {
-  getAccountSnapshotStreamKey,
   addAccountSnapshotClient,
   removeAccountSnapshotClient,
   sendSse,
@@ -935,11 +951,13 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
 
 app.post("/account-snapshot", async (req, res) => {
   try {
-    const {
-      firebaseUserId,
-      accountId = "",
-      eventTime = null
-    } = req.body || {};
+    // const {
+    //   firebaseUserId,
+    //   accountId = "",
+    //   eventTime = null
+    // } = req.body || {};
+    const body = req.body || {};
+    const firebaseUserId = String(body.firebaseUserId || "").trim();
 
     if (!firebaseUserId) {
       return res.status(400).json({
@@ -948,28 +966,21 @@ app.post("/account-snapshot", async (req, res) => {
       });
     }
 
-    // 1) เก็บ daily snapshot (history)
-    await upsertDailyAccountSnapshot({
-      ...req.body,
-      accountId,
-      eventTime
-    });
+    // live snapshot ล่าสุดต่อ account
+    await upsertLiveAccountSnapshot(body);
 
-    // 2) เก็บ live snapshot (สำหรับ stream/dashboard)
-    const liveSnapshot = await upsertLiveAccountSnapshot({
-      ...req.body,
-      accountId,
-      eventTime
-    });
+    // daily snapshot history
+    await upsertDailyAccountSnapshot(body);
 
-    // 3) broadcast ไปยัง client ที่ subscribe อยู่
-    const streamKey = getAccountSnapshotStreamKey(firebaseUserId, accountId);
-    broadcastAccountSnapshot(streamKey, liveSnapshot);
+    // aggregate ทั้ง user
+    const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
+
+    // broadcast stream
+    broadcastAccountSnapshot(firebaseUserId, data);
 
     return res.json({
       success: true,
-      message: "Account snapshot synced successfully",
-      snapshot: liveSnapshot
+      data
     });
   } catch (error) {
     console.error("account-snapshot sync error:", error);
@@ -981,73 +992,155 @@ app.post("/account-snapshot", async (req, res) => {
   }
 });
 
-app.get("/account-snapshot/stream", async (req, res) => {
-  const { firebaseUserId, accountId = "" } = req.query || {};
+app.get("/account-snapshot", async (req, res) => {
+  try {
+    const { firebaseUserId } = req.query;
 
-  if (!firebaseUserId) {
-    return res.status(400).json({
+    if (!firebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required"
+      });
+    }
+
+    const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
+
+    return res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("get account-snapshot error:", error);
+    return res.status(500).json({
       success: false,
-      error: "firebaseUserId is required"
+      error: error.message || "Internal server error"
     });
   }
+});
 
-  const safeFirebaseUserId = String(firebaseUserId).trim();
-  const safeAccountId = String(accountId || "").trim();
-  const streamKey = getAccountSnapshotStreamKey(
-    safeFirebaseUserId,
-    safeAccountId
-  );
-
-  // initSseHeaders(res);
-  // res.write("\n");
-
-  const origin = req.headers.origin;
-  if (origin === "https://tradeengine.zonedevnode.com") {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-
-  res.flushHeaders?.();
-
-  addAccountSnapshotClient(streamKey, res);
-
+app.get("/account-snapshot/stream", async (req, res) => {
   try {
-    const latestSnapshot = await getLiveAccountSnapshotByUserAndAccount(
-      safeFirebaseUserId,
-      safeAccountId
-    );
+    const { firebaseUserId } = req.query;
+
+    if (!firebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required"
+      });
+    }
+
+    initSseHeaders(res);
+    addAccountSnapshotClient(firebaseUserId, res);
 
     sendSse(res, "connected", {
       success: true,
-      message: "account snapshot stream connected",
-      firebaseUserId: safeFirebaseUserId
+      message: "account snapshot stream connected"
     });
+
+    const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
 
     sendSse(res, "account-snapshot", {
       success: true,
-      snapshot: latestSnapshot || null
+      data
+    });
+
+    const heartbeat = setInterval(() => {
+      res.write(": keep-alive\n\n");
+    }, 25000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      removeAccountSnapshotClient(firebaseUserId, res);
+      res.end();
     });
   } catch (error) {
-    sendSse(res, "error", {
-      success: false,
-      error: error.message || "Failed to load latest account snapshot"
-    });
+    console.error("account-snapshot stream error:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Internal server error"
+      });
+    }
+
+    try {
+      res.write(`event: error\n`);
+      res.write(`data: ${JSON.stringify({
+        success: false,
+        error: error.message || "Internal server error"
+      })}\n\n`);
+      res.end();
+    } catch (_) { }
   }
-
-  const heartbeat = setInterval(() => {
-    res.write(": keep-alive\n\n");
-  }, 25000);
-
-  req.on("close", () => {
-    clearInterval(heartbeat);
-    removeAccountSnapshotClient(streamKey, res);
-    res.end();
-  });
 });
+
+// app.get("/account-snapshot/stream", async (req, res) => {
+//   const { firebaseUserId, accountId = "" } = req.query || {};
+
+//   if (!firebaseUserId) {
+//     return res.status(400).json({
+//       success: false,
+//       error: "firebaseUserId is required"
+//     });
+//   }
+
+//   const safeFirebaseUserId = String(firebaseUserId).trim();
+//   const safeAccountId = String(accountId || "").trim();
+//   const streamKey = getAccountSnapshotStreamKey(
+//     safeFirebaseUserId,
+//     safeAccountId
+//   );
+
+//   // initSseHeaders(res);
+//   // res.write("\n");
+
+//   const origin = req.headers.origin;
+//   if (origin === "https://tradeengine.zonedevnode.com") {
+//     res.setHeader("Access-Control-Allow-Origin", origin);
+//   }
+
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache, no-transform");
+//   res.setHeader("Connection", "keep-alive");
+//   res.setHeader("X-Accel-Buffering", "no");
+
+//   res.flushHeaders?.();
+
+//   addAccountSnapshotClient(streamKey, res);
+
+//   try {
+//     const latestSnapshot = await getLiveAccountSnapshotByUserAndAccount(
+//       safeFirebaseUserId,
+//       safeAccountId
+//     );
+
+//     sendSse(res, "connected", {
+//       success: true,
+//       message: "account snapshot stream connected",
+//       firebaseUserId: safeFirebaseUserId
+//     });
+
+//     sendSse(res, "account-snapshot", {
+//       success: true,
+//       snapshot: latestSnapshot || null
+//     });
+//   } catch (error) {
+//     sendSse(res, "error", {
+//       success: false,
+//       error: error.message || "Failed to load latest account snapshot"
+//     });
+//   }
+
+//   const heartbeat = setInterval(() => {
+//     res.write(": keep-alive\n\n");
+//   }, 25000);
+
+//   req.on("close", () => {
+//     clearInterval(heartbeat);
+//     removeAccountSnapshotClient(streamKey, res);
+//     res.end();
+//   });
+// });
 
 app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;

@@ -104,7 +104,7 @@ async function insertTradeHistory(data) {
 }
 
 async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
-  const safeLimit = Math.max(1, Math.min(1000, normalizeNumber(limit, 50)));
+  const safeLimit = Math.max(1, Math.min(10, normalizeNumber(limit, 10)));
   const safePage = Math.max(1, normalizeNumber(page, 1));
   const offset = (safePage - 1) * safeLimit;
 
@@ -113,33 +113,24 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       c.id,
       c.firebase_user_id,
       c.ticket_id,
-
       c.symbol,
       c.side,
       c.lot,
-
       o.price AS entry_price,
       c.price AS close_price,
-
       c.sl,
       c.tp,
-
       c.profit,
       c.mode,
-
       o.event_time AS open_time,
       c.event_time AS close_time
-
     FROM trade_history c
-
     LEFT JOIN trade_history o
       ON c.price = o.price
       AND o.event_type = 'OPEN_ORDER'
-
     WHERE
       c.firebase_user_id = ?
       AND c.event_type = 'CLOSE_ORDER'
-
     ORDER BY c.id DESC
     LIMIT ?
     OFFSET ?

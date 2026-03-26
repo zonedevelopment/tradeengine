@@ -2,10 +2,24 @@ const mongoose = require("mongoose");
 
 const AccountSnapshotSchema = new mongoose.Schema(
     {
-        firebaseUserId: { type: String, required: true, index: true },
-        accountId: { type: String, default: "" },
+        firebaseUserId: {
+            type: String,
+            required: true,
+            index: true,
+            trim: true
+        },
+        accountId: {
+            type: String,
+            default: "",
+            index: true,
+            trim: true
+        },
 
-        snapshotDate: { type: String, required: true, index: true }, // YYYY-MM-DD
+        snapshotDate: {
+            type: String,
+            required: true,
+            index: true
+        }, // YYYY-MM-DD
 
         balance: { type: Number, default: 0 },
         equity: { type: Number, default: 0 },
@@ -26,13 +40,18 @@ const AccountSnapshotSchema = new mongoose.Schema(
 
         eventTime: { type: Date, default: Date.now }
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        collection: "account_snapshot"
+    }
 );
 
-// 1 user ต่อ 1 วัน = 1 record
+// 1 user + 1 account + 1 day = 1 record
 AccountSnapshotSchema.index(
-    { firebaseUserId: 1, snapshotDate: 1 },
-    { unique: true }
+    { firebaseUserId: 1, accountId: 1, snapshotDate: 1 },
+    { unique: true, name: "uniq_daily_snapshot_user_account_date" }
 );
 
-module.exports = mongoose.model("AccountSnapshot", AccountSnapshotSchema);
+module.exports =
+    mongoose.models.AccountSnapshot ||
+    mongoose.model("AccountSnapshot", AccountSnapshotSchema);

@@ -1,5 +1,9 @@
-const mongoose = require("mongoose");
 const AccountSnapshot = require("./models/accountSnapshot.model");
+
+function normalizeString(value, fallback = "") {
+    if (value === undefined || value === null) return fallback;
+    return String(value).trim();
+}
 
 function toSnapshotDate(input) {
     const d = input ? new Date(input) : new Date();
@@ -9,7 +13,7 @@ function toSnapshotDate(input) {
     return `${year}-${month}-${day}`;
 }
 
-async function upsertDailyAccountSnapshot(data) {
+async function upsertDailyAccountSnapshot(data = {}) {
     const {
         firebaseUserId,
         accountId = "",
@@ -17,15 +21,26 @@ async function upsertDailyAccountSnapshot(data) {
         ...rest
     } = data;
 
+    const safeFirebaseUserId = normalizeString(firebaseUserId);
+    const safeAccountId = normalizeString(accountId);
+
+    if (!safeFirebaseUserId) {
+        throw new Error("firebaseUserId is required");
+    }
+
     const eventDate = eventTime ? new Date(eventTime) : new Date();
     const snapshotDate = toSnapshotDate(eventDate);
 
     return await AccountSnapshot.updateOne(
-        { firebaseUserId, snapshotDate },
+        {
+            firebaseUserId: safeFirebaseUserId,
+            accountId: safeAccountId,
+            snapshotDate
+        },
         {
             $set: {
-                firebaseUserId,
-                accountId,
+                firebaseUserId: safeFirebaseUserId,
+                accountId: safeAccountId,
                 snapshotDate,
                 ...rest,
                 eventTime: eventDate
@@ -35,22 +50,26 @@ async function upsertDailyAccountSnapshot(data) {
     );
 }
 
-async function getTodayAccountSnapshotByUser(firebaseUserId) {
+async function getTodayAccountSnapshotsByUser(firebaseUserId) {
+    const safeFirebaseUserId = normalizeString(firebaseUserId);
     const snapshotDate = toSnapshotDate(new Date());
 
-    return await AccountSnapshot.findOne({
-        firebaseUserId,
+    return await AccountSnapshot.find({
+        firebaseUserId: safeFirebaseUserId,
         snapshotDate
-    }).lean();
+    })
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .lean();
 }
 
 async function getAccountSnapshotsByUser(firebaseUserId, limit = 30, page = 1) {
+    const safeFirebaseUserId = normalizeString(firebaseUserId);
     const safeLimit = Math.max(1, Number(limit) || 30);
     const safePage = Math.max(1, Number(page) || 1);
     const skip = (safePage - 1) * safeLimit;
 
-    return await AccountSnapshot.find({ firebaseUserId })
-        .sort({ snapshotDate: -1, createdAt: -1 })
+    return await AccountSnapshot.find({ firebaseUserId: safeFirebaseUserId })
+        .sort({ snapshotDate: -1, updatedAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(safeLimit)
         .lean();
@@ -58,6 +77,6 @@ async function getAccountSnapshotsByUser(firebaseUserId, limit = 30, page = 1) {
 
 module.exports = {
     upsertDailyAccountSnapshot,
-    getTodayAccountSnapshotByUser,
+    getTodayAccountSnapshotsByUser,
     getAccountSnapshotsByUser
 };
