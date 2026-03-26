@@ -607,47 +607,48 @@ app.post("/trade-event", async (req, res) => {
   });
 });
 
-// app.post("/check-exit-signal", async (req, res) => {
-//   // BYPASS EARLY EXIT TEMPORARILY
-//   return res.json({
-//     action: "HOLD",
-//     reason: "Early exit bypassed manually to prevent panic closes.",
-//     riskLevel: "LOW",
-//     score: 0
-//   });
-// });
 app.post("/check-exit-signal", async (req, res) => {
-  const {
-    firebaseUserId,
-    openPosition,
-    candles,
-    currentProfit,
-    failedPattern = null
-  } = req.body;
-
-  const resolvedUserId = firebaseUserId || null;
-
-  try {
-    const result = analyzeEarlyExit({
-      firebaseUserId: resolvedUserId,
-      openPosition,
-      currentProfit,
-      candles,
-      failedPattern
-    });
-
-    return res.json(result);
-  } catch (error) {
-    console.error("check-exit-signal error:", error);
-
-    return res.status(500).json({
-      action: "HOLD",
-      reason: error.message || "Internal server error",
-      riskLevel: "UNKNOWN",
-      score: 0
-    });
-  }
+  // BYPASS EARLY EXIT TEMPORARILY
+  return res.json({
+    action: "HOLD",
+    reason: "Early exit bypassed manually to prevent panic closes.",
+    riskLevel: "LOW",
+    score: 0
+  });
 });
+
+// app.post("/check-exit-signal", async (req, res) => {
+//   const {
+//     firebaseUserId,
+//     openPosition,
+//     candles,
+//     currentProfit,
+//     failedPattern = null
+//   } = req.body;
+
+//   const resolvedUserId = firebaseUserId || null;
+
+//   try {
+//     const result = analyzeEarlyExit({
+//       firebaseUserId: resolvedUserId,
+//       openPosition,
+//       currentProfit,
+//       candles,
+//       failedPattern
+//     });
+
+//     return res.json(result);
+//   } catch (error) {
+//     console.error("check-exit-signal error:", error);
+
+//     return res.status(500).json({
+//       action: "HOLD",
+//       reason: error.message || "Internal server error",
+//       riskLevel: "UNKNOWN",
+//       score: 0
+//     });
+//   }
+// });
 
 app.post("/webhook/mae-pla", async (req, res) => {
   try {
