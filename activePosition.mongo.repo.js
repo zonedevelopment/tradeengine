@@ -267,7 +267,7 @@ async function syncActivePositionsToMongo({
 
         const staleQuery = {
             firebaseUserId,
-            symbol: normalizedSymbol
+            symbol: safeSymbol
         };
 
         if (incomingTicketIds.length > 0) {

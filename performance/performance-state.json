@@ -1,31 +1,13 @@
 {
-  "updatedAt": "2026-03-25T03:56:33.290Z",
+  "updatedAt": "2026-03-26T04:34:08.702Z",
   "summary": {
-    "totalTrades": 541,
-    "wins": 265,
-    "losses": 276,
-    "totalProfit": -144.03999999999974,
-    "winRate": 48.98,
-    "patterns": {
-      "SELL": {
-        "trades": 293,
-        "wins": 113,
-        "losses": 151,
-        "profit": -35.21000000000015,
-        "winRate": 38.57
-      },
-      "BUY": {
-        "trades": 248,
-        "wins": 98,
-        "losses": 123,
-        "profit": -108.82999999999988,
-        "winRate": 39.52
-      }
-    },
+    "totalTrades": 0,
+    "wins": 0,
+    "losses": 0,
+    "totalProfit": 0,
+    "winRate": 0,
+    "patterns": {},
     "sessions": {}
   },
-  "suggestedWeights": {
-    "SELL": -1.14,
-    "BUY": -1.05
-  }
+  "suggestedWeights": {}
 }
