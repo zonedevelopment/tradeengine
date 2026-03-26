@@ -109,7 +109,7 @@ function analyzeEarlyExit({
         };
     }
 
-    const pattern = analyzePattern({ candles });
+    // const pattern = analyzePattern({ candles });
 
     const side = String(openPosition.side || "").toUpperCase(); // BUY / SELL
 
@@ -332,7 +332,7 @@ function detectReversalScore(candles, side) {
     const body3 = Math.abs(prev2.close - prev2.open);
 
     if (body1 < body2 && body2 < body3) {
-        score += 1;
+        score += 1.5;
     }
 
     // =========================
@@ -342,11 +342,11 @@ function detectReversalScore(candles, side) {
     const lowerWick = Math.min(last.close, last.open) - last.low;
 
     if (side === "BUY" && upperWick > Math.max(body1, 0.0001) * 1.5) {
-        score += 1;
+        score += 2;
     }
 
     if (side === "SELL" && lowerWick > Math.max(body1, 0.0001) * 1.5) {
-        score += 1;
+        score += 2;
     }
 
     // =========================
