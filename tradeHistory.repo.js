@@ -58,6 +58,7 @@ async function insertTradeHistory(data) {
   const sql = `
     INSERT INTO trade_history (
       firebase_user_id,
+      account_id,
       ticket_id,
       event_type,
       symbol,
@@ -70,11 +71,12 @@ async function insertTradeHistory(data) {
       mode,
       event_time
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const params = [
     data.firebaseUserId || null,
+    data.accountId || null,
     safeTicketId,
     safeEventType,
     data.symbol ? String(data.symbol).trim() : "",

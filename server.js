@@ -468,6 +468,7 @@ app.post("/trade-event", async (req, res) => {
     type,
     symbol,
     firebaseUserId,
+    accountId,
     side,
     lot,
     price,
@@ -573,6 +574,7 @@ app.post("/trade-event", async (req, res) => {
   try {
     dbInsertResult = await insertTradeHistory({
       firebaseUserId: resolvedUserId,
+      accountId: accountId,
       ticketId: normalizedTicketId,
       eventType: type,
       symbol,
