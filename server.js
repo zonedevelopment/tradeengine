@@ -990,8 +990,7 @@ app.get("/account-snapshot/stream", async (req, res) => {
     sendSse(res, "connected", {
       success: true,
       message: "account snapshot stream connected",
-      firebaseUserId: safeFirebaseUserId,
-      accountId: safeAccountId
+      firebaseUserId: safeFirebaseUserId
     });
 
     sendSse(res, "account-snapshot", {
