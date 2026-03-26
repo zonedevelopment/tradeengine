@@ -1,12 +1,12 @@
 {
-  "Pin_Bar_Shooting_Star": -0.2999999999999997,
+  "Pin_Bar_Shooting_Star": -0.5,
   "Morning_Star_Base_Break": 0,
-  "Evening_Star_Base_Break": -0.4499999999999996,
+  "Evening_Star_Base_Break": -0.75,
   "Pin_Bar_Hammer": 2,
-  "Piercing_Pattern": 0.3000000000000005,
-  "Waterfall_Drop_Continuation": 1.1999999999999993,
+  "Piercing_Pattern": 0.5,
+  "Waterfall_Drop_Continuation": 1.8,
   "Dark_Cloud_Cover": 1.9,
-  "Bullish_Engulfing": -0.7499999999999993,
-  "Rocket_Surge_Continuation": 0.6000000000000002,
-  "Bearish_Engulfing": -1.0499999999999996
+  "Bullish_Engulfing": -1.25,
+  "Rocket_Surge_Continuation": 1,
+  "Bearish_Engulfing": -1.75
 }

@@ -303,6 +303,19 @@ async function upsertFailedPattern(item) {
 async function runDailyLearning() {
     console.log("[Daily Learner] Starting Contextual Learning...");
 
+    const initialDefaultWeights = {
+        "Pin_Bar_Shooting_Star": -0.5,
+        "Morning_Star_Base_Break": 0,
+        "Evening_Star_Base_Break": -0.75,
+        "Pin_Bar_Hammer": 2.0,
+        "Piercing_Pattern": 0.5,
+        "Waterfall_Drop_Continuation": 1.8,
+        "Dark_Cloud_Cover": 1.9,
+        "Bullish_Engulfing": -1.25,
+        "Rocket_Surge_Continuation": 1.0,
+        "Bearish_Engulfing": -1.75
+    };
+
     const dataDir = path.join(__dirname, "../data");
     const learningDir = path.join(__dirname, "../learning");
 
@@ -328,15 +341,39 @@ async function runDailyLearning() {
         return;
     }
 
+    // let weights = {};
+    // if (fs.existsSync(weightPath)) {
+    //     try {
+    //         weights = JSON.parse(fs.readFileSync(weightPath, "utf8"));
+    //     } catch (_) { }
+    // }
+
     let weights = {};
-    if (fs.existsSync(weightPath)) {
-        try {
-            weights = JSON.parse(fs.readFileSync(weightPath, "utf8"));
-        } catch (_) { }
+    try {
+        const [rows] = await query("SELECT pattern_name, weight_score FROM strategy_weights");
+        // weights = rows.reduce((acc, row) => {
+        //     acc[row.pattern_name] = Number(row.weight_score);
+        //     return acc;
+        // }, {});
+        if (rows) {
+            // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
+            weights = rows.reduce((acc, row) => {
+                acc[row.pattern_name] = Number(row.weight_score);
+                return acc;
+            }, {});
+            console.log("[Daily Learner] Weights loaded from Database.");
+        } else {
+            // ถ้าใน DB ว่างเปล่า ให้ใช้ค่าตั้งต้นที่คุณกำหนด
+            weights = { ...initialDefaultWeights };
+            console.log("[Daily Learner] Database is empty. Using Initial Default Weights.");
+        }
+    } catch (err) {
+        console.log("[Daily Learner] Get initial weights error:", err.message);
     }
 
     let mappedResults = [];
     let openOrder = null;
+
 
     for (let i = 0; i < trades.length; i++) {
         const t = trades[i];
@@ -483,12 +520,32 @@ async function runDailyLearning() {
     fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
     try {
+        const weightEntries = Object.entries(weights);
+        if (weightEntries.length > 0) {
+            // ใช้ Promise.all เพื่ออัปเดตทุกตัวพร้อมกัน หรือวน Loop ยิง SQL
+            const upsertSql = `
+                INSERT INTO strategy_weights (pattern_name, weight_score) 
+                VALUES (?, ?) 
+                ON DUPLICATE KEY UPDATE weight_score = VALUES(weight_score), last_updated = NOW()
+            `;
+
+            for (const [name, score] of weightEntries) {
+                await query(upsertSql, [name, score]);
+            }
+            console.log(`[Daily Learner] Successfully saved ${weightEntries.length} weights to DB.`);
+        }
+    } catch (err) {
+        console.error("[Daily Learner] Save weights to DB error:", err.message);
+    }
+
+    try {
         await insertManyMappedTradeAnalysis(mappedResults);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
     }
 
     console.log(`[Daily Learner] Mapped ${mappedResults.length} completed trades.`);
+    console.log(`[Daily Learner] Wegiht ${JSON.stringify(weights, null, 2)} completed trades.`);
     console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
 }
 

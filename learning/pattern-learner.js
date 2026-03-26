@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { query } = require("../db");
 const { getHistoryLearnWeight } = require("../tradeHistory.repo")
 
 function buildPatternKey(trade) {
@@ -24,7 +25,7 @@ async function learnPatternWeights() {
     // const weightFile = "./pattern-weight.json";
 
     // const historyFile = path.join(dataDir, "trade-history.json");
-    const weightFile = path.join(__dirname, "pattern-weight.json");
+    // const weightFile = path.join(__dirname, "pattern-weight.json");
 
     //if (!fs.existsSync(historyFile)) return;
 
@@ -50,20 +51,32 @@ async function learnPatternWeights() {
     });
 
     const weights = {};
+    const upsertSql = `
+        INSERT INTO strategy_weights (pattern_name, weight_score)
+        VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE 
+            weight_score = VALUES(weight_score),
+            total_trades = VALUES(total_trades),
+            last_updated = NOW()
+    `;
 
     for (const pattern in stats) {
-
-        const { win, loss } = stats[pattern];
-
+        const { win, loss, total } = stats[pattern];
         const winRate = win / (win + loss);
-
         const score = (winRate - 0.5) * 10;
+        score = Math.max(-2.0, Math.min(2.0, score));
+        const finalScore = Number(score.toFixed(2));
+        weights[pattern] = finalScore;
 
-        weights[pattern] = Number(score.toFixed(2));
-
+        try {
+            // บันทึกลง MySQL
+            await query(upsertSql, [pattern, finalScore]);
+        } catch (err) {
+            console.error(`[Learning] Failed to save weight for ${patternName}:`, err.message);
+        }
     }
 
-    fs.writeFileSync(weightFile, JSON.stringify(weights, null, 2));
+    // fs.writeFileSync(weightFile, JSON.stringify(weights, null, 2));
 
     return weights;
 

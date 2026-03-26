@@ -289,17 +289,17 @@ async function syncActivePositionsToMongo({
                     symbol: doc.symbol
                 });
 
-                broadcastActivePositionChange({
-                    firebaseUserId,
-                    symbol,
-                    eventName: "active-position-update",
-                    payload: {
-                      action: "delete",
-                      firebaseUserId: doc.firebaseUserId,
-                      symbol: doc.symbol,
-                      data: staleDocs,
-                    }
-                  });
+                // broadcastActivePositionChange({
+                //     firebaseUserId,
+                //     symbol,
+                //     eventName: "active-position-update",
+                //     payload: {
+                //       action: "delete",
+                //       firebaseUserId: doc.firebaseUserId,
+                //       symbol: doc.symbol,
+                //       data: staleDocs,
+                //     }
+                //   });
             }
         }
     } else {
