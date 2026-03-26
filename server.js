@@ -816,7 +816,7 @@ app.get("/active-positions/stream", async (req, res) => {
       action: "init",
       firebaseUserId,
       symbol: symbol || "",
-      rows
+      data: rows
     });
   } catch (error) {
     sendSse(res, "error", {
