@@ -132,11 +132,9 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       AND o.event_type = 'OPEN_ORDER'
     WHERE
       c.firebase_user_id = ?
-      AND c.event_type = 'CLOSE_ORDER'
+      AND c.event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
     ORDER BY c.id DESC
-    LIMIT ?
-    OFFSET ?
-  `;
+    LIMIT ? OFFSET ?`;
 
   return await query(sql, [firebaseUserId, safeLimit, offset]);
 }
