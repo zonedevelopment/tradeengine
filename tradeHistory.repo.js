@@ -393,7 +393,6 @@ async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eve
 
   const rows = await query(sql, [
     safeFirebaseUserId,
-    safeAccountId,
     formattedDateLocal,
     formattedDateLocal
   ]);
@@ -401,7 +400,6 @@ async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eve
   const row = rows?.[0] || {};
 
   return {
-    datequery: formattedDateLocal,
     todayClosedTrades: Number(row.todayClosedTrades || 0),
     todayWinTrades: Number(row.todayWinTrades || 0),
     todayLossTrades: Number(row.todayLossTrades || 0),
