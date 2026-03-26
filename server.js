@@ -63,6 +63,7 @@ const {
 } = require("./activePosition.stream");
 
 const database = require('./config/mongoDB')
+const ActivePosition = require("./models/ActivePosition");
 
 
 const symbolConfig = {
