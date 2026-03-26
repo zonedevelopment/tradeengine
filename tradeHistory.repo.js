@@ -254,47 +254,6 @@ async function getTradeEventsForLearning() {
   return await query(sql);
 }
 
-/*async function getHistoryLearnWeight() {
-  const safeLimit = Math.max(1, Math.min(2500, normalizeNumber(limit, 2500)));
-
-  const conditions = [
-    `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`,
-    `COALESCE(event_time, created_at) >= DATE_SUB(NOW(), INTERVAL 1 DAY)`
-  ];
-
-  const params = [];
-
-  const sql = `
-    SELECT
-      id,
-      firebase_user_id,
-      ticket_id,
-      event_type,
-      symbol,
-      side,
-      lot,
-      price,
-      sl,
-      tp,
-      profit,
-      CASE 
-        WHEN profit > 0 THEN 'WIN'
-        ELSE 'LOSE'
-      END AS result
-      mode,
-      created_at,
-      event_time
-    FROM trade_history
-    WHERE ${conditions.join(" AND ")}
-    ORDER BY COALESCE(event_time, created_at) DESC, id DESC
-    LIMIT ?
-  `;
-
-  params.push(safeLimit);
-
-  return await query(sql, params);
-}*/
-
 async function getHistoryLearnWeight() {
   const safeLimit = 2500;
 
@@ -342,6 +301,93 @@ async function getHistoryLearnWeight() {
   return await query(sql, params);
 }
 
+async function getTodayTradeStatsByUserAndAccount(firebaseUserId, accountId, eventTime) {
+  const safeFirebaseUserId = normalizeString(firebaseUserId);
+  const safeAccountId = normalizeString(accountId);
+
+  if (!safeFirebaseUserId) {
+    throw new Error("firebaseUserId is required");
+  }
+
+  const { start, end } = getDayRangeFromEventTime(eventTime);
+
+  const sql = `
+    SELECT
+      COUNT(*) AS todayClosedTrades,
+      SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) AS todayWinTrades,
+      SUM(CASE WHEN profit < 0 THEN 1 ELSE 0 END) AS todayLossTrades,
+      COALESCE(SUM(profit), 0) AS dailyNetProfit,
+      COALESCE(SUM(CASE WHEN profit > 0 THEN profit ELSE 0 END), 0) AS dailyProfit,
+      COALESCE(SUM(CASE WHEN profit < 0 THEN profit ELSE 0 END), 0) AS dailyLoss
+    FROM trade_history
+    WHERE firebase_user_id = ?
+      AND account_id = ?
+      AND event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+      AND event_time >= ?
+      AND event_time <= ?
+  `;
+
+  const rows = await query(sql, [
+    safeFirebaseUserId,
+    safeAccountId,
+    start,
+    end
+  ]);
+
+  const row = rows?.[0] || {};
+
+  return {
+    todayClosedTrades: Number(row.todayClosedTrades || 0),
+    todayWinTrades: Number(row.todayWinTrades || 0),
+    todayLossTrades: Number(row.todayLossTrades || 0),
+    dailyNetProfit: Number(row.dailyNetProfit || 0),
+    dailyProfit: Number(row.dailyProfit || 0),
+    dailyLoss: Number(row.dailyLoss || 0)
+  };
+}
+
+async function getTodayTradeStatsByUser(firebaseUserId, eventTime) {
+  const safeFirebaseUserId = normalizeString(firebaseUserId);
+
+  if (!safeFirebaseUserId) {
+    throw new Error("firebaseUserId is required");
+  }
+
+  const { start, end } = getDayRangeFromEventTime(eventTime);
+
+  const sql = `
+    SELECT
+      COUNT(*) AS todayClosedTrades,
+      SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) AS todayWinTrades,
+      SUM(CASE WHEN profit < 0 THEN 1 ELSE 0 END) AS todayLossTrades,
+      COALESCE(SUM(profit), 0) AS dailyNetProfit,
+      COALESCE(SUM(CASE WHEN profit > 0 THEN profit ELSE 0 END), 0) AS dailyProfit,
+      COALESCE(SUM(CASE WHEN profit < 0 THEN profit ELSE 0 END), 0) AS dailyLoss
+    FROM trade_history
+    WHERE firebase_user_id = ?
+      AND event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+      AND event_time >= ?
+      AND event_time <= ?
+  `;
+
+  const rows = await query(sql, [
+    safeFirebaseUserId,
+    start,
+    end
+  ]);
+
+  const row = rows?.[0] || {};
+
+  return {
+    todayClosedTrades: Number(row.todayClosedTrades || 0),
+    todayWinTrades: Number(row.todayWinTrades || 0),
+    todayLossTrades: Number(row.todayLossTrades || 0),
+    dailyNetProfit: Number(row.dailyNetProfit || 0),
+    dailyProfit: Number(row.dailyProfit || 0),
+    dailyLoss: Number(row.dailyLoss || 0)
+  };
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
@@ -349,5 +395,7 @@ module.exports = {
   getTradeHistoryDetailFromCommands,
   getTradeEventsForAnalysis,
   getTradeEventsForLearning,
+  getTodayTradeStatsByUserAndAccount,
+  getTodayTradeStatsByUser,
   getHistoryLearnWeight
 };

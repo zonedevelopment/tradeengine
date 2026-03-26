@@ -24,7 +24,7 @@ const { findFailedPattern } = require("./failedPattern.repo");
 const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
-const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getTradeHistoryDetailFromCommands } = require("./tradeHistory.repo");
+const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getTradeHistoryDetailFromCommands, getTodayTradeStatsByUserAndAccount } = require("./tradeHistory.repo");
 
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
@@ -966,17 +966,49 @@ app.post("/account-snapshot", async (req, res) => {
       });
     }
 
+    const tradeStats = await getTodayTradeStatsByUserAndAccount(
+      firebaseUserId,
+      body.accountId,
+      body.eventTime
+    );
+
+    const payloadToSave = {
+      firebaseUserId,
+      accountId: body.accountId || "",
+      eventTime: body.eventTime || new Date(),
+
+      balance: body.balance || 0,
+      equity: body.equity || 0,
+      margin: body.margin || 0,
+      freeMargin: body.freeMargin || 0,
+      floatingProfit: body.floatingProfit || 0,
+      openPositionsCount: body.openPositionsCount || 0,
+
+      dailyProfit: tradeStats.dailyProfit,
+      dailyLoss: tradeStats.dailyLoss,
+      dailyNetProfit: tradeStats.dailyNetProfit,
+      todayWinTrades: tradeStats.todayWinTrades,
+      todayLossTrades: tradeStats.todayLossTrades,
+      todayClosedTrades: tradeStats.todayClosedTrades
+    };
+
+    await upsertLiveAccountSnapshot(payloadToSave);
+    await upsertDailyAccountSnapshot(payloadToSave);
+
+    const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
+    broadcastAccountSnapshot(firebaseUserId, data);
+
     // live snapshot ล่าสุดต่อ account
-    await upsertLiveAccountSnapshot(body);
+    // await upsertLiveAccountSnapshot(body);
 
     // daily snapshot history
-    await upsertDailyAccountSnapshot(body);
+    // await upsertDailyAccountSnapshot(body);
 
     // aggregate ทั้ง user
-    const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
+    // const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
 
     // broadcast stream
-    broadcastAccountSnapshot(firebaseUserId, data);
+    // broadcastAccountSnapshot(firebaseUserId, data);
 
     return res.json({
       success: true,
