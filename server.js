@@ -240,7 +240,7 @@ app.post("/signal", async (req, res) => {
           candles: contextCandles,
         });
 
-        if (trainingLogs.length > 5000) {
+        if (trainingLogs.length > 2500) {
           trainingLogs.shift();
         }
 
@@ -255,7 +255,7 @@ app.post("/signal", async (req, res) => {
     const session = getSession();
     const risk = getRiskState();
 
-    const pattern = analyzePattern({
+    const pattern = await analyzePattern({
       candles: candles,
       candlesH1: candles_h1,
       candlesH4: candles_h4,
@@ -326,7 +326,7 @@ app.post("/signal", async (req, res) => {
 
     const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const mult = activeCfg.pipMultiplier;
-    const avgRange = calculateAvgRange(candles, 5, mult);
+    const avgRange = calculateAvgRange(candles, 2, mult);
 
     if (side === "BUY") {
       if (pattern.slPrice < price) {
