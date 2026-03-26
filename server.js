@@ -747,12 +747,17 @@ app.get("/active-positions/stream", async (req, res) => {
     });
   }
 
+  const origin = req.headers.origin;
+  if (origin === "https://tradeengine.zonedevnode.com") {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no");
 
-  if (res.flushHeaders) res.flushHeaders();
+  res.flushHeaders?.();
 
   const clientId = crypto.randomUUID();
 
@@ -976,8 +981,20 @@ app.get("/account-snapshot/stream", async (req, res) => {
     safeAccountId
   );
 
-  initSseHeaders(res);
-  res.write("\n");
+  // initSseHeaders(res);
+  // res.write("\n");
+
+  const origin = req.headers.origin;
+  if (origin === "https://tradeengine.zonedevnode.com") {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+
+  res.flushHeaders?.();
 
   addAccountSnapshotClient(streamKey, res);
 
