@@ -41,6 +41,20 @@ const {
   getAccountSnapshotsByUser
 } = require("./accountSnapshot.repo");
 
+const {
+  upsertLiveAccountSnapshot,
+  getLiveAccountSnapshotByUserAndAccount
+} = require("./accountSnapshotLive.repo");
+
+const {
+  getAccountSnapshotStreamKey,
+  addAccountSnapshotClient,
+  removeAccountSnapshotClient,
+  sendSse,
+  broadcastAccountSnapshot,
+  initSseHeaders
+} = require("./accountSnapshot.stream");
+
 const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
 
 const {
@@ -67,12 +81,10 @@ const ActivePosition = require("./models/ActivePosition");
 
 
 const symbolConfig = {
-  "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1800, maxTP: 6000 },
-  "EURUSD": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
-  "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 1000, maxTP: 3000 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1800, maxTP: 6000 },
-  "EURUSDm": { pipMultiplier: 100000, minSL: 50, maxSL: 500, minTP: 80, maxTP: 1000 },
+  "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
+  "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
+  "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
+  "BTCUSDm": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };
 
@@ -170,6 +182,8 @@ app.post("/signal", async (req, res) => {
 
   const resolvedUserId = firebaseUserId || null;
   const spreadPoints = req.body.spreadPoints || 0;
+
+  console.log(candles)
 
   try {
     try {
@@ -824,25 +838,129 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
   }
 });
 
+// app.post("/account-snapshot", async (req, res) => {
+//   const {
+//     firebaseUserId,
+//     accountId,
+//     balance,
+//     equity,
+//     margin,
+//     freeMargin,
+//     floatingProfit,
+//     dailyProfit,
+//     dailyLoss,
+//     dailyNetProfit,
+//     todayWinTrades,
+//     todayLossTrades,
+//     todayClosedTrades,
+//     openPositionsCount,
+//     maxPositions,
+//     eventTime
+//   } = req.body;
+
+//   if (!firebaseUserId) {
+//     return res.status(400).json({
+//       success: false,
+//       error: "firebaseUserId is required"
+//     });
+//   }
+
+//   try {
+//     console.log("[account-snapshot] incoming:", {
+//       firebaseUserId,
+//       accountId,
+//       balance,
+//       equity,
+//       dailyProfit,
+//       dailyLoss,
+//       dailyNetProfit,
+//       floatingProfit,
+//       openPositionsCount,
+//       eventTime
+//     });
+
+//     await upsertDailyAccountSnapshot({
+//       firebaseUserId,
+//       accountId,
+//       balance,
+//       equity,
+//       margin,
+//       freeMargin,
+//       floatingProfit,
+//       dailyProfit,
+//       dailyLoss,
+//       dailyNetProfit,
+//       todayWinTrades,
+//       todayLossTrades,
+//       todayClosedTrades,
+//       openPositionsCount,
+//       maxPositions,
+//       eventTime
+//     });
+
+//     return res.json({
+//       success: true,
+//       message: "Daily account snapshot saved successfully"
+//     });
+//   } catch (error) {
+//     console.error("account-snapshot error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message || "Internal server error"
+//     });
+//   }
+// });
+
 app.post("/account-snapshot", async (req, res) => {
-  const {
-    firebaseUserId,
-    accountId,
-    balance,
-    equity,
-    margin,
-    freeMargin,
-    floatingProfit,
-    dailyProfit,
-    dailyLoss,
-    dailyNetProfit,
-    todayWinTrades,
-    todayLossTrades,
-    todayClosedTrades,
-    openPositionsCount,
-    maxPositions,
-    eventTime
-  } = req.body;
+  try {
+    const {
+      firebaseUserId,
+      accountId = "",
+      eventTime = null
+    } = req.body || {};
+
+    if (!firebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required"
+      });
+    }
+
+    // 1) เก็บ daily snapshot (history)
+    await upsertDailyAccountSnapshot({
+      ...req.body,
+      accountId,
+      eventTime
+    });
+
+    // 2) เก็บ live snapshot (สำหรับ stream/dashboard)
+    const liveSnapshot = await upsertLiveAccountSnapshot({
+      ...req.body,
+      accountId,
+      eventTime
+    });
+
+    // 3) broadcast ไปยัง client ที่ subscribe อยู่
+    const streamKey = getAccountSnapshotStreamKey(firebaseUserId, accountId);
+    broadcastAccountSnapshot(streamKey, liveSnapshot);
+
+    return res.json({
+      success: true,
+      message: "Account snapshot synced successfully",
+      snapshot: liveSnapshot
+    });
+  } catch (error) {
+    console.error("account-snapshot sync error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/account-snapshot/stream", async (req, res) => {
+  const { firebaseUserId, accountId = "" } = req.query || {};
 
   if (!firebaseUserId) {
     return res.status(400).json({
@@ -851,50 +969,51 @@ app.post("/account-snapshot", async (req, res) => {
     });
   }
 
+  const safeFirebaseUserId = String(firebaseUserId).trim();
+  const safeAccountId = String(accountId || "").trim();
+  const streamKey = getAccountSnapshotStreamKey(
+    safeFirebaseUserId,
+    safeAccountId
+  );
+
+  initSseHeaders(res);
+  res.write("\n");
+
+  addAccountSnapshotClient(streamKey, res);
+
   try {
-    console.log("[account-snapshot] incoming:", {
-      firebaseUserId,
-      accountId,
-      balance,
-      equity,
-      dailyProfit,
-      dailyLoss,
-      dailyNetProfit,
-      floatingProfit,
-      openPositionsCount,
-      eventTime
-    });
+    const latestSnapshot = await getLiveAccountSnapshotByUserAndAccount(
+      safeFirebaseUserId,
+      safeAccountId
+    );
 
-    await upsertDailyAccountSnapshot({
-      firebaseUserId,
-      accountId,
-      balance,
-      equity,
-      margin,
-      freeMargin,
-      floatingProfit,
-      dailyProfit,
-      dailyLoss,
-      dailyNetProfit,
-      todayWinTrades,
-      todayLossTrades,
-      todayClosedTrades,
-      openPositionsCount,
-      maxPositions,
-      eventTime
-    });
-
-    return res.json({
+    sendSse(res, "connected", {
       success: true,
-      message: "Daily account snapshot saved successfully"
+      message: "account snapshot stream connected",
+      firebaseUserId: safeFirebaseUserId,
+      accountId: safeAccountId
+    });
+
+    sendSse(res, "account-snapshot", {
+      success: true,
+      snapshot: latestSnapshot || null
     });
   } catch (error) {
-    console.error("account-snapshot error:", error);
-    return res.status(500).json({
+    sendSse(res, "error", {
       success: false,
-      error: error.message || "Internal server error"
+      error: error.message || "Failed to load latest account snapshot"
     });
   }
+
+  const heartbeat = setInterval(() => {
+    res.write(": keep-alive\n\n");
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    removeAccountSnapshotClient(streamKey, res);
+    res.end();
+  });
 });
 
 app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
