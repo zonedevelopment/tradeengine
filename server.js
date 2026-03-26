@@ -156,6 +156,98 @@ function calculateAvgRange(candles = [], length = 3, pipMultiplier) {
   return (avg * pipMultiplier);
 }
 
+const activePositionClients = new Map();
+
+function sendSse(res, eventName, payload) {
+  res.write(`event: ${eventName}\n`);
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function registerActivePositionClient({ clientId, firebaseUserId, res }) {
+  activePositionClients.set(clientId, {
+    res,
+    firebaseUserId,
+  });
+}
+
+function unregisterActivePositionClient(clientId) {
+  activePositionClients.delete(clientId);
+}
+
+function broadcastActivePositionUpdate(payload) {
+  for (const [clientId, client] of activePositionClients.entries()) {
+    try {
+      const sameUser = client.firebaseUserId === payload.firebaseUserId;
+      const sameSymbol = !client.symbol || client.symbol === String(payload.symbol || "").toUpperCase();
+
+      if (!sameUser || !sameSymbol) continue;
+
+      sendSse(client.res, "active-position-update", payload);
+    } catch (error) {
+      try { client.res.end(); } catch (_) { }
+      activePositionClients.delete(clientId);
+    }
+  }
+}
+
+let activePositionStreamStarted = false;
+
+function startActivePositionChangeStream() {
+  if (activePositionStreamStarted) return;
+  activePositionStreamStarted = true;
+
+  try {
+    const changeStream = ActivePosition.watch([], { fullDocument: "updateLookup" });
+
+    changeStream.on("change", async (change) => {
+      try {
+        if (change.operationType === "delete") {
+          return;
+        }
+
+        const doc = change.fullDocument;
+        if (!doc) return;
+
+        broadcastActivePositionUpdate({
+          action: change.operationType,
+          _id: doc._id,
+          ticketId: doc.ticketId,
+          firebaseUserId: doc.firebaseUserId,
+          accountId: doc.accountId,
+          symbol: doc.symbol,
+          side: doc.side,
+          lot: doc.lot,
+          entryPrice: doc.entryPrice,
+          currentPrice: doc.currentPrice,
+          sl: doc.sl,
+          tp: doc.tp,
+          profit: doc.profit,
+          swap: doc.swap,
+          commission: doc.commission,
+          openTime: doc.openTime,
+          eventTime: doc.eventTime,
+          updatedAt: doc.updatedAt
+        });
+      } catch (err) {
+        console.error("[ActivePositionChangeStream] handle error:", err);
+      }
+    });
+
+    changeStream.on("error", (err) => {
+      console.error("[ActivePositionChangeStream] stream error:", err);
+      activePositionStreamStarted = false;
+
+      setTimeout(() => {
+        startActivePositionChangeStream();
+      }, 3000);
+    });
+
+    console.log("[ActivePositionChangeStream] started");
+  } catch (err) {
+    console.error("[ActivePositionChangeStream] start failed:", err);
+  }
+}
+
 app.post("/signal", async (req, res) => {
   const {
     symbol,
@@ -689,6 +781,96 @@ app.post("/active-positions", async (req, res) => {
   }
 });
 
+app.get("/active-positions", async (req, res) => {
+  const { firebaseUserId } = req.query;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  try {
+    const query = { firebaseUserId };
+    // if (symbol) {
+    //   query.symbol = String(symbol).toUpperCase();
+    // }
+
+    const rows = await ActivePosition.find(query)
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: rows
+    });
+  } catch (error) {
+    console.error("get active-positions error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/active-positions/stream", async (req, res) => {
+  const { firebaseUserId } = req.query;
+
+  if (!firebaseUserId) {
+    return res.status(400).json({
+      success: false,
+      error: "firebaseUserId is required"
+    });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+
+  if (res.flushHeaders) res.flushHeaders();
+
+  const clientId = crypto.randomUUID();
+
+  registerSseClient({
+    clientId,
+    firebaseUserId,
+    res
+  });
+
+  // ส่ง initial snapshot ตอนเชื่อมต่อ
+  try {
+    const query = { firebaseUserId };
+    // if (symbol) query.symbol = String(symbol).toUpperCase();
+
+    const rows = await ActivePosition.find(query)
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    sendSse(res, "active-positions-init", {
+      action: "init",
+      firebaseUserId,
+      rows
+    });
+  } catch (err) {
+    sendSse(res, "error", { message: err.message });
+  }
+
+  // keep-alive
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (_) { }
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(keepAlive);
+    unregisterSseClient(clientId);
+    res.end();
+  });
+});
+
 app.get("/active-positions/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
 
@@ -697,9 +879,29 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
       firebaseUserId
     });
 
+    // return res.json({
+    //   success: true,
+    //   data: rows
+    // });
     return res.json({
       success: true,
-      data: rows
+      data: rows || {
+        firebaseUserId,
+        balance: 0,
+        equity: 0,
+        margin: 0,
+        freeMargin: 0,
+        floatingProfit: 0,
+        dailyProfit: 0,
+        dailyLoss: 0,
+        dailyNetProfit: 0,
+        todayWinTrades: 0,
+        todayLossTrades: 0,
+        todayClosedTrades: 0,
+        openPositionsCount: 0,
+        maxPositions: 0,
+        eventTime: null
+      }
     });
   } catch (error) {
     console.error("get active-positions error:", error);
@@ -710,75 +912,6 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
     });
   }
 });
-
-// app.post("/account-snapshot", async (req, res) => {
-//   const {
-//     firebaseUserId,
-//     accountId,
-//     balance,
-//     equity,
-//     margin,
-//     freeMargin,
-//     floatingProfit,
-//     dailyProfit,
-//     dailyLoss,
-//     dailyNetProfit,
-//     todayWinTrades,
-//     todayLossTrades,
-//     todayClosedTrades,
-//     openPositionsCount,
-//     maxPositions,
-//     eventTime
-//   } = req.body;
-
-//   if (!firebaseUserId) {
-//     return res.status(400).json({
-//       success: false,
-//       error: "firebaseUserId is required"
-//     });
-//   }
-
-//   try {
-//     console.log("[account-snapshot] incoming:", {
-//       firebaseUserId,
-//       balance,
-//       equity,
-//       dailyProfit,
-//       floatingProfit,
-//       openPositionsCount
-//     });
-
-//     await upsertAccountSnapshot({
-//       firebaseUserId,
-//       accountId,
-//       balance,
-//       equity,
-//       margin,
-//       freeMargin,
-//       floatingProfit,
-//       dailyProfit,
-//       dailyLoss,
-//       dailyNetProfit,
-//       todayWinTrades,
-//       todayLossTrades,
-//       todayClosedTrades,
-//       openPositionsCount,
-//       maxPositions,
-//       eventTime
-//     });
-
-//     return res.json({
-//       success: true,
-//       message: "Account snapshot saved successfully"
-//     });
-//   } catch (error) {
-//     console.error("account-snapshot error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message || "Internal server error"
-//     });
-//   }
-// });
 
 app.post("/account-snapshot", async (req, res) => {
   const {
@@ -852,32 +985,6 @@ app.post("/account-snapshot", async (req, res) => {
     });
   }
 });
-
-// app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
-//   const { firebaseUserId } = req.params;
-
-//   if (!firebaseUserId) {
-//     return res.status(400).json({
-//       success: false,
-//       error: "firebaseUserId is required"
-//     });
-//   }
-
-//   try {
-//     const row = await getAccountSnapshotByUser(firebaseUserId);
-
-//     return res.json({
-//       success: true,
-//       data: row
-//     });
-//   } catch (error) {
-//     console.error("get account-snapshot error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message || "Internal server error"
-//     });
-//   }
-// });
 
 app.get("/account-snapshot/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
@@ -1249,36 +1356,6 @@ app.get("/updateSummary", async (req, res) => {
   }
 });
 
-// cron.schedule("0 */1 * * *", () => {
-//   runDailyLearning();
-// });
-
-// cron.schedule("0 6 * * *", () => {
-//   console.log("[AI Cron] Waking up AI for Morning Brief...");
-//   exec('openclaw chat "สรุปข่าวเศรษฐกิจ XAUUSD ของวันนี้ และส่ง news_filter เข้า webhook"');
-// });
-
-// cron.schedule("0 7 * * *", () => {
-//   console.log("[AI Cron] Waking up AI for Asian Session...");
-//   exec('openclaw chat "ส่ง market_context บอก EA ให้ระวัง Sideway บีบตัว หรือ pause_ea"');
-// });
-
-// cron.schedule("0 14 * * *", () => {
-//   console.log("[AI Cron] Waking up AI for London Session...");
-//   exec('openclaw chat "ประเมินโครงสร้าง H1/H4 ปัจจุบัน แล้วส่ง market_context อนุญาตให้ EA กลับมาเทรด (active)"');
-// });
-
-// cron.schedule("0 18 * * *", async () => {
-//   console.log("[AI Cron] Waking up AI for US Session...");
-//   exec('openclaw chat "อัปเดตข่าวค่ำนี้ และเตรียมขยับ SL/TP ของ EA เป็น 300/500 จุดผ่าน webhook"');
-// });
-
-// cron.schedule("30 23 * * *", () => {
-//   console.log("[AI Cron] Waking up AI for Daily Review...");
-//   exec('openclaw chat "สรุปบทเรียนจากไม้ที่ปิดไปวันนี้ใน mae_pla_logs.json และหาจุดอ่อนเพื่อปรับปรุงระบบ"');
-// });
-
-
 async function updateNewsAnalysis() {
   try {
     // const news = await fetchNews();
@@ -1290,89 +1367,6 @@ async function updateNewsAnalysis() {
     console.log("news error", err);
   }
 }
-
-// cron.schedule("* 4 * * *", updateNewsAnalysis);
-
-// cron.schedule("0 0 * * *", () => {
-//   learnPatternWeights();
-// });
-
-// analyzePerformance();
-
-// cron.schedule("0 4 * * *", async () => {
-//   try {
-//     const result = analyzePerformance();
-
-//     await sendTelegram(
-//       process.env.TELEGRAM_BOT_TOKEN,
-//       process.env.TELEGRAM_CHAT_ID,
-//       `AI GOLD BOT\n\n สรุปผลการเทรดประจำวัน\n\nTrades: ${result.summary.totalTrades}\nWins: ${result.summary.wins}\nLosses: ${result.summary.losses}\nWinRate: ${result.summary.winRate}%\nProfit: ${result.summary.totalProfit}`
-//     );
-//   } catch (err) {
-//     console.error("Performance Report Error:", err.message);
-//   }
-// });
-
-// testConnection().catch((err) => {
-//   console.error("MySQL connection error:", err.message);
-// });
-
-app.get("/active-positions/stream", async (req, res) => {
-  const { firebaseUserId } = req.query;
-
-  if (!firebaseUserId) {
-    return res.status(400).json({
-      success: false,
-      error: "firebaseUserId is required"
-    });
-  }
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-
-  if (res.flushHeaders) res.flushHeaders();
-
-  const clientId = crypto.randomUUID();
-
-  registerSseClient({
-    clientId,
-    firebaseUserId,
-    res
-  });
-
-  // ส่ง initial snapshot ตอนเชื่อมต่อ
-  try {
-    const query = { firebaseUserId };
-    // if (symbol) query.symbol = String(symbol).toUpperCase();
-
-    const rows = await ActivePosition.find(query)
-      .sort({ updatedAt: -1 })
-      .lean();
-
-    sendSse(res, "active-positions-init", {
-      action: "init",
-      firebaseUserId,
-      rows
-    });
-  } catch (err) {
-    sendSse(res, "error", { message: err.message });
-  }
-
-  // keep-alive
-  const keepAlive = setInterval(() => {
-    try {
-      res.write(": ping\n\n");
-    } catch (_) { }
-  }, 25000);
-
-  req.on("close", () => {
-    clearInterval(keepAlive);
-    unregisterSseClient(clientId);
-    res.end();
-  });
-});
 
 app.listen(5000, async () => {
   await database.connect();
