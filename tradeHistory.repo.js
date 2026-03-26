@@ -258,7 +258,7 @@ async function getTradeEventsForLearning() {
       event_time
     FROM trade_history
     WHERE event_type = 'OPEN_ORDER'
-    ORDER BY COALESCE(event_time, created_at) ASC, id ASC`;
+    ORDER BY COALESCE(event_time, created_at) DESC, id DESC`;
 
   return await query(sql);
 }
@@ -305,7 +305,7 @@ async function getTradeEventsForLearning() {
 }*/
 
 async function getHistoryLearnWeight() {
-  const safeLimit = Math.max(1, Math.min(2000, Number(limit) || 2500));
+  const safeLimit = 2500;
 
   const conditions = [
     `event_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)`,
