@@ -54,6 +54,11 @@ const { exec } = require("child_process");
 //   broadcastAccountSnapshot,
 //   initSseHeaders
 // } = require("./accountSnapshot.stream");
+
+const {
+  broadcastActivePositionChange
+} = require("./activePosition.stream")
+
 const {
   upsertDailyAccountSnapshot
 } = require("./accountSnapshot.repo");
@@ -723,6 +728,38 @@ app.post("/active-positions", async (req, res) => {
       symbol,
       positions,
       eventTime,
+    });
+
+    // ดึงข้อมูลล่าสุดหลัง sync
+    // const rows = await ActivePosition.find({ firebaseUserId })
+    //   .sort({ updatedAt: -1 })
+    //   .lean();
+
+    // const origin = req.headers.origin;
+    // if (origin === "https://tradeengine.zonedevnode.com") {
+    //   res.setHeader("Access-Control-Allow-Origin", origin);
+    // }
+
+    // res.setHeader("Content-Type", "text/event-stream");
+    // res.setHeader("Cache-Control", "no-cache, no-transform");
+    // res.setHeader("Connection", "keep-alive");
+    // res.setHeader("X-Accel-Buffering", "no");
+
+    // res.flushHeaders?.();
+
+    // broadcast ไป frontend
+    broadcastActivePositionChange({
+      firebaseUserId,
+      symbol,
+      eventName: "active-position-update",
+      payload: {
+        action: "sync",
+        firebaseUserId,
+        symbol: symbol || "",
+        data: rows,
+        eventTime,
+        synced: result?.synced || 0
+      }
     });
 
     return res.json({
