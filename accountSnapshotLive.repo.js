@@ -81,8 +81,7 @@ async function upsertLiveAccountSnapshot(data) {
 
 async function getLiveAccountSnapshotByUserAndAccount(firebaseUserId, accountId = "") {
     return await AccountSnapshotLive.findOne({
-        firebaseUserId: String(firebaseUserId).trim(),
-        accountId: accountId != null ? String(accountId).trim() : ""
+        firebaseUserId: String(firebaseUserId).trim()
     }).lean();
 }
 

@@ -9529,5 +9529,32 @@
     "side": "SELL",
     "postMortem": "TARGET_REACHED",
     "contextHash": "95e50c867667c0f921bdb04f76927f5420cdf84d5eb3018bbc198997c6d0ee3f"
+  },
+  {
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "accountId": null,
+    "eventTime": "2026-03-24T12:06:10.966Z",
+    "symbol": "XAUUSDm",
+    "patternType": "NONE",
+    "triggerPattern": "NONE",
+    "mode": "NORMAL",
+    "tickVolume": 5147,
+    "microTrend": "NEUTRAL",
+    "volumeProfile": "DECREASING",
+    "prePatternShape": "MEDIUM_BEAR,SMALL_BULL,BIG_BEAR",
+    "rangeState": "RANGING",
+    "sessionName": "NEWYORK",
+    "openPrice": 4408.991,
+    "closePrice": 70808.11,
+    "slPrice": 4416.991,
+    "tpPrice": 4398.991,
+    "slPips": 800,
+    "tpPips": 1000,
+    "rrRatio": 1.25,
+    "profit": 0.01,
+    "result": "WIN",
+    "side": "SELL",
+    "postMortem": "TARGET_REACHED",
+    "contextHash": "383acf7ba0ca36333f2355d440b871ab510f50841745e1c265ed0f29e811cb8c"
   }
 ]
