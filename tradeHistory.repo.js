@@ -238,6 +238,7 @@ async function getTradeEventsForLearning() {
     SELECT
       id,
       firebase_user_id,
+      account_id,
       ticket_id,
       event_type,
       symbol,

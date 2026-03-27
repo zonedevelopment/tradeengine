@@ -444,7 +444,7 @@ async function runDailyLearning() {
 
             const learningItem = {
                 userId: openOrder.firebase_user_id || null,
-                accountId: openOrder.accountId || null,
+                accountId: openOrder.account_id || null,
                 symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
                 timeframe: "M5",
                 side: openOrder.side,
