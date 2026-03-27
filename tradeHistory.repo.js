@@ -138,7 +138,7 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
 
   const formattedDateLocal = `${year}-${month}-${day}`;
 
-  return await query(sql, [firebaseUserId, formattedDateLocal, safeLimit, offset]);
+  return await query(sql, [firebaseUserId, formattedDateLocal]);
 }
 
 async function countTradeHistoryByUser(firebaseUserId) {
