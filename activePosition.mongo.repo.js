@@ -288,18 +288,6 @@ async function syncActivePositionsToMongo({
                     accountId: doc.accountId,
                     symbol: doc.symbol
                 });
-
-                // broadcastActivePositionChange({
-                //     firebaseUserId,
-                //     symbol,
-                //     eventName: "active-position-update",
-                //     payload: {
-                //       action: "delete",
-                //       firebaseUserId: doc.firebaseUserId,
-                //       symbol: doc.symbol,
-                //       data: staleDocs,
-                //     }
-                //   });
             }
         }
     } else {

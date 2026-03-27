@@ -752,7 +752,7 @@ app.post("/active-positions", async (req, res) => {
     return res.json({
       success: true,
       message: "Active positions synced successfully",
-      synced: result.synced
+      synced: result?.synced || 0
     });
   } catch (error) {
     console.error("active-positions sync error:", error);

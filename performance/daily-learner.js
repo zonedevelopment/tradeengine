@@ -324,7 +324,7 @@ async function runDailyLearning() {
     // const tradeHistPath = path.join(dataDir, "trade-history.json");
     const candleDataPath = path.join(dataDir, "candle_training_data.json");
     // const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
-    // const weightPath = path.join(learningDir, "pattern-weight.json");
+    const weightPath = path.join(learningDir, "pattern-weight.json");
 
     if (!fs.existsSync(candleDataPath)) {
         console.log("[Daily Learner] Missing data files. Skipping learning.");
@@ -523,7 +523,7 @@ async function runDailyLearning() {
     }
 
     // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
-    // fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
+    fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
     try {
         const weightEntries = Object.entries(weights);
@@ -538,7 +538,7 @@ async function runDailyLearning() {
             for (const [name, score] of weightEntries) {
                 await query(upsertSql, [name, score]);
             }
-            console.log(`[Daily Learner] Successfully saved ${weightEntries.length} weights to DB.`);
+            console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
         }
     } catch (err) {
         console.error("[Daily Learner] Save weights to DB error:", err.message);
