@@ -350,12 +350,20 @@ async function runDailyLearning() {
 
     let weights = {};
     try {
-        const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
+        const sql = `
+                SELECT pattern_name, 
+                    CASE 
+                        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+                        ELSE weight_score
+                    END AS weight_score
+                FROM strategy_weights
+            `;
+        const [rows] = await query(sql);
+        // const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
         if (rows.length > 0) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             weights = rows.reduce((acc, row) => {
-                const hasUserScore = row.is_use_user_score === 1 && row.user_score !== null;
-                acc[row.pattern_name] = hasUserScore ? Number(row.user_score) : Number(row.weight_score);
+                acc[row.pattern_name] = Number(row.weight_score);
                 return acc;
             }, {});
             console.log("[Daily Learner] Weights loaded from Database.");
