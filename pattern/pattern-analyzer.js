@@ -210,7 +210,8 @@ async function loadWeightsFromDB() {
                     END AS weight_score
                 FROM strategy_weights
             `;
-        const [rows] = await query(sql);
+        const result = await query(sql);
+        const rows = Array.isArray(result?.[0]) ? result[0] : result;
         if (rows.length > 0) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             return rows.reduce((acc, row) => {
@@ -218,16 +219,6 @@ async function loadWeightsFromDB() {
                 return acc;
             }, {});
         }
-        // const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
-
-        // if (rows.length > 0) {
-        //     return rows.reduce((acc, row) => {
-        //         const hasUserScore = row.is_use_user_score === 1 && row.user_score !== null;
-        //         acc[row.pattern_name] = hasUserScore ? Number(row.user_score) : Number(row.weight_score);
-        //         acc[row.pattern_name] = Number(row.weight_score);
-        //         return acc;
-        //     }, {});
-        // } 
         return rows;
     } catch (err) {
         console.error("[Loader] Load weights error, using defaults:", err.message);

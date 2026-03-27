@@ -358,9 +358,10 @@ async function runDailyLearning() {
                     END AS weight_score
                 FROM strategy_weights
             `;
-        const [rows] = await query(sql);
+        const result = await query(sql);
+        const rows = Array.isArray(result?.[0]) ? result[0] : result;
         // const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
-        if (rows.length > 0) {
+        if (rows) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             weights = rows.reduce((acc, row) => {
                 acc[row.pattern_name] = Number(row.weight_score);
