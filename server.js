@@ -728,19 +728,35 @@ app.post("/active-positions", async (req, res) => {
     // res.flushHeaders?.();
 
     // broadcast ไป frontend
-    broadcastActivePositionChange({
-      firebaseUserId,
-      symbol,
-      eventName: "active-position-update",
-      payload: {
-        action: "sync",
+    if (rows.length > 0) {
+      broadcastActivePositionChange({
         firebaseUserId,
-        symbol: symbol || "",
-        data: rows,
-        eventTime,
-        synced: result?.synced || 0
-      }
-    });
+        symbol,
+        eventName: "active-position-update",
+        payload: {
+          action: "sync",
+          firebaseUserId,
+          symbol: symbol || "",
+          data: rows,
+          eventTime,
+          synced: result?.synced || 0
+        }
+      });
+    } else {
+      broadcastActivePositionChange({
+        firebaseUserId,
+        symbol,
+        eventName: "active-position-update",
+        payload: {
+          action: "delete",
+          firebaseUserId,
+          symbol: symbol || "",
+          data: rows,
+          eventTime,
+          synced: result?.synced || 0
+        }
+      });
+    }
 
     // sendSse(res, "active-positions-update", {
     //   action: "update",
