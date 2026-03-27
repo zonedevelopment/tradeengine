@@ -514,7 +514,7 @@ async function runDailyLearning() {
     }
 
     // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
-    fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
+    // fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
     try {
         const weightEntries = Object.entries(weights);
