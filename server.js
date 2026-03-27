@@ -852,7 +852,7 @@ app.get("/active-positions/stream", async (req, res) => {
     try {
       res.write(": ping\n\n");
     } catch (_) { }
-  }, 25000);
+  }, 15000);
 
   req.on("close", () => {
     clearInterval(keepAlive);

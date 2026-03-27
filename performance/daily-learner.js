@@ -529,14 +529,14 @@ async function runDailyLearning() {
         const weightEntries = Object.entries(weights);
         if (weightEntries.length > 0) {
             // ใช้ Promise.all เพื่ออัปเดตทุกตัวพร้อมกัน หรือวน Loop ยิง SQL
-            const upsertSql = `
-                INSERT INTO strategy_weights (pattern_name, weight_score) 
-                VALUES (?, ?) 
-                ON DUPLICATE KEY UPDATE weight_score = VALUES(weight_score), last_updated = NOW()
-            `;
-
+            // const upsertSql = `
+            //     INSERT INTO strategy_weights (pattern_name, weight_score) 
+            //     VALUES (?, ?) 
+            //     ON DUPLICATE KEY UPDATE weight_score = VALUES(weight_score), last_updated = NOW()
+            // `;
+            const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
             for (const [name, score] of weightEntries) {
-                await query(upsertSql, [name, score]);
+                await query(upsertSql, [score, name]);
             }
             console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
         }
