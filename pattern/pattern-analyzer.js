@@ -189,16 +189,16 @@ function loadWeights() {
 
 async function loadWeightsFromDB() {
     const initialDefaultWeights = {
-        "Pin_Bar_Shooting_Star": -0.5,
-        "Morning_Star_Base_Break": 0,
-        "Evening_Star_Base_Break": -0.75,
-        "Pin_Bar_Hammer": 2.0,
-        "Piercing_Pattern": 0.5,
-        "Waterfall_Drop_Continuation": 1.8,
-        "Dark_Cloud_Cover": 1.9,
-        "Bullish_Engulfing": -1.25,
-        "Rocket_Surge_Continuation": 1.0,
-        "Bearish_Engulfing": -1.75
+        // "Pin_Bar_Shooting_Star": -0.5,
+        // "Morning_Star_Base_Break": 0,
+        // "Evening_Star_Base_Break": -0.75,
+        // "Pin_Bar_Hammer": 2.0,
+        // "Piercing_Pattern": 0.5,
+        // "Waterfall_Drop_Continuation": 1.8,
+        // "Dark_Cloud_Cover": 1.9,
+        // "Bullish_Engulfing": -1.25,
+        // "Rocket_Surge_Continuation": 1.0,
+        // "Bearish_Engulfing": -1.75
     };
 
     try {
