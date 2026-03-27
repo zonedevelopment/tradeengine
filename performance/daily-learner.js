@@ -321,9 +321,7 @@ async function runDailyLearning() {
 
     if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
 
-    // const tradeHistPath = path.join(dataDir, "trade-history.json");
     const candleDataPath = path.join(dataDir, "candle_training_data.json");
-    // const mappedDataPath = path.join(dataDir, "mapped_daily_analysis.json");
     const weightPath = path.join(learningDir, "pattern-weight.json");
 
     if (!fs.existsSync(candleDataPath)) {
@@ -332,21 +330,14 @@ async function runDailyLearning() {
     }
 
     let trades = await getTradeEventsForLearning();
-    // let candleLogs = await getHistoryLearnWeight();
+    // console.log(`[Daily Learner] History ${JSON.stringify(trades)}.`);
     try {
-        // trades = JSON.parse(fs.readFileSync(tradeHistPath, "utf8"));
         candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+        console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
     } catch (e) {
         console.log("[Daily Learner] JSON parse error:", e.message);
         return;
     }
-
-    // let weights = {};
-    // if (fs.existsSync(weightPath)) {
-    //     try {
-    //         weights = JSON.parse(fs.readFileSync(weightPath, "utf8"));
-    //     } catch (_) { }
-    // }
 
     let weights = {};
     try {
@@ -360,16 +351,13 @@ async function runDailyLearning() {
             `;
         const result = await query(sql);
         const rows = Array.isArray(result?.[0]) ? result[0] : result;
-        // const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
         if (rows) {
-            // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             weights = rows.reduce((acc, row) => {
                 acc[row.pattern_name] = Number(row.weight_score);
                 return acc;
             }, {});
             console.log("[Daily Learner] Weights loaded from Database.");
         } else {
-            // ถ้าใน DB ว่างเปล่า ให้ใช้ค่าตั้งต้นที่คุณกำหนด
             weights = { ...initialDefaultWeights };
             console.log("[Daily Learner] Database is empty. Using Initial Default Weights.");
         }
@@ -380,165 +368,172 @@ async function runDailyLearning() {
     let mappedResults = [];
     let openOrder = null;
 
-
-    for (let i = 0; i < trades.length; i++) {
-        const t = trades[i];
-
-        if (t.type === "OPEN_ORDER") {
-            openOrder = t;
-            continue;
-        }
-
-        if (t.type !== "CLOSE_ORDER" || !openOrder || t.side !== openOrder.side) {
-            continue;
-        }
-
-        let matchedCandleLog = null;
-        let minDiff = 999999;
-
-        for (const cLog of candleLogs) {
-            const diff = Math.abs(Number(cLog.price || 0) - Number(openOrder.price || 0));
-            if (diff < minDiff) {
-                minDiff = diff;
-                matchedCandleLog = cLog;
-            }
-        }
-
-        if (matchedCandleLog && minDiff < 5.0) {
-            const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
-            const patternType = analysis.type !== "Unknown" ? analysis.type : analysis.pattern;
-            const triggerPattern = analysis.pattern || "NONE";
-
-            const triggerCandle =
-                matchedCandleLog.candles && matchedCandleLog.candles.length > 0
-                    ? matchedCandleLog.candles[matchedCandleLog.candles.length - 1]
-                    : null;
-
-            const tickVolume = triggerCandle ? Number(triggerCandle.tick_volume || 0) : 0;
-            const isWin = Number(t.profit || 0) > 0;
-
-            const slPips = openOrder.sl
-                ? Math.round(Math.abs(Number(openOrder.price) - Number(openOrder.sl)) * 100)
-                : 0;
-
-            const tpPips = openOrder.tp
-                ? Math.round(Math.abs(Number(openOrder.tp) - Number(openOrder.price)) * 100)
-                : 0;
-
-            const rrRatio = slPips > 0 ? Number((tpPips / slPips).toFixed(4)) : 0;
-
-            let postMortem = isWin ? "TARGET_REACHED" : "STOPPED_OUT";
-            if (!isWin) {
-                if (slPips > 0 && slPips < 150) postMortem = "SL_TOO_TIGHT";
-                else if (tpPips > 500) postMortem = "TP_TOO_FAR";
-            } else {
-                if (tpPips > 0 && tpPips < 150) postMortem = "SCALP_WIN";
-            }
-
-            const microTrend =
-                analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
-            const volumeProfile = getVolumeProfile(matchedCandleLog.candles || []);
-            const prePatternShape = buildPrePatternShape(matchedCandleLog.candles || []);
-            const rangeState = getRangeState(matchedCandleLog.candles || []);
-            const sessionName = getSessionName(matchedCandleLog.timestamp);
-
-            const learningItem = {
-                userId: openOrder.firebase_user_id || null,
-                accountId: openOrder.account_id || null,
-                symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
-                timeframe: "M5",
-                side: openOrder.side,
-                mode: openOrder.mode || "NORMAL",
-                triggerPattern,
-                patternType,
-                microTrend,
-                volumeProfile,
-                prePatternShape,
-                rangeState,
-                sessionName,
-                slPips,
-                tpPips,
-                rrRatio,
-                slBucket: bucketizePoints(slPips),
-                tpBucket: bucketizePoints(tpPips),
-                profit: Number(t.profit || 0),
-                result: isWin ? "WIN" : "LOSS",
-            };
-
-            learningItem.contextHash = buildContextHash(learningItem);
-            learningItem.description = buildDescription(learningItem);
-            learningItem.exampleContext = {
-                timestamp: matchedCandleLog.timestamp,
-                symbol: learningItem.symbol,
-                candles: matchedCandleLog.candles || [],
-                triggerCandle,
-                postMortem,
-            };
-            learningItem.notes = {
-                postMortem,
-                minPriceDiff: minDiff,
-            };
-
-            mappedResults.push({
-                firebaseUserId: learningItem.userId || null,
-                accountId: learningItem.accountId || null,
-                eventTime: matchedCandleLog.timestamp,
-                symbol: learningItem.symbol,
-                patternType,
-                triggerPattern,
-                mode: learningItem.mode,
-                tickVolume,
-                microTrend,
-                volumeProfile,
-                prePatternShape,
-                rangeState,
-                sessionName,
-                openPrice: openOrder.price,
-                closePrice: t.price,
-                slPrice: openOrder.sl,
-                tpPrice: openOrder.tp,
-                slPips,
-                tpPips,
-                rrRatio,
-                profit: t.profit,
-                result: learningItem.result,
-                side: openOrder.side,
-                postMortem,
-                contextHash: learningItem.contextHash,
-            });
-
-            await upsertFailedPattern(learningItem);
-
-            if (patternType !== "NONE" && patternType !== "None") {
-                if (!weights[patternType]) weights[patternType] = 0;
-                if (isWin) weights[patternType] += 0.15;
-                else weights[patternType] -= 0.10;
-
-                if (weights[patternType] > 2.0) weights[patternType] = 2.0;
-                if (weights[patternType] < -2.0) weights[patternType] = -2.0;
-            }
-        }
-
-        openOrder = null;
-    }
-
-    // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
-    fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
-
     try {
-        const weightEntries = Object.entries(weights);
-        if (weightEntries.length > 0) {
-            const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
-            for (const [name, score] of weightEntries) {
-                await query(upsertSql, [score, name]);
-            }
-            console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
-        }
-    } catch (err) {
-        console.error("[Daily Learner] Save weights to DB error:", err.message);
-    }
+        for (let i = 0; i < trades.length; i++) {
+            const t = trades[i];
 
-    try {
+            console.log("[Daily Learner] Trade: " + JSON.stringify(t));
+
+            if (t.event_type === "OPEN_ORDER") {
+                openOrder = t;
+                continue;
+            }
+
+            if (t.event_type !== "CLOSE_ORDER" || !openOrder || t.side !== openOrder.side) {
+                continue;
+            }
+
+            let matchedCandleLog = null;
+            let minDiff = 999999;
+
+            for (const cLog of candleLogs) {
+                const diff = Math.abs(Number(cLog.price || 0) - Number(openOrder.price || 0));
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    matchedCandleLog = cLog;
+                }
+            }
+
+            console.log("[Daily Learner] Match & Diff: " + matchedCandleLog + ": " + minDiff);
+
+            if (matchedCandleLog && minDiff < 5.0) {
+                const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
+                const patternType = analysis.type !== "Unknown" ? analysis.type : analysis.pattern;
+                const triggerPattern = analysis.pattern || "NONE";
+
+                const triggerCandle =
+                    matchedCandleLog.candles && matchedCandleLog.candles.length > 0
+                        ? matchedCandleLog.candles[matchedCandleLog.candles.length - 1]
+                        : null;
+
+                const tickVolume = triggerCandle ? Number(triggerCandle.tick_volume || 0) : 0;
+                const isWin = Number(t.profit || 0) > 0;
+
+                const slPips = openOrder.sl
+                    ? Math.round(Math.abs(Number(openOrder.price) - Number(openOrder.sl)) * 100)
+                    : 0;
+
+                const tpPips = openOrder.tp
+                    ? Math.round(Math.abs(Number(openOrder.tp) - Number(openOrder.price)) * 100)
+                    : 0;
+
+                const rrRatio = slPips > 0 ? Number((tpPips / slPips).toFixed(4)) : 0;
+
+                let postMortem = isWin ? "TARGET_REACHED" : "STOPPED_OUT";
+                if (!isWin) {
+                    if (slPips > 0 && slPips < 150) postMortem = "SL_TOO_TIGHT";
+                    else if (tpPips > 500) postMortem = "TP_TOO_FAR";
+                } else {
+                    if (tpPips > 0 && tpPips < 150) postMortem = "SCALP_WIN";
+                }
+
+                const microTrend =
+                    analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
+                const volumeProfile = getVolumeProfile(matchedCandleLog.candles || []);
+                const prePatternShape = buildPrePatternShape(matchedCandleLog.candles || []);
+                const rangeState = getRangeState(matchedCandleLog.candles || []);
+                const sessionName = getSessionName(matchedCandleLog.timestamp);
+
+                const learningItem = {
+                    userId: openOrder.firebase_user_id || null,
+                    accountId: openOrder.account_id || null,
+                    symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
+                    timeframe: "M5",
+                    side: openOrder.side,
+                    mode: openOrder.mode || "NORMAL",
+                    triggerPattern,
+                    patternType,
+                    microTrend,
+                    volumeProfile,
+                    prePatternShape,
+                    rangeState,
+                    sessionName,
+                    slPips,
+                    tpPips,
+                    rrRatio,
+                    slBucket: bucketizePoints(slPips),
+                    tpBucket: bucketizePoints(tpPips),
+                    profit: Number(t.profit || 0),
+                    result: isWin ? "WIN" : "LOSS",
+                };
+
+                learningItem.contextHash = buildContextHash(learningItem);
+                learningItem.description = buildDescription(learningItem);
+                learningItem.exampleContext = {
+                    timestamp: matchedCandleLog.timestamp,
+                    symbol: learningItem.symbol,
+                    candles: matchedCandleLog.candles || [],
+                    triggerCandle,
+                    postMortem,
+                };
+                learningItem.notes = {
+                    postMortem,
+                    minPriceDiff: minDiff,
+                };
+
+                mappedResults.push({
+                    firebaseUserId: learningItem.userId || null,
+                    accountId: learningItem.accountId || null,
+                    eventTime: matchedCandleLog.timestamp,
+                    symbol: learningItem.symbol,
+                    patternType,
+                    triggerPattern,
+                    mode: learningItem.mode,
+                    tickVolume,
+                    microTrend,
+                    volumeProfile,
+                    prePatternShape,
+                    rangeState,
+                    sessionName,
+                    openPrice: openOrder.price,
+                    closePrice: t.price,
+                    slPrice: openOrder.sl,
+                    tpPrice: openOrder.tp,
+                    slPips,
+                    tpPips,
+                    rrRatio,
+                    profit: t.profit,
+                    result: learningItem.result,
+                    side: openOrder.side,
+                    postMortem,
+                    contextHash: learningItem.contextHash,
+                });
+
+                await upsertFailedPattern(learningItem);
+
+                if (patternType !== "NONE" && patternType !== "None") {
+                    if (!weights[patternType]) weights[patternType] = 0;
+                    if (isWin) weights[patternType] += 0.15;
+                    else weights[patternType] -= 0.10;
+
+                    if (weights[patternType] > 2.0) weights[patternType] = 2.0;
+                    if (weights[patternType] < -2.0) weights[patternType] = -2.0;
+                }
+
+                // console.log("[Daily Learner] leaing item: " + learningItem);
+            }
+            
+            // console.log("[Daily Learner] Mapped result: " + mappedResults);
+
+            openOrder = null;
+        }
+
+        // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
+        // fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
+
+        try {
+            const weightEntries = Object.entries(weights);
+            if (weightEntries.length > 0) {
+                const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
+                for (const [name, score] of weightEntries) {
+                    await query(upsertSql, [score, name]);
+                }
+                console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
+            }
+        } catch (err) {
+            console.error("[Daily Learner] Save weights to DB error:", err.message);
+        }
+
         await insertManyMappedTradeAnalysis(mappedResults);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
