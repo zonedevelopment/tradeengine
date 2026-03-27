@@ -546,7 +546,7 @@ app.post("/trade-event", async (req, res) => {
   }
 
   try {
-    analyzePerformance(resolvedUserId, symbol, mode);
+    await analyzePerformance(resolvedUserId, symbol, mode);
   } catch (perfError) {
     console.error("analyzePerformance error:", perfError.message);
   }

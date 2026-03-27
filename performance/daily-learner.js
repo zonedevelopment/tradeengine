@@ -443,7 +443,7 @@ async function runDailyLearning() {
             const sessionName = getSessionName(matchedCandleLog.timestamp);
 
             const learningItem = {
-                userId: openOrder.firebaseUserId || null,
+                userId: openOrder.firebase_user_id || null,
                 accountId: openOrder.accountId || null,
                 symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
                 timeframe: "M5",
@@ -528,12 +528,6 @@ async function runDailyLearning() {
     try {
         const weightEntries = Object.entries(weights);
         if (weightEntries.length > 0) {
-            // ใช้ Promise.all เพื่ออัปเดตทุกตัวพร้อมกัน หรือวน Loop ยิง SQL
-            // const upsertSql = `
-            //     INSERT INTO strategy_weights (pattern_name, weight_score) 
-            //     VALUES (?, ?) 
-            //     ON DUPLICATE KEY UPDATE weight_score = VALUES(weight_score), last_updated = NOW()
-            // `;
             const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
             for (const [name, score] of weightEntries) {
                 await query(upsertSql, [score, name]);
