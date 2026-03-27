@@ -218,7 +218,7 @@ app.post("/signal", async (req, res) => {
           candles: contextCandles,
         });
 
-        if (trainingLogs.length > 1500) {
+        if (trainingLogs.length > 5000) {
           trainingLogs.shift();
         }
 
