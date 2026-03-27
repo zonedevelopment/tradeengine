@@ -128,8 +128,7 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
     WHERE
       c.firebase_user_id = ?
       AND c.event_type IN ('CLOSE_ORDER') AND DATE(c.event_time) = ?
-    ORDER BY c.id DESC
-    LIMIT ? OFFSET ?`;
+    ORDER BY c.id DESC`;
 
   const today = new Date();
   const year = today.getFullYear();
