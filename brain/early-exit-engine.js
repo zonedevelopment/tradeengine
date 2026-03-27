@@ -109,7 +109,6 @@ function analyzeEarlyExit({
         };
     }
 
-    // const pattern = analyzePattern({ candles });
 
     const side = String(openPosition.side || "").toUpperCase(); // BUY / SELL
 
@@ -126,75 +125,75 @@ function analyzeEarlyExit({
     let failRate = 0;
     let suggestedAction = null;
 
-    if (failedPattern) {
-        failRate = parseFloat(failedPattern.fail_rate || 0);
-        suggestedAction = failedPattern.suggested_action || null;
+    // if (failedPattern) {
+    //     failRate = parseFloat(failedPattern.fail_rate || 0);
+    //     suggestedAction = failedPattern.suggested_action || null;
 
-        // BLOCK_TRADE = ความเสี่ยงสูงสุด
-        if (suggestedAction === "BLOCK_TRADE") {
-            riskLevel = "CRITICAL";
-            adjustedScore += 3.0;
-        }
-        // WARNING = ความเสี่ยงสูง
-        else if (suggestedAction === "WARNING") {
-            riskLevel = "HIGH";
-            adjustedScore += 1.5;
-        }
-        // REDUCE_SCORE = ความเสี่ยงกลาง
-        else if (suggestedAction === "REDUCE_SCORE") {
-            riskLevel = "MEDIUM";
-            adjustedScore += parseFloat(failedPattern.score_penalty || 1);
-        }
-        else if (suggestedAction === "REDUCE_RISK") {
-            riskLevel = "MEDIUM";
-            adjustedScore += 1.0;
-        }
+    //     // BLOCK_TRADE = ความเสี่ยงสูงสุด
+    //     if (suggestedAction === "BLOCK_TRADE") {
+    //         riskLevel = "CRITICAL";
+    //         adjustedScore += 3.0;
+    //     }
+    //     // WARNING = ความเสี่ยงสูง
+    //     else if (suggestedAction === "WARNING") {
+    //         riskLevel = "HIGH";
+    //         adjustedScore += 1.5;
+    //     }
+    //     // REDUCE_SCORE = ความเสี่ยงกลาง
+    //     else if (suggestedAction === "REDUCE_SCORE") {
+    //         riskLevel = "MEDIUM";
+    //         adjustedScore += parseFloat(failedPattern.score_penalty || 1);
+    //     }
+    //     else if (suggestedAction === "REDUCE_RISK") {
+    //         riskLevel = "MEDIUM";
+    //         adjustedScore += 1.0;
+    //     }
 
-        // ถ้า fail rate สูงมาก ให้ยกความเสี่ยงขึ้น
-        if (failRate >= 0.85) {
-            riskLevel = "CRITICAL";
-            adjustedScore += 2.0;
-        } else if (failRate >= 0.70 && riskLevel !== "CRITICAL") {
-            riskLevel = "HIGH";
-            adjustedScore += 1.0;
-        } else if (failRate >= 0.50 && riskLevel === "LOW") {
-            riskLevel = "MEDIUM";
-            adjustedScore += 0.5;
-        }
-    }
+    //     // ถ้า fail rate สูงมาก ให้ยกความเสี่ยงขึ้น
+    //     if (failRate >= 0.85) {
+    //         riskLevel = "CRITICAL";
+    //         adjustedScore += 2.0;
+    //     } else if (failRate >= 0.70 && riskLevel !== "CRITICAL") {
+    //         riskLevel = "HIGH";
+    //         adjustedScore += 1.0;
+    //     } else if (failRate >= 0.50 && riskLevel === "LOW") {
+    //         riskLevel = "MEDIUM";
+    //         adjustedScore += 0.5;
+    //     }
+    // }
 
     // =========================
     // 4. HIGH RISK / CUT LOSS NOW
     // =========================
     // กรณีเสี่ยงสูงมาก ถ้าติดลบอยู่ให้หนีทันที
-    if (currentProfit < 0) {
-        if (riskLevel === "CRITICAL" && adjustedScore >= 2) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: `Critical risk from failed pattern (failRate=${failRate})`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
+    // if (currentProfit < 0) {
+    //     if (riskLevel === "CRITICAL" && adjustedScore >= 2) {
+    //         return {
+    //             action: "CUT_LOSS_NOW",
+    //             reason: `Critical risk from failed pattern (failRate=${failRate})`,
+    //             riskLevel,
+    //             score: adjustedScore
+    //         };
+    //     }
 
-        if (riskLevel === "HIGH" && adjustedScore >= 3) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: `High risk + strong reversal detected`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
+    //     if (riskLevel === "HIGH" && adjustedScore >= 3) {
+    //         return {
+    //             action: "CUT_LOSS_NOW",
+    //             reason: `High risk + strong reversal detected`,
+    //             riskLevel,
+    //             score: adjustedScore
+    //         };
+    //     }
 
-        if (adjustedScore >= 3.5) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: "Strong reversal against position",
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-    }
+    //     if (adjustedScore >= 3.5) {
+    //         return {
+    //             action: "CUT_LOSS_NOW",
+    //             reason: "Strong reversal against position",
+    //             riskLevel,
+    //             score: adjustedScore
+    //         };
+    //     }
+    // }
 
     // 2) move to break-even
     // if (
