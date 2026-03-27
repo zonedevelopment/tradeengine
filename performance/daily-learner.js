@@ -351,7 +351,7 @@ async function runDailyLearning() {
     let weights = {};
     try {
         const [rows] = await query("SELECT pattern_name, weight_score, user_score, is_use_user_score FROM strategy_weights");
-        if (rows) {
+        if (rows.length > 0) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
             weights = rows.reduce((acc, row) => {
                 const hasUserScore = row.is_use_user_score === 1 && row.user_score !== null;

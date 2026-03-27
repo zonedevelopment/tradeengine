@@ -211,8 +211,8 @@ async function loadWeightsFromDB() {
                 acc[row.pattern_name] = Number(row.weight_score);
                 return acc;
             }, {});
-        }
-        return initialDefaultWeights;
+        } 
+        return rows;
     } catch (err) {
         console.error("[Loader] Load weights error, using defaults:", err.message);
         return initialDefaultWeights;

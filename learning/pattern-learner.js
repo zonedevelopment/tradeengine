@@ -64,7 +64,7 @@ async function learnPatternWeights() {
         const { win, loss, total } = stats[pattern];
         const winRate = win / (win + loss);
         const score = (winRate - 0.5) * 10;
-        score = Math.max(-2.0, Math.min(2.0, score));
+        // score = Math.max(-2.0, Math.min(2.0, score));
         const finalScore = Number(score.toFixed(2));
         weights[pattern] = finalScore;
 

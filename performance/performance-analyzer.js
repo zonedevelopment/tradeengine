@@ -35,7 +35,7 @@ async function saveSuggestedWeightsToDB(patternWeights) {
     try {
         for (const [name, score] of entries) {
             // ทำการ Clamp ค่าให้อยู่ใน -2.0 ถึง 2.0 เพื่อความปลอดภัยของระบบเทรด
-            const clampedScore = Math.max(-2.0, Math.min(2.0, score));
+            // const clampedScore = Math.max(-2.0, Math.min(2.0, score));
             await query(sql, [name, clampedScore]);
         }
         console.log(`[Performance] Successfully updated ${entries.length} weights in Database.`);
