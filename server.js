@@ -105,8 +105,8 @@ const { trace } = require("console");
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
   "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
-  "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1250, minTP: 950, maxTP: 2250 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
+  "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
+  "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
   "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
 };
 
