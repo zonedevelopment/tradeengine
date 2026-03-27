@@ -118,25 +118,28 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       c.symbol,
       c.side,
       c.lot,
-      o.price AS entry_price,
       c.price AS close_price,
       c.sl,
       c.tp,
       c.profit,
       c.mode,
-      o.event_time AS open_time,
       c.event_time AS close_time
     FROM trade_history c
-    LEFT JOIN trade_history o
-      ON c.price = o.price
-      AND o.event_type = 'OPEN_ORDER'
     WHERE
       c.firebase_user_id = ?
-      AND c.event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')
+      AND c.event_type IN ('CLOSE_ORDER') AND DATE(c.event_time) = ?
     ORDER BY c.id DESC
     LIMIT ? OFFSET ?`;
 
-  return await query(sql, [firebaseUserId, safeLimit, offset]);
+  const today = new Date();
+  const year = today.getFullYear();
+  // getMonth() is zero-based, so add 1
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  const formattedDateLocal = `${year}-${month}-${day}`;
+
+  return await query(sql, [firebaseUserId, formattedDateLocal, safeLimit, offset]);
 }
 
 async function countTradeHistoryByUser(firebaseUserId) {
@@ -181,7 +184,7 @@ async function getTradeEventsForAnalysis({
   mode = null,
   limit = 5000,
 } = {}) {
-  const safeLimit = Math.max(1, Math.min(2500, normalizeNumber(limit, 2000)));
+  const safeLimit = Math.max(1, Math.min(5000, normalizeNumber(limit, 6000)));
 
   const conditions = [
     `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`
@@ -221,7 +224,7 @@ async function getTradeEventsForAnalysis({
       event_time
     FROM trade_history
     WHERE ${conditions.join(" AND ")}
-    ORDER BY COALESCE(event_time, created_at) ASC, id ASC
+    ORDER BY COALESCE(event_time, created_at) DESC, id DESC
     LIMIT ?
   `;
 
