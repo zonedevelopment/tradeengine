@@ -23797,5 +23797,21 @@
     "mode": "SCALP",
     "ticket_id": 0,
     "logged_at": "2026-03-28T13:15:03.093Z"
+  },
+  {
+    "type": "OPEN_ORDER",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "accountId": "415438329",
+    "ticketId": 2861467761,
+    "side": "SELL",
+    "lot": 0.01,
+    "price": 66447.31,
+    "sl": 66567.31,
+    "tp": 66297.31,
+    "profit": 0,
+    "mode": "SCALP",
+    "ticket_id": 2861467761,
+    "logged_at": "2026-03-28T13:16:42.660Z"
   }
 ]
