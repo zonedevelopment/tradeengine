@@ -25,6 +25,7 @@ function pickLatestRecord(records = []) {
 function buildSummaryFromAccounts(accounts = []) {
     return accounts.reduce(
         (acc, item) => {
+            acc.accountId = item.accountId;
             acc.balance += toNumber(item.balance);
             acc.equity += toNumber(item.equity);
             acc.margin += toNumber(item.margin);
@@ -43,6 +44,7 @@ function buildSummaryFromAccounts(accounts = []) {
             return acc;
         },
         {
+            accountId: "",
             balance: 0,
             equity: 0,
             margin: 0,
