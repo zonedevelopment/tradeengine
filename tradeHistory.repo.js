@@ -254,7 +254,7 @@ async function getTradeEventsForLearning() {
     FROM trade_history
     WHERE event_type IN ('OPEN_ORDER', 'CLOSE_ORDER')
     ORDER BY COALESCE(event_time, created_at) DESC, id DESC
-    LIMIT 50`;
+    LIMIT 1000`;
 
   return await query(sql);
 }
