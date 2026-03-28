@@ -316,71 +316,71 @@ function buildTradeSetupFromPattern({
   // Calculate Retracement
   retracePoints = Math.round(avgRange * 0.85);
 
-  // if (signalStrength >= 6) {
-  //   retracePoints = Math.round(retracePoints * 0.35);
-  // } else if (signalStrength >= 4) {
-  //   retracePoints = Math.round(retracePoints * 0.60);
-  // } else if (signalStrength >= 2) {
-  //   retracePoints = Math.round(retracePoints * 0.90);
-  // } else {
-  //   retracePoints = Math.round(retracePoints * 1.20);
-  // }
-
-  // if (pattern?.isVolumeClimax) {
-  //   retracePoints = Math.round(retracePoints * 0.80);
-  // }
-
-  // if (pattern?.isVolumeDrying) {
-  //   retracePoints = Math.round(retracePoints * 1.15);
-  // }
-
-  // const maxRetraceBySL = Math.round(slPoints * 0.4);
-  // if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
-
-  // const minR = 20 * (mult / 100);
-  // const maxR = 200 * (mult / 100);
-  // if (retracePoints < minR) retracePoints = minR;
-  // if (retracePoints > maxR) retracePoints = maxR;
-  const lastCandle = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : null;
-  const recentBodies = Array.isArray(candles) ? candles.slice(-5).map(c => Math.abs(Number(c.close || 0) - Number(c.open || 0))) : [];
-  const avgBody = recentBodies.length
-    ? recentBodies.reduce((sum, v) => sum + v, 0) / recentBodies.length
-    : 0;
-  
-  const lastBody = lastCandle
-    ? Math.abs(Number(lastCandle.close || 0) - Number(lastCandle.open || 0))
-    : 0;
-  
-  const lastVolume = lastCandle ? Number(lastCandle.tickVolume || lastCandle.tick_volume || 0) : 0;
-  const recentVolumes = Array.isArray(candles)
-    ? candles.slice(-5).map(c => Number(c.tickVolume || c.tick_volume || 0))
-    : [];
-  const avgVolume = recentVolumes.length
-    ? recentVolumes.reduce((sum, v) => sum + v, 0) / recentVolumes.length
-    : 0;
-  
-  const isStrongMomentumCandle = avgBody > 0 && lastBody >= avgBody * 1.35;
-  const isStrongVolume = avgVolume > 0 && lastVolume >= avgVolume * 1.10;
-  const isHighConfidence = signalStrength >= 6;
-  const isMediumConfidence = signalStrength >= 4;
-  
-  if (isStrongMomentumCandle && isStrongVolume && isHighConfidence) {
-    retracePoints = Math.round(retracePoints * 0.20);
-  } else if ((isStrongMomentumCandle && isMediumConfidence) || (isStrongVolume && isHighConfidence)) {
+  if (signalStrength >= 6) {
     retracePoints = Math.round(retracePoints * 0.35);
-  } else if (signalStrength >= 2) {
+  } else if (signalStrength >= 4) {
     retracePoints = Math.round(retracePoints * 0.60);
-  } else {
+  } else if (signalStrength >= 2) {
     retracePoints = Math.round(retracePoints * 0.90);
+  } else {
+    retracePoints = Math.round(retracePoints * 1.20);
   }
-  
+
   if (pattern?.isVolumeClimax) {
-    retracePoints = Math.round(retracePoints * 0.75);
+    retracePoints = Math.round(retracePoints * 0.80);
   }
-  
+
   if (pattern?.isVolumeDrying) {
-    retracePoints = Math.round(retracePoints * 1.10);
+    retracePoints = Math.round(retracePoints * 1.15);
   }
+
+  const maxRetraceBySL = Math.round(slPoints * 0.4);
+  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+  const minR = 20 * (mult / 100);
+  const maxR = 200 * (mult / 100);
+  if (retracePoints < minR) retracePoints = minR;
+  if (retracePoints > maxR) retracePoints = maxR;
+  // const lastCandle = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : null;
+  // const recentBodies = Array.isArray(candles) ? candles.slice(-5).map(c => Math.abs(Number(c.close || 0) - Number(c.open || 0))) : [];
+  // const avgBody = recentBodies.length
+  //   ? recentBodies.reduce((sum, v) => sum + v, 0) / recentBodies.length
+  //   : 0;
+  
+  // const lastBody = lastCandle
+  //   ? Math.abs(Number(lastCandle.close || 0) - Number(lastCandle.open || 0))
+  //   : 0;
+  
+  // const lastVolume = lastCandle ? Number(lastCandle.tickVolume || lastCandle.tick_volume || 0) : 0;
+  // const recentVolumes = Array.isArray(candles)
+  //   ? candles.slice(-5).map(c => Number(c.tickVolume || c.tick_volume || 0))
+  //   : [];
+  // const avgVolume = recentVolumes.length
+  //   ? recentVolumes.reduce((sum, v) => sum + v, 0) / recentVolumes.length
+  //   : 0;
+  
+  // const isStrongMomentumCandle = avgBody > 0 && lastBody >= avgBody * 1.35;
+  // const isStrongVolume = avgVolume > 0 && lastVolume >= avgVolume * 1.10;
+  // const isHighConfidence = signalStrength >= 6;
+  // const isMediumConfidence = signalStrength >= 4;
+  
+  // if (isStrongMomentumCandle && isStrongVolume && isHighConfidence) {
+  //   retracePoints = Math.round(retracePoints * 0.20);
+  // } else if ((isStrongMomentumCandle && isMediumConfidence) || (isStrongVolume && isHighConfidence)) {
+  //   retracePoints = Math.round(retracePoints * 0.35);
+  // } else if (signalStrength >= 2) {
+  //   retracePoints = Math.round(retracePoints * 0.60);
+  // } else {
+  //   retracePoints = Math.round(retracePoints * 0.90);
+  // }
+  
+  // if (pattern?.isVolumeClimax) {
+  //   retracePoints = Math.round(retracePoints * 0.75);
+  // }
+  
+  // if (pattern?.isVolumeDrying) {
+  //   retracePoints = Math.round(retracePoints * 1.10);
+  // }
 
   // End Calculate Retracement
 
