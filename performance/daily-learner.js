@@ -6,6 +6,65 @@ const { query } = require("../db");
 
 const { insertManyMappedTradeAnalysis } = require("../mappedTradeAnalysis.repo");
 const { getTradeEventsForLearning, getHistoryLearnWeight } = require("../tradeHistory.repo")
+const { upsertAdaptiveScoreStat } = require("../adaptiveScore.repo");
+
+function clamp(num, min, max) {
+  return Math.max(min, Math.min(max, Number(num || 0)));
+}
+
+function round4(num) {
+  return Number(Number(num || 0).toFixed(4));
+}
+
+function computeAdaptiveScoreDelta({
+  sampleSize,
+  winRate,
+  expectancy,
+  avgProfit,
+  avgLoss,
+}) {
+  const s = Number(sampleSize || 0);
+  const w = Number(winRate || 0);
+  const e = Number(expectancy || 0);
+  const ap = Number(avgProfit || 0);
+  const al = Math.abs(Number(avgLoss || 0));
+
+  if (s < 20) {
+    return { delta: 0, grade: "NEUTRAL" };
+  }
+
+  let delta = 0;
+
+  if (w >= 0.60) delta += 0.12;
+  else if (w >= 0.55) delta += 0.06;
+  else if (w <= 0.40) delta -= 0.18;
+  else if (w <= 0.45) delta -= 0.10;
+
+  if (e > 0) delta += 0.10;
+  else if (e < 0) delta -= 0.12;
+
+  if (ap > 0 && al > 0) {
+    const payoff = ap / al;
+    if (payoff >= 1.20) delta += 0.06;
+    else if (payoff <= 0.80) delta -= 0.06;
+  }
+
+  if (s >= 40) delta *= 1.10;
+  if (s >= 80) delta *= 1.15;
+
+  delta = clamp(delta, -0.60, 0.60);
+
+  let grade = "NEUTRAL";
+  if (delta >= 0.25) grade = "STRONG";
+  else if (delta >= 0.10) grade = "GOOD";
+  else if (delta <= -0.25) grade = "BAD";
+  else if (delta <= -0.10) grade = "WEAK";
+
+  return {
+    delta: round4(delta),
+    grade,
+  };
+}
 
 function bucketizePoints(points) {
     const p = Number(points || 0);
@@ -535,6 +594,28 @@ async function runDailyLearning() {
         }
 
         await insertManyMappedTradeAnalysis(mappedResults);
+
+         let adaptiveRows = [];
+        adaptiveRows.push(
+            {
+                firebaseUserId: mappedResults.firebaseUserId,
+                accountId: mappedResults.accountId,
+                symbol: mappedResults.symbol,
+                timeframe: "M5",
+                patternType: mappedResults.patternType,
+                side: mappedResults.side,
+                mode: mappedResults.mode,
+                sessionName: mappedResults.sessionName,
+                microTrend: mappedResults.microTrend,
+                volumeProfile: mappedResults.volumeProfile,
+                rangeState: mappedResults.rangeState,
+                result: mappedResults.result,
+                profit: mappedResults.profit,
+                closedAt: mappedResults.eventTime,
+          }
+        )
+        
+        await updateAdaptiveScoreStats(adaptiveRows);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
     }
@@ -542,6 +623,114 @@ async function runDailyLearning() {
     console.log(`[Daily Learner] Mapped ${mappedResults.length} completed trades.`);
     console.log(`[Daily Learner] Wegiht ${JSON.stringify(weights, null, 2)} completed trades.`);
     console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
+}
+
+function buildAdaptiveKey(row) {
+  return [
+    row.firebaseUserId || "",
+    row.accountId || "",
+    row.symbol || "",
+    row.timeframe || "M5",
+    row.patternType || "",
+    row.side || "",
+    row.mode || "NORMAL",
+    row.sessionName || "",
+    row.microTrend || "",
+    row.volumeProfile || "",
+    row.rangeState || "",
+  ].join("||");
+}
+
+async function updateAdaptiveScoreStats(rows = []) {
+  const grouped = new Map();
+
+  for (const row of rows) {
+    const key = buildAdaptiveKey(row);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        firebaseUserId: row.firebaseUserId || null,
+        accountId: row.accountId || null,
+        symbol: row.symbol || "",
+        timeframe: row.timeframe || "M5",
+        patternType: row.patternType || "",
+        side: row.side || "",
+        mode: row.mode || "NORMAL",
+        sessionName: row.sessionName || null,
+        microTrend: row.microTrend || null,
+        volumeProfile: row.volumeProfile || null,
+        rangeState: row.rangeState || null,
+        sampleSize: 0,
+        winCount: 0,
+        lossCount: 0,
+        beCount: 0,
+        profitSum: 0,
+        lossSum: 0,
+        expectancySum: 0,
+        lastTradeAt: null,
+      });
+    }
+
+    const g = grouped.get(key);
+    const result = String(row.result || "").toUpperCase();
+    const profit = Number(row.profit || 0);
+
+    g.sampleSize += 1;
+    g.expectancySum += profit;
+
+    if (result === "WIN" || profit > 0) {
+      g.winCount += 1;
+      g.profitSum += profit;
+    } else if (result === "LOSS" || profit < 0) {
+      g.lossCount += 1;
+      g.lossSum += profit;
+    } else {
+      g.beCount += 1;
+    }
+
+    if (!g.lastTradeAt || new Date(row.closedAt) > new Date(g.lastTradeAt)) {
+      g.lastTradeAt = row.closedAt;
+    }
+  }
+
+  for (const g of grouped.values()) {
+    const avgProfit = g.winCount > 0 ? g.profitSum / g.winCount : 0;
+    const avgLoss = g.lossCount > 0 ? g.lossSum / g.lossCount : 0;
+    const winRate = g.sampleSize > 0 ? g.winCount / g.sampleSize : 0;
+    const expectancy = g.sampleSize > 0 ? g.expectancySum / g.sampleSize : 0;
+
+    const { delta, grade } = computeAdaptiveScoreDelta({
+      sampleSize: g.sampleSize,
+      winRate,
+      expectancy,
+      avgProfit,
+      avgLoss,
+    });
+
+    await upsertAdaptiveScoreStat({
+      firebaseUserId: g.firebaseUserId,
+      accountId: g.accountId,
+      symbol: g.symbol,
+      timeframe: g.timeframe,
+      patternType: g.patternType,
+      side: g.side,
+      mode: g.mode,
+      sessionName: g.sessionName,
+      microTrend: g.microTrend,
+      volumeProfile: g.volumeProfile,
+      rangeState: g.rangeState,
+      sampleSize: g.sampleSize,
+      winCount: g.winCount,
+      lossCount: g.lossCount,
+      beCount: g.beCount,
+      winRate,
+      avgProfit,
+      avgLoss,
+      expectancy,
+      adaptiveScoreDelta: delta,
+      qualityGrade: grade,
+      lastTradeAt: g.lastTradeAt,
+    });
+  }
 }
 
 if (require.main === module) {
