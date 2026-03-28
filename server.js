@@ -942,18 +942,44 @@ app.post("/check-exit-signal", async (req, res) => {
     openPosition,
     candles,
     currentProfit,
-    failedPattern = null
+    failedPattern = null,
+    mode = null,
+    tpPoints = null,
+    slPoints = null
   } = req.body;
 
   const resolvedUserId = firebaseUserId || null;
 
   try {
+    const resolvedMode =
+      mode ||
+      openPosition?.mode ||
+      openPosition?.tradeMode ||
+      "NORMAL";
+
+    const resolvedTpPoints = Number(
+      tpPoints ??
+      openPosition?.tpPoints ??
+      openPosition?.tp_points ??
+      0
+    );
+
+    const resolvedSlPoints = Number(
+      slPoints ??
+      openPosition?.slPoints ??
+      openPosition?.sl_points ??
+      0
+    );
+    
     const result = analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
       openPosition,
       currentProfit,
       candles,
-      failedPattern
+      failedPattern,
+      mode: String(resolvedMode || "NORMAL").toUpperCase(),
+      tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
+      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0
     });
 
     return res.json(result);
