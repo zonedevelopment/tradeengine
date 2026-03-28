@@ -231,6 +231,7 @@ async function evaluateDecision({
     const momentumPatterns = [
       "Waterfall_Drop_Continuation",
       "Rocket_Surge_Continuation",
+      "Descending_Triangle_Breakdown",
     ];
 
     if (strongPatterns.includes(pattern.type)) {
@@ -240,6 +241,11 @@ async function evaluateDecision({
         tradeMode = "NORMAL";
       }
       patternScore *= 1.5;
+    } else if (pattern.type === "Descending_Triangle_Breakdown") {
+      if (tradeMode === "SCALP") {
+        tradeMode = "NORMAL";
+      }
+      patternScore *= 1.45;
     }
 
     if (tradeMode === "NORMAL") {
@@ -319,7 +325,7 @@ async function evaluateDecision({
             } else {
               patternScore *= 0.9;
             }
-      }
+        }
 
       // ===== 4-candle trend follow confirmation (M5) =====
       if (trendFollow4.direction === "BUY" && isBuyPattern) {
@@ -345,54 +351,54 @@ async function evaluateDecision({
         }
       }
 
-// ===== H1/H4 trend alignment + volume confirm =====
-if (trendContext.overallTrend === "BULLISH" && isBuyPattern) {
-  patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
-}
+      // ===== H1/H4 trend alignment + volume confirm =====
+      if (trendContext.overallTrend === "BULLISH" && isBuyPattern) {
+        patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
+      }
+      
+      if (trendContext.overallTrend === "BEARISH" && isSellPattern) {
+        patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
+      }
+      
+      if (trendContext.overallTrend === "BULLISH" && isSellPattern) {
+        patternScore *= 0.70;
+      }
+      
+      if (trendContext.overallTrend === "BEARISH" && isBuyPattern) {
+        patternScore *= 0.70;
+      }
+      
+      if (
+        trendContext.overallTrend === "MIXED" &&
+        tradeMode === "NORMAL"
+      ) {
+        tradeMode = "SCALP";
+        patternScore *= 0.90;
+      }
 
-if (trendContext.overallTrend === "BEARISH" && isSellPattern) {
-  patternScore *= trendContext.volumeConfirmed ? 1.30 : 1.10;
-}
-
-if (trendContext.overallTrend === "BULLISH" && isSellPattern) {
-  patternScore *= 0.70;
-}
-
-if (trendContext.overallTrend === "BEARISH" && isBuyPattern) {
-  patternScore *= 0.70;
-}
-
-if (
-  trendContext.overallTrend === "MIXED" &&
-  tradeMode === "NORMAL"
-) {
-  tradeMode = "SCALP";
-  patternScore *= 0.90;
-}
-
-  // ===== Use recentMassive flags จริง =====
-  if (pattern.recentMassiveBull && isSellPattern) {
-    patternScore *= 0.65;
-  }
-  
-  if (pattern.recentMassiveBear && isBuyPattern) {
-    patternScore *= 0.65;
-  }
-  
-  if (pattern.recentMassiveBull && isBuyPattern) {
-    patternScore *= 1.15;
-  }
-  
-  if (pattern.recentMassiveBear && isSellPattern) {
-    patternScore *= 1.15;
-  }
-  
-  if (pattern.isVolumeDrying) {
-    patternScore *= 0.85;
-    if (tradeMode === "NORMAL") {
-      tradeMode = "SCALP";
-    }
-  }
+      // ===== Use recentMassive flags จริง =====
+      if (pattern.recentMassiveBull && isSellPattern) {
+        patternScore *= 0.65;
+      }
+      
+      if (pattern.recentMassiveBear && isBuyPattern) {
+        patternScore *= 0.65;
+      }
+      
+      if (pattern.recentMassiveBull && isBuyPattern) {
+        patternScore *= 1.15;
+      }
+      
+      if (pattern.recentMassiveBear && isSellPattern) {
+        patternScore *= 1.15;
+      }
+      
+      if (pattern.isVolumeDrying) {
+        patternScore *= 0.85;
+        if (tradeMode === "NORMAL") {
+          tradeMode = "SCALP";
+        }
+      }
     }
 
     // กันเข้าในจังหวะเสียง่าย
