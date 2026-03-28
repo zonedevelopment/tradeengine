@@ -2,7 +2,7 @@ require("dotenv").config();
 var cors = require('cors')
 const express = require("express");
 const cron = require("node-cron");
-const { testConnection } = require("./db");
+const { testConnection, query } = require("./db");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
