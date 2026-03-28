@@ -503,8 +503,8 @@ async function runDailyLearning() {
 
                 if (patternType !== "NONE" && patternType !== "None") {
                     if (!weights[patternType]) weights[patternType] = 0;
-                    if (isWin) weights[patternType] += 0.15;
-                    else weights[patternType] -= 0.10;
+                    if (isWin) weights[patternType] += 0.08;
+                    else weights[patternType] -= 0.08;
 
                     if (weights[patternType] > 2.0) weights[patternType] = 2.0;
                     if (weights[patternType] < -2.0) weights[patternType] = -2.0;
