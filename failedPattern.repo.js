@@ -42,7 +42,9 @@ async function findFailedPattern({
     mode,
     contextHash,
     userId,
+    accountId,
     userId,
+    accountId
   ];
 
   try {
