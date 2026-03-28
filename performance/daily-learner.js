@@ -560,7 +560,7 @@ async function runDailyLearning() {
 
               adaptiveRows.push(
                 {
-                    firebaseUserId: learningItem.firebaseUserId,
+                    firebaseUserId: learningItem.userId,
                     accountId: learningItem.accountId,
                     symbol: learningItem.symbol,
                     timeframe: "M5",
@@ -613,24 +613,6 @@ async function runDailyLearning() {
         }
 
         await insertManyMappedTradeAnalysis(mappedResults);
-        adaptiveRows.push(
-            {
-                firebaseUserId: mappedResults.firebaseUserId,
-                accountId: mappedResults.accountId,
-                symbol: mappedResults.symbol,
-                timeframe: "M5",
-                patternType: mappedResults.patternType,
-                side: mappedResults.side,
-                mode: mappedResults.mode,
-                sessionName: mappedResults.sessionName,
-                microTrend: mappedResults.microTrend,
-                volumeProfile: mappedResults.volumeProfile,
-                rangeState: mappedResults.rangeState,
-                result: mappedResults.result,
-                profit: mappedResults.profit,
-                closedAt: mappedResults.eventTime,
-          }
-        )
         
         await updateAdaptiveScoreStats(adaptiveRows);
     } catch (err) {
