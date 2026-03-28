@@ -1,3 +1,5 @@
+const { detectDescendingTriangle } = require("./descending-triangle-patterns");
+
 function detectMarketStructure(candles) {
     if (!candles || candles.length < 5) return { isFailToLL: false, isFailToHH: false, swings: [] };
 
@@ -278,6 +280,32 @@ function detectMotherFishPattern(data) {
         }
     }
 
+      // 6. DESCENDING TRIANGLE BREAKDOWN
+      if (patternResult.pattern === "NONE" && candles.length >= 20) {
+        const triangle = detectDescendingTriangle(candles, {
+          lookback: 20,
+          minTouchesHigh: 3,
+          minTouchesLow: 2,
+          lowTolerancePercent: 0.0025,
+          minSlopeHigh: -0.05,
+          breakoutCloseFactor: 0.15,
+          minBodyFactor: 0.8,
+          useVolume: true,
+          volumeFactor: 1.05,
+        });
+    
+        if (triangle.detected) {
+          patternResult = {
+            pattern: triangle.pattern,
+            strength: triangle.strength,
+            type: triangle.type,
+            slPrice: triangle.slPrice,
+            tpPrice: triangle.tpPrice,
+            meta: triangle.meta,
+          };
+        }
+      }
+
     // เพิ่ม Market Structure Analysis
     const structure = detectMarketStructure(candles);
     
@@ -296,6 +324,7 @@ function detectMotherFishPattern(data) {
 
     // แนบโครงสร้างย่อยส่งกลับไปให้ decision engine ตัดสินใจเรื่อง SCALP Mode
     patternResult.structure = structure;
+    
 
     return patternResult;
 }
