@@ -8,6 +8,8 @@ const { insertManyMappedTradeAnalysis } = require("../mappedTradeAnalysis.repo")
 const { getTradeEventsForLearning, getHistoryLearnWeight } = require("../tradeHistory.repo")
 const { upsertAdaptiveScoreStat } = require("../adaptiveScore.repo");
 
+const CandleTrainingData = require("../models/CandleTrainingData");
+
 function clamp(num, min, max) {
   return Math.max(min, Math.min(max, Number(num || 0)));
 }
@@ -390,12 +392,31 @@ async function runDailyLearning() {
 
     let trades = await getTradeEventsForLearning();
     // console.log(`[Daily Learner] History ${JSON.stringify(trades)}.`);
+
+    let candleLogs = [];
+
     try {
-        candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
-        console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
+        candleLogs = await CandleTrainingData.find({})
+          .sort({ eventTime: 1, createdAt: 1 })
+          .lean();
+      
+        console.log(`[Daily Learner] Candles ${candleLogs.length}.`);
     } catch (e) {
-        console.log("[Daily Learner] JSON parse error:", e.message);
+        console.log("[Daily Learner] Mongo read error:", e.message);
         return;
+    }
+    
+    if (!candleLogs.length) {
+      console.log("[Daily Learner] No candle training data in MongoDB. Skipping learning.");
+      return;
+    } else {
+      try {
+          candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+          console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
+      } catch (e) {
+          console.log("[Daily Learner] JSON parse error:", e.message);
+          return;
+      }
     }
 
     let weights = {};
