@@ -188,6 +188,7 @@ app.post("/signal", async (req, res) => {
   const {
     symbol,
     firebaseUserId,
+    accountId,
     side,
     price,
     candles,
