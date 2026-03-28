@@ -695,7 +695,7 @@ async function runDailyLearning() {
     }
 
     console.log(`[Daily Learner] Mapped ${mappedResults.length} completed trades.`);
-    console.log(`[Daily Learner] Wegiht ${JSON.stringify(weights, null, 2)} completed trades.`);
+    // console.log(`[Daily Learner] Wegiht ${JSON.stringify(weightsBySymbol, null, 2)} completed trades.`);
     console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
 }
 
