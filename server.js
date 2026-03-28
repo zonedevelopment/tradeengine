@@ -135,6 +135,37 @@ function ensureDataDir() {
   return dataPath;
 }
 
+function normalizeNullable(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  return s === "" ? null : s;
+}
+
+function normalizeDirectionBias(value) {
+  const allowed = ["AUTO", "BUY_ONLY", "SELL_ONLY", "DISABLE_NEW_ENTRY"];
+  const v = String(value || "AUTO").trim().toUpperCase();
+  return allowed.includes(v) ? v : "AUTO";
+}
+
+function toBool(value, defaultValue = true) {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "1" || value === "true") return true;
+  if (value === 0 || value === "0" || value === "false") return false;
+  return defaultValue;
+}
+
+function toPositiveInt(value, defaultValue) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return defaultValue;
+  return Math.max(0, Math.floor(n));
+}
+
+function toPositiveDecimal(value, defaultValue) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return defaultValue;
+  return Math.max(0, Number(n.toFixed(2)));
+}
+
 function safeReadJsonArray(filePath) {
   try {
     if (!fs.existsSync(filePath)) return [];
@@ -1503,6 +1534,204 @@ async function updateNewsAnalysis() {
     console.log("news error", err);
   }
 }
+
+app.post("/trading-preferences", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId = null,
+      engineEnabled = true,
+      directionBias = "AUTO",
+      maxOpenPositions = 5,
+      baseLotSize = 0.01,
+      changedBy = null,
+      note = null,
+    } = req.body || {};
+
+    const safeFirebaseUserId = normalizeNullable(firebaseUserId);
+    const safeAccountId = normalizeNullable(accountId);
+    const safeEngineEnabled = toBool(engineEnabled, true) ? 1 : 0;
+    const safeDirectionBias = normalizeDirectionBias(directionBias);
+    const safeMaxOpenPositions = toPositiveInt(maxOpenPositions, 5);
+    const safeBaseLotSize = toPositiveDecimal(baseLotSize, 0.01);
+    const safeChangedBy = normalizeNullable(changedBy);
+    const safeNote = normalizeNullable(note);
+
+    if (!safeFirebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required",
+      });
+    }
+
+    if (safeMaxOpenPositions < 1 || safeMaxOpenPositions > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "maxOpenPositions must be between 1 and 100",
+      });
+    }
+
+    if (safeBaseLotSize <= 0 || safeBaseLotSize > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "baseLotSize must be greater than 0 and not exceed 100",
+      });
+    }
+
+    const upsertSql = `
+      INSERT INTO user_trading_preferences (
+        firebase_user_id,
+        account_id,
+        engine_enabled,
+        direction_bias,
+        max_open_positions,
+        base_lot_size
+      ) VALUES (?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        engine_enabled = VALUES(engine_enabled),
+        direction_bias = VALUES(direction_bias),
+        max_open_positions = VALUES(max_open_positions),
+        base_lot_size = VALUES(base_lot_size),
+        updated_at = CURRENT_TIMESTAMP
+    `;
+
+    await query(
+      upsertSql,
+      [
+        safeFirebaseUserId,
+        safeAccountId,
+        safeEngineEnabled,
+        safeDirectionBias,
+        safeMaxOpenPositions,
+        safeBaseLotSize,
+      ],
+      { retries: 2 }
+    );
+
+    const historySql = `
+      INSERT INTO user_trading_preferences_history (
+        firebase_user_id,
+        account_id,
+        engine_enabled,
+        direction_bias,
+        max_open_positions,
+        base_lot_size,
+        changed_by,
+        change_source,
+        note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'USER_DASHBOARD', ?)
+    `;
+
+    await query(
+      historySql,
+      [
+        safeFirebaseUserId,
+        safeAccountId,
+        safeEngineEnabled,
+        safeDirectionBias,
+        safeMaxOpenPositions,
+        safeBaseLotSize,
+        safeChangedBy,
+        safeNote,
+      ],
+      { retries: 2 }
+    );
+
+    const getSql = `
+      SELECT
+        firebase_user_id AS firebaseUserId,
+        account_id AS accountId,
+        engine_enabled AS engineEnabled,
+        direction_bias AS directionBias,
+        max_open_positions AS maxOpenPositions,
+        base_lot_size AS baseLotSize,
+        updated_at AS updatedAt
+      FROM user_trading_preferences
+      WHERE firebase_user_id = ?
+        AND account_id <=> ?
+      LIMIT 1
+    `;
+
+    const rows = await query(getSql, [safeFirebaseUserId, safeAccountId], { retries: 2 });
+
+    return res.json({
+      success: true,
+      message: "Trading preferences saved successfully",
+      data: rows?.[0] || {
+        firebaseUserId: safeFirebaseUserId,
+        accountId: safeAccountId,
+        engineEnabled: safeEngineEnabled,
+        directionBias: safeDirectionBias,
+        maxOpenPositions: safeMaxOpenPositions,
+        baseLotSize: safeBaseLotSize,
+      },
+    });
+  } catch (error) {
+    console.error("trading-preferences save error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+app.get("/trading-preferences", async (req, res) => {
+  try {
+    const firebaseUserId = normalizeNullable(req.query.firebaseUserId);
+    const accountId = normalizeNullable(req.query.accountId);
+
+    if (!firebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required",
+      });
+    }
+
+    const sql = `
+      SELECT
+        firebase_user_id AS firebaseUserId,
+        account_id AS accountId,
+        engine_enabled AS engineEnabled,
+        direction_bias AS directionBias,
+        max_open_positions AS maxOpenPositions,
+        base_lot_size AS baseLotSize,
+        updated_at AS updatedAt
+      FROM user_trading_preferences
+      WHERE firebase_user_id = ?
+        AND (account_id <=> ? OR account_id IS NULL)
+      ORDER BY
+        CASE
+          WHEN account_id <=> ? THEN 0
+          WHEN account_id IS NULL THEN 1
+          ELSE 2
+        END,
+        updated_at DESC
+      LIMIT 1
+    `;
+
+    const rows = await query(sql, [firebaseUserId, accountId, accountId], { retries: 2 });
+    const row = rows?.[0] || null;
+
+    return res.json({
+      success: true,
+      data: row || {
+        firebaseUserId,
+        accountId,
+        engineEnabled: 1,
+        directionBias: "AUTO",
+        maxOpenPositions: 5,
+        baseLotSize: 0.01,
+        updatedAt: null,
+      },
+    });
+  } catch (error) {
+    console.error("trading-preferences get error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
 
 app.listen(5000, async () => {
   await database.connect();
