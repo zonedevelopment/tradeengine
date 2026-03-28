@@ -18,13 +18,18 @@ async function findFailedPattern({
       AND mode = ?
       AND context_hash = ?
       AND (
-        (user_id = ?)
-        OR (user_id IS NULL)
+        (user_id = ? AND account_id <=> ?)
+        OR
+        (user_id IS NULL AND account_id IS NULL)
       )
       AND failure_count >= 3
       AND fail_rate >= 0.5000
     ORDER BY
-      CASE WHEN user_id = ? THEN 0 ELSE 1 END,
+      CASE
+        WHEN user_id = ? AND account_id <=> ? THEN 0
+        WHEN user_id IS NULL AND account_id IS NULL THEN 1
+        ELSE 2
+      END,
       failure_count DESC,
       updated_at DESC
     LIMIT 1
