@@ -232,6 +232,7 @@ async function evaluateDecision({
       "Waterfall_Drop_Continuation",
       "Rocket_Surge_Continuation",
       "Descending_Triangle_Breakdown",
+      "Ascending_Triangle_Breakout"
     ];
 
     if (strongPatterns.includes(pattern.type)) {
@@ -242,6 +243,11 @@ async function evaluateDecision({
       }
       patternScore *= 1.5;
     } else if (pattern.type === "Descending_Triangle_Breakdown") {
+      if (tradeMode === "SCALP") {
+        tradeMode = "NORMAL";
+      }
+      patternScore *= 1.45;
+    } else if (pattern.type === "Ascending_Triangle_Breakout") {
       if (tradeMode === "SCALP") {
         tradeMode = "NORMAL";
       }
