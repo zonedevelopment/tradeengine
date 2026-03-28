@@ -1,9 +1,21 @@
 const { detectTrendAndRange } = require("../pattern/pattern-rules");
 const { findFailedPattern } = require("../failedPattern.repo");
+const { getPatternWeight } = require("../strategyWeights.repo");
 const {
   buildContextFeatures,
   buildContextHashNew,
 } = require("../utils/context-features");
+
+function applyLearnedPatternWeight(patternScore, learnedWeight) {
+  const w = Number(learnedWeight || 0);
+
+  // จำกัดผลกระทบไม่ให้แรงเกินไปในรอบแรก
+  // learnedWeight ในระบบตอนนี้วิ่งประมาณ -2 ถึง 2
+  // map เป็น multiplier 0.80 ถึง 1.20
+  const multiplier = Math.max(0.80, Math.min(1.20, 1 + (w * 0.10)));
+
+  return patternScore * multiplier;
+}
 
 async function findFailedPatternRule({
   userId,
@@ -191,6 +203,9 @@ async function evaluateDecision({
     microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL";
 
     let patternScore = pattern.score || 0;
+
+    const learnedWeight = await getPatternWeight(pattern.type);
+    patternScore = applyLearnedPatternWeight(patternScore, learnedWeight);
 
     const strongPatterns = [
       "Bullish_Engulfing",
@@ -409,6 +424,7 @@ if (
 
   if (market && market.portfolio) {
     const { currentPosition, count } = market.portfolio;
+    const pyramidThreshold = tradeMode === "SCALP" ? 2.65 : 2.25;
 
     if (currentPosition !== "NONE") {
       if (currentPosition === "BUY" && score <= -2.15) {
@@ -427,7 +443,7 @@ if (
         };
       }
 
-      if (currentPosition === "BUY" && score >= 2.25) {
+      if (currentPosition === "BUY" && score >= pyramidThreshold) {
         if (count >= 3) {
           return {
             action: "NO_TRADE",
@@ -443,7 +459,7 @@ if (
           trend: trendContext.overallTrend,
           defensiveFlags,
         };
-      } else if (currentPosition === "SELL" && score <= -2.25) {
+      } else if (currentPosition === "SELL" && score <= -pyramidThreshold) {
         if (count >= 3) {
           return {
             action: "NO_TRADE",
@@ -490,13 +506,26 @@ function decision(evaluation) {
     return evaluation.action;
   }
 
-  const { score, mode } = evaluation;
+  const { score, mode, tred } = evaluation;
+  let buyThreshold = 2.15;
+  let sellThreshold = -2.15;
 
-  if (score >= 2.15) {
+  if (mode === "SCALP") {
+    buyThreshold = 2.45;
+    sellThreshold = -2.45;
+  }
+
+  // trend ผสม ให้เข้ายากขึ้นอีก
+  if (trend === "MIXED") {
+    buyThreshold += 0.15;
+    sellThreshold -= 0.15;
+  }
+
+  if (score >= buyThreshold) {
     return mode === "SCALP" ? "ALLOW_BUY_SCALP" : "ALLOW_BUY";
   }
 
-  if (score <= -2.15) {
+  if (score <= sellThreshold) {
     return mode === "SCALP" ? "ALLOW_SELL_SCALP" : "ALLOW_SELL";
   }
 
