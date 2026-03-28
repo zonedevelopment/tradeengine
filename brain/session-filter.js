@@ -1,19 +1,21 @@
 function getSession() {
+  const now = new Date();
+  const hour = (now.getUTCHours() + 7) % 24;
 
-    const now = new Date();
+  const london = hour >= 14 && hour <= 18;
+  const newyork = hour >= 19 && hour <= 23;
 
-    const hour = (now.getUTCHours() + 7) % 24;
+  let name = "OFF_SESSION";
+  if (london) name = "LONDON";
+  else if (newyork) name = "NEWYORK";
 
-    const london = hour >= 14 && hour <= 18;
-
-    const newyork = hour >= 19 && hour <= 24;
-
-    return {
-        active: london || newyork,
-        london,
-        newyork
-    };
-
+  return {
+    active: london || newyork,
+    london,
+    newyork,
+    name,
+    hour,
+  };
 }
 
-module.exports = { getSession }
+module.exports = { getSession };
