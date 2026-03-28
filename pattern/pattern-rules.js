@@ -1,4 +1,5 @@
 const { detectDescendingTriangle } = require("./descending-triangle-patterns");
+const { detectAscendingTriangle } = require("./ascending-triangle-patterns");
 
 function detectMarketStructure(candles) {
     if (!candles || candles.length < 5) return { isFailToLL: false, isFailToHH: false, swings: [] };
@@ -305,6 +306,33 @@ function detectMotherFishPattern(data) {
           };
         }
       }
+
+    // 7. ASCENDING TRIANGLE BREAKOUT
+    if (patternResult.pattern === "NONE" && candles.length >= 20) {
+      const triangle = detectAscendingTriangle(candles, {
+        lookback: 20,
+        minTouchesHigh: 2,
+        minTouchesLow: 3,
+        highTolerancePercent: 0.0025,
+        minSlopeLow: 0.05,
+        breakoutCloseFactor: 0.15,
+        minBodyFactor: 0.8,
+        useVolume: true,
+        volumeFactor: 1.05,
+        slBuffer: 1.5,
+      });
+    
+      if (triangle.detected) {
+        patternResult = {
+          pattern: triangle.pattern,
+          strength: triangle.strength,
+          type: triangle.type,
+          slPrice: triangle.slPrice,
+          tpPrice: triangle.tpPrice,
+          meta: triangle.meta,
+        };
+      }
+    }
 
     // เพิ่ม Market Structure Analysis
     const structure = detectMarketStructure(candles);
