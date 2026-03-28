@@ -160258,5 +160258,161 @@
         "tick_volume": 155
       }
     ]
+  },
+  {
+    "timestamp": "2026-03-28T13:00:02.852Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 66406.65,
+    "candles": [
+      {
+        "open": 66281.23,
+        "close": 66343.53,
+        "high": 66358.39,
+        "low": 66276.56,
+        "tick_volume": 151
+      },
+      {
+        "open": 66346.76,
+        "close": 66439.94,
+        "high": 66487.82,
+        "low": 66343.01,
+        "tick_volume": 183
+      },
+      {
+        "open": 66441.14,
+        "close": 66405.09,
+        "high": 66455.06,
+        "low": 66386.77,
+        "tick_volume": 121
+      },
+      {
+        "open": 66405.77,
+        "close": 66387.85,
+        "high": 66405.77,
+        "low": 66368.28,
+        "tick_volume": 97
+      },
+      {
+        "open": 66385.88,
+        "close": 66324.63,
+        "high": 66396.51,
+        "low": 66316.3,
+        "tick_volume": 150
+      },
+      {
+        "open": 66323,
+        "close": 66289.08,
+        "high": 66348.32,
+        "low": 66237.35,
+        "tick_volume": 178
+      },
+      {
+        "open": 66289.67,
+        "close": 66310.26,
+        "high": 66322.06,
+        "low": 66283.7,
+        "tick_volume": 91
+      },
+      {
+        "open": 66306.85,
+        "close": 66342.15,
+        "high": 66345.31,
+        "low": 66294.82,
+        "tick_volume": 164
+      },
+      {
+        "open": 66346.37,
+        "close": 66378.26,
+        "high": 66412.91,
+        "low": 66331.1,
+        "tick_volume": 155
+      },
+      {
+        "open": 66380.55,
+        "close": 66409.41,
+        "high": 66416.79,
+        "low": 66372.31,
+        "tick_volume": 92
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-03-28T13:05:08.779Z",
+    "symbol": "BTCUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 66422.37,
+    "candles": [
+      {
+        "open": 66346.76,
+        "close": 66439.94,
+        "high": 66487.82,
+        "low": 66343.01,
+        "tick_volume": 183
+      },
+      {
+        "open": 66441.14,
+        "close": 66405.09,
+        "high": 66455.06,
+        "low": 66386.77,
+        "tick_volume": 121
+      },
+      {
+        "open": 66405.77,
+        "close": 66387.85,
+        "high": 66405.77,
+        "low": 66368.28,
+        "tick_volume": 97
+      },
+      {
+        "open": 66385.88,
+        "close": 66324.63,
+        "high": 66396.51,
+        "low": 66316.3,
+        "tick_volume": 150
+      },
+      {
+        "open": 66323,
+        "close": 66289.08,
+        "high": 66348.32,
+        "low": 66237.35,
+        "tick_volume": 178
+      },
+      {
+        "open": 66289.67,
+        "close": 66310.26,
+        "high": 66322.06,
+        "low": 66283.7,
+        "tick_volume": 91
+      },
+      {
+        "open": 66306.85,
+        "close": 66342.15,
+        "high": 66345.31,
+        "low": 66294.82,
+        "tick_volume": 164
+      },
+      {
+        "open": 66346.37,
+        "close": 66378.26,
+        "high": 66412.91,
+        "low": 66331.1,
+        "tick_volume": 155
+      },
+      {
+        "open": 66380.55,
+        "close": 66409.41,
+        "high": 66416.79,
+        "low": 66372.31,
+        "tick_volume": 92
+      },
+      {
+        "open": 66406.65,
+        "close": 66426.14,
+        "high": 66439.41,
+        "low": 66399.4,
+        "tick_volume": 120
+      }
+    ]
   }
 ]

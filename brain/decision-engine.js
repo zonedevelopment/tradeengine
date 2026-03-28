@@ -564,7 +564,7 @@ function decision(evaluation) {
     return evaluation.action;
   }
 
-  const { score, mode, tred } = evaluation;
+  const { score, mode, trend } = evaluation;
   let buyThreshold = 2.15;
   let sellThreshold = -2.15;
 
