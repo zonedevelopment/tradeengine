@@ -1,355 +1,491 @@
+"use strict";
+
 /**
  * early-exit-engine.js
  * ----------------------------------------
  * วิเคราะห์ว่าควรปิดออเดอร์ก่อน TP หรือไม่
- * รองรับ:
- * - failed_pattern (context learning)
- * - suggested_action
- * - reversal detection
- * - profit protection
- * - high risk cut loss now
- * - medium/low risk wait for bounce and take small profit
+ * เป้าหมายเวอร์ชันนี้:
+ * - ลด panic close
+ * - แยก pullback ออกจาก reversal
+ * - ไม่ปิดกำไรจิ๋วเร็วเกินไป
+ * - ใช้ mode / tpPoints / slPoints ช่วยตัดสินใจ
  */
-const { analyzePattern } = require("../pattern/pattern-analyzer");
 
-function shouldMoveToBreakeven(openPosition, currentProfit = 0, side = "") {
-    if (!openPosition) return false;
-
-    const entryPrice = Number(
-        openPosition.entryPrice ??
-        openPosition.entry_price ??
-        openPosition.entry ??
-        openPosition.price ??
-        0
-    );
-
-    const currentPrice = Number(
-        openPosition.currentPrice ??
-        openPosition.current_price ??
-        openPosition.marketPrice ??
-        openPosition.market_price ??
-        0
-    );
-
-    const stopLossPrice = Number(
-        openPosition.sl ??
-        openPosition.stopLoss ??
-        openPosition.stop_loss ??
-        0
-    );
-
-    if (!entryPrice || !currentPrice || !stopLossPrice) {
-        return false;
-    }
-
-    const normalizedSide = String(side || "").toUpperCase();
-
-    let initialRiskDistance = 0;
-    let currentProfitDistance = 0;
-
-    if (normalizedSide === "BUY") {
-        initialRiskDistance = Math.abs(entryPrice - stopLossPrice);
-        currentProfitDistance = currentPrice - entryPrice;
-    } else if (normalizedSide === "SELL") {
-        initialRiskDistance = Math.abs(stopLossPrice - entryPrice);
-        currentProfitDistance = entryPrice - currentPrice;
-    } else {
-        return false;
-    }
-
-    if (initialRiskDistance <= 0) return false;
-    if (currentProfitDistance <= 0) return false;
-
-    const progressRatio = currentProfitDistance / initialRiskDistance;
-
-    // ไปทางบวกมากพอสมควร = อย่างน้อยประมาณ 0.8R
-    // และ currentProfit ต้องบวกจริง
-    if (currentProfit > 0 && progressRatio >= 0.8) {
-        return true;
-    }
-
-    return false;
+function toNumber(v, d = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
 }
 
-// function analyzeEarlyExit({
-//     firebaseUserId = null,
-//     openPosition,
-//     currentProfit = 0,
-//     candles = [],
-//     failedPattern = null
-// }) {
-function analyzeEarlyExit({
-    firebaseUserId,
-    openPosition,
-    currentProfit,
-    candles,
-    failedPattern,
-    mode = "NORMAL",
-    tpPoints = 0,
-    slPoints = 0,
-}) {
-    // =========================
-    // 1. VALIDATION
-    // =========================
-    if (!openPosition || !openPosition.side) {
-        return {
-            action: "HOLD",
-            reason: "Invalid position data",
-            riskLevel: "UNKNOWN",
-            score: 0
-        };
-    }
+function abs(v) {
+  return Math.abs(toNumber(v, 0));
+}
 
-    if (!candles || candles.length < 5) {
-        return {
-            action: "HOLD",
-            reason: "Not enough candles",
-            riskLevel: "UNKNOWN",
-            score: 0
-        };
-    }
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
 
+function candleBody(c) {
+  return abs(toNumber(c.close) - toNumber(c.open));
+}
 
-    const side = String(openPosition.side || "").toUpperCase(); // BUY / SELL
+function candleRange(c) {
+  return abs(toNumber(c.high) - toNumber(c.low));
+}
 
-    // =========================
-    // 2. REVERSAL DETECTION
-    // =========================
-    const reversalScore = detectReversalScore(candles, side);
+function isBull(c) {
+  return toNumber(c.close) > toNumber(c.open);
+}
 
-    // =========================
-    // 3. FAILED PATTERN RISK
-    // =========================
-    let adjustedScore = reversalScore;
-    let riskLevel = "LOW";
-    let failRate = 0;
-    let suggestedAction = null;
+function isBear(c) {
+  return toNumber(c.close) < toNumber(c.open);
+}
 
-    if (failedPattern) {
-        failRate = parseFloat(failedPattern.fail_rate || 0);
-        suggestedAction = failedPattern.suggested_action || null;
+function upperWick(c) {
+  return toNumber(c.high) - Math.max(toNumber(c.close), toNumber(c.open));
+}
 
-        // BLOCK_TRADE = ความเสี่ยงสูงสุด
-        if (suggestedAction === "BLOCK_TRADE") {
-            riskLevel = "CRITICAL";
-            adjustedScore += 3.0;
-        }
-        // WARNING = ความเสี่ยงสูง
-        else if (suggestedAction === "WARNING") {
-            riskLevel = "HIGH";
-            adjustedScore += 1.5;
-        }
-        // REDUCE_SCORE = ความเสี่ยงกลาง
-        else if (suggestedAction === "REDUCE_SCORE") {
-            riskLevel = "MEDIUM";
-            adjustedScore += parseFloat(failedPattern.score_penalty || 1);
-        }
-        else if (suggestedAction === "REDUCE_RISK") {
-            riskLevel = "MEDIUM";
-            adjustedScore += 1.0;
-        }
+function lowerWick(c) {
+  return Math.min(toNumber(c.close), toNumber(c.open)) - toNumber(c.low);
+}
 
-        // ถ้า fail rate สูงมาก ให้ยกความเสี่ยงขึ้น
-        if (failRate >= 0.85) {
-            riskLevel = "CRITICAL";
-            adjustedScore += 2.0;
-        } else if (failRate >= 0.70 && riskLevel !== "CRITICAL") {
-            riskLevel = "HIGH";
-            adjustedScore += 1.0;
-        } else if (failRate >= 0.50 && riskLevel === "LOW") {
-            riskLevel = "MEDIUM";
-            adjustedScore += 0.5;
-        }
-    }
+function avgBody(candles = [], length = 5) {
+  if (!Array.isArray(candles) || candles.length < length) return 0;
+  const arr = candles.slice(-length).map(candleBody);
+  return arr.reduce((s, v) => s + v, 0) / arr.length;
+}
 
-    // =========================
-    // 4. HIGH RISK / CUT LOSS NOW
-    // =========================
-    // กรณีเสี่ยงสูงมาก ถ้าติดลบอยู่ให้หนีทันที
-    if (currentProfit < 0) {
-        if (riskLevel === "CRITICAL" && adjustedScore >= 2) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: `Critical risk from failed pattern (failRate=${failRate})`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
+function avgRange(candles = [], length = 5) {
+  if (!Array.isArray(candles) || candles.length < length) return 0;
+  const arr = candles.slice(-length).map(candleRange);
+  return arr.reduce((s, v) => s + v, 0) / arr.length;
+}
 
-        if (riskLevel === "HIGH" && adjustedScore >= 3) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: `High risk + strong reversal detected`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
+function normalizeMode(mode = "NORMAL") {
+  const m = String(mode || "NORMAL").toUpperCase();
+  if (m === "MICRO_SCALP") return "MICRO_SCALP";
+  if (m === "SCALP") return "SCALP";
+  return "NORMAL";
+}
 
-        if (adjustedScore >= 3.5) {
-            return {
-                action: "CUT_LOSS_NOW",
-                reason: "Strong reversal against position",
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-    }
+function getExitProfile(mode = "NORMAL") {
+  const normalized = normalizeMode(mode);
 
-    if (currentProfit > 0) {
-        const moveToBreakeven = shouldMoveToBreakeven(openPosition, currentProfit, side);
-
-        if (moveToBreakeven) {
-            return {
-                action: "MOVE_TO_BE",
-                reason: "Price moved enough in favor, move SL to breakeven",
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-    }
-
-    // =========================
-    // 5. PROFIT PROTECTION / TAKE SMALL PROFIT
-    // =========================
-    // ถ้าเสี่ยงแต่ยังไม่ถึงขั้นหนีทันที
-    // ให้รอจังหวะที่กำไรกลับมาเล็กน้อยแล้วเก็บออก
-    if (currentProfit > 0) {
-        // เสี่ยงสูงมาก + มีกำไรอยู่แล้ว → ออกทันที
-        if (riskLevel === "CRITICAL") {
-            return {
-                action: "TAKE_SMALL_PROFIT",
-                reason: `Critical risk but position is profitable`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-
-        // เสี่ยงสูง + มีกำไรเล็กน้อย → เก็บก่อน
-        if (riskLevel === "HIGH" && currentProfit > 0.5) {
-            return {
-                action: "TAKE_SMALL_PROFIT",
-                reason: `High risk, secure small profit`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-
-        // มี reversal ชัดเจน + มีกำไร
-        if (adjustedScore >= 2.0) {
-            return {
-                action: "TAKE_SMALL_PROFIT",
-                reason: `Reversal detected with profit`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-
-        // กำไรน้อยแต่เริ่มมีสัญญาณกลับตัว
-        if (currentProfit > 3 && adjustedScore >= 1.5) {
-            return {
-                action: "TAKE_SMALL_PROFIT",
-                reason: "Protect small profit before reversal expands",
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-    }
-
-    // =========================
-    // 6. WAIT FOR SMALL BOUNCE
-    // =========================
-    // กรณีเสี่ยงอยู่ แต่ยังติดลบไม่มาก และยังไม่ถึงขั้นต้องหนีทันที
-    // ให้ถือรอ ถ้าราคาย้อนขึ้นมาเขียวเล็กน้อยค่อยออก
-    if (currentProfit <= 0) {
-        if (riskLevel === "HIGH" || riskLevel === "MEDIUM") {
-            return {
-                action: "WAIT_FOR_SMALL_BOUNCE",
-                reason: `Risk detected, wait for small recovery before exit`,
-                riskLevel,
-                score: adjustedScore
-            };
-        }
-    }
-
-    // =========================
-    // 7. DEFAULT HOLD
-    // =========================
+  if (normalized === "MICRO_SCALP") {
     return {
-        action: "HOLD",
-        reason: `No strong exit signal (score=${adjustedScore})`,
+      minProfitToProtect: 0.10,
+      minProfitForHighRiskExit: 0.20,
+      minProfitForStrongReversalExit: 0.18,
+      moveToBeMinR: 0.45,
+      strongReversalThresholdProfit: 3.4,
+      hardCutLossReversalThreshold: 3.8,
+      mediumBounceThreshold: 2.4,
+    };
+  }
+
+  if (normalized === "SCALP") {
+    return {
+      minProfitToProtect: 0.35,
+      minProfitForHighRiskExit: 0.60,
+      minProfitForStrongReversalExit: 0.55,
+      moveToBeMinR: 0.65,
+      strongReversalThresholdProfit: 3.8,
+      hardCutLossReversalThreshold: 4.1,
+      mediumBounceThreshold: 2.6,
+    };
+  }
+
+  return {
+    minProfitToProtect: 0.75,
+    minProfitForHighRiskExit: 1.20,
+    minProfitForStrongReversalExit: 1.00,
+    moveToBeMinR: 0.80,
+    strongReversalThresholdProfit: 4.2,
+    hardCutLossReversalThreshold: 4.5,
+    mediumBounceThreshold: 2.8,
+  };
+}
+
+function getProgressToTarget(openPosition, currentProfit, tpPoints = 0, slPoints = 0) {
+  const entryPrice = toNumber(
+    openPosition.entryPrice ??
+    openPosition.entry ??
+    openPosition.openPrice ??
+    openPosition.price ??
+    0
+  );
+
+  const currentPrice = toNumber(
+    openPosition.currentPrice ??
+    openPosition.current_price ??
+    openPosition.marketPrice ??
+    openPosition.lastPrice ??
+    0
+  );
+
+  const stopLossPrice = toNumber(
+    openPosition.sl ??
+    openPosition.stopLoss ??
+    openPosition.stop_loss ??
+    0
+  );
+
+  const takeProfitPrice = toNumber(
+    openPosition.tp ??
+    openPosition.takeProfit ??
+    openPosition.take_profit ??
+    0
+  );
+
+  const side = String(openPosition.side || "").toUpperCase();
+
+  let profitDistance = 0;
+  let targetDistance = 0;
+  let riskDistance = 0;
+
+  if (!entryPrice || !currentPrice || !side) {
+    return {
+      progressToTarget: 0,
+      progressToRisk: 0,
+      entryPrice,
+      currentPrice,
+      stopLossPrice,
+      takeProfitPrice,
+    };
+  }
+
+  if (side === "BUY") {
+    profitDistance = currentPrice - entryPrice;
+    targetDistance = takeProfitPrice > entryPrice ? takeProfitPrice - entryPrice : toNumber(tpPoints, 0);
+    riskDistance = stopLossPrice > 0 && stopLossPrice < entryPrice
+      ? entryPrice - stopLossPrice
+      : toNumber(slPoints, 0);
+  } else if (side === "SELL") {
+    profitDistance = entryPrice - currentPrice;
+    targetDistance = takeProfitPrice > 0 && takeProfitPrice < entryPrice ? entryPrice - takeProfitPrice : toNumber(tpPoints, 0);
+    riskDistance = stopLossPrice > entryPrice
+      ? stopLossPrice - entryPrice
+      : toNumber(slPoints, 0);
+  }
+
+  const progressToTarget =
+    targetDistance > 0 && profitDistance > 0 ? profitDistance / targetDistance : 0;
+
+  const progressToRisk =
+    riskDistance > 0 && profitDistance > 0 ? profitDistance / riskDistance : 0;
+
+  return {
+    progressToTarget,
+    progressToRisk,
+    entryPrice,
+    currentPrice,
+    stopLossPrice,
+    takeProfitPrice,
+  };
+}
+
+function shouldMoveToBreakeven(openPosition, currentProfit, side, tpPoints = 0, slPoints = 0, mode = "NORMAL") {
+  const profile = getExitProfile(mode);
+  const progress = getProgressToTarget(openPosition, currentProfit, tpPoints, slPoints);
+
+  if (currentProfit <= 0) return false;
+  if (progress.progressToRisk >= profile.moveToBeMinR) return true;
+
+  return false;
+}
+
+function detectReversalScore(candles, side, mode = "NORMAL") {
+  let score = 0;
+
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
+  const prev2 = candles[candles.length - 3];
+
+  const avgB = avgBody(candles, 5) || candleBody(last) || 1;
+  const avgR = avgRange(candles, 5) || candleRange(last) || 1;
+  const normalizedMode = normalizeMode(mode);
+
+  // 1) Candle direction
+  if (side === "BUY") {
+    if (isBear(last)) score += 0.8;
+    if (isBear(last) && isBear(prev)) score += 0.6;
+  }
+
+  if (side === "SELL") {
+    if (isBull(last)) score += 0.8;
+    if (isBull(last) && isBull(prev)) score += 0.6;
+  }
+
+  // 2) Momentum loss
+  const body1 = candleBody(last);
+  const body2 = candleBody(prev);
+  const body3 = candleBody(prev2);
+
+  if (body1 < body2 && body2 < body3) {
+    score += 0.8;
+  }
+
+  // ถ้าตรงข้ามแรงกว่าค่าเฉลี่ยจริง ค่อยให้น้ำหนักเพิ่ม
+  if (side === "SELL" && isBull(last) && body1 > avgB * 1.2) {
+    score += 1.0;
+  }
+  if (side === "BUY" && isBear(last) && body1 > avgB * 1.2) {
+    score += 1.0;
+  }
+
+  // 3) Wick rejection
+  const upWick = upperWick(last);
+  const lowWick = lowerWick(last);
+
+  if (side === "BUY" && upWick > Math.max(body1, 0.0001) * 1.5) {
+    score += 1.0;
+  }
+
+  if (side === "SELL" && lowWick > Math.max(body1, 0.0001) * 1.5) {
+    score += 1.0;
+  }
+
+  // 4) Structure break
+  // ใช้ 4 แท่งก่อนหน้าโดยไม่รวมแท่งล่าสุด
+  const recentCandles = candles.slice(-5, -1);
+  if (recentCandles.length >= 3) {
+    const recentHigh = Math.max(...recentCandles.map(c => toNumber(c.high, 0)));
+    const recentLow = Math.min(...recentCandles.map(c => toNumber(c.low, 0)));
+
+    if (side === "BUY" && toNumber(last.close) < recentLow) {
+      score += 2.0;
+    }
+
+    if (side === "SELL" && toNumber(last.close) > recentHigh) {
+      score += 2.0;
+    }
+  }
+
+  // 5) Pullback filter
+  // ถ้าเป็นแค่แท่งสวนเล็ก ๆ ใน continuation market อย่าเพิ่งให้คะแนนเยอะ
+  const lastRange = candleRange(last);
+  const isSmallCounterMove =
+    lastRange < avgR * 0.9 &&
+    body1 < avgB * 1.0;
+
+  if (isSmallCounterMove) {
+    score -= 0.6;
+  }
+
+  // NORMAL ต้องเข้มกว่าพวก scalp
+  if (normalizedMode === "NORMAL") {
+    score = score * 0.95;
+  } else if (normalizedMode === "MICRO_SCALP") {
+    score = score * 1.05;
+  }
+
+  return Math.max(0, Number(score.toFixed(2)));
+}
+
+function analyzeEarlyExit({
+  firebaseUserId,
+  openPosition,
+  currentProfit = 0,
+  candles = [],
+  failedPattern = null,
+  mode = "NORMAL",
+  tpPoints = 0,
+  slPoints = 0,
+}) {
+  if (!openPosition || !openPosition.side) {
+    return {
+      action: "HOLD",
+      reason: "Invalid position data",
+      riskLevel: "UNKNOWN",
+      score: 0
+    };
+  }
+
+  if (!candles || candles.length < 5) {
+    return {
+      action: "HOLD",
+      reason: "Not enough candles",
+      riskLevel: "UNKNOWN",
+      score: 0
+    };
+  }
+
+  const side = String(openPosition.side || "").toUpperCase();
+  const normalizedMode = normalizeMode(mode || openPosition.mode || "NORMAL");
+  const profile = getExitProfile(normalizedMode);
+  const profit = toNumber(currentProfit, 0);
+
+  const reversalScore = detectReversalScore(candles, side, normalizedMode);
+
+  let adjustedScore = reversalScore;
+  let riskLevel = "LOW";
+  let failRate = 0;
+  let suggestedAction = null;
+
+  if (failedPattern) {
+    failRate = parseFloat(failedPattern.fail_rate || 0);
+    suggestedAction = failedPattern.suggested_action || null;
+
+    if (suggestedAction === "BLOCK_TRADE") {
+      riskLevel = "CRITICAL";
+      adjustedScore += 3.0;
+    } else if (suggestedAction === "WARNING") {
+      riskLevel = "HIGH";
+      adjustedScore += 1.5;
+    } else if (suggestedAction === "REDUCE_SCORE") {
+      riskLevel = "MEDIUM";
+      adjustedScore += parseFloat(failedPattern.score_penalty || 1);
+    } else if (suggestedAction === "REDUCE_RISK") {
+      riskLevel = "MEDIUM";
+      adjustedScore += 1.0;
+    }
+
+    if (failRate >= 0.85) {
+      riskLevel = "CRITICAL";
+      adjustedScore += 2.0;
+    } else if (failRate >= 0.70 && riskLevel !== "CRITICAL") {
+      riskLevel = "HIGH";
+      adjustedScore += 1.0;
+    } else if (failRate >= 0.50 && riskLevel === "LOW") {
+      riskLevel = "MEDIUM";
+      adjustedScore += 0.5;
+    }
+  }
+
+  adjustedScore = Number(adjustedScore.toFixed(2));
+
+  // 1) CUT LOSS NOW
+  if (profit < 0) {
+    if (riskLevel === "CRITICAL" && adjustedScore >= 2.2) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: `Critical risk from failed pattern (failRate=${failRate})`,
         riskLevel,
         score: adjustedScore
-    };
-}
-
-/**
- * =========================
- * REVERSAL SCORING
- * =========================
- */
-function detectReversalScore(candles, side) {
-    let score = 0;
-
-    const last = candles[candles.length - 1];
-    const prev = candles[candles.length - 2];
-    const prev2 = candles[candles.length - 3];
-
-    // =========================
-    // 1. Candle direction
-    // =========================
-    if (side === "BUY") {
-        if (last.close < last.open) score += 1;
-        if (prev.close < prev.open) score += 0.5;
+      };
     }
 
-    if (side === "SELL") {
-        if (last.close > last.open) score += 1;
-        if (prev.close > prev.open) score += 0.5;
+    if (riskLevel === "HIGH" && adjustedScore >= 3.2) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: "High risk + strong reversal detected",
+        riskLevel,
+        score: adjustedScore
+      };
     }
 
-    // =========================
-    // 2. Momentum loss
-    // =========================
-    const body1 = Math.abs(last.close - last.open);
-    const body2 = Math.abs(prev.close - prev.open);
-    const body3 = Math.abs(prev2.close - prev2.open);
+    if (adjustedScore >= profile.hardCutLossReversalThreshold) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: "Strong reversal against position",
+        riskLevel,
+        score: adjustedScore
+      };
+    }
+  }
 
-    if (body1 < body2 && body2 < body3) {
-        score += 1.5;
+  // 2) MOVE TO BE ก่อน
+  if (profit > 0) {
+    const moveToBe = shouldMoveToBreakeven(
+      openPosition,
+      profit,
+      side,
+      tpPoints,
+      slPoints,
+      normalizedMode
+    );
+
+    if (moveToBe) {
+      return {
+        action: "MOVE_TO_BE",
+        reason: "Price moved enough in favor, move SL to breakeven",
+        riskLevel,
+        score: adjustedScore
+      };
+    }
+  }
+
+  // 3) TAKE SMALL PROFIT
+  if (profit > 0) {
+    const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
+
+    // CRITICAL: ยอมออกได้เร็วกว่า
+    if (
+      riskLevel === "CRITICAL" &&
+      profit >= profile.minProfitToProtect
+    ) {
+      return {
+        action: "TAKE_SMALL_PROFIT",
+        reason: "Critical risk but position is profitable",
+        riskLevel,
+        score: adjustedScore
+      };
     }
 
-    // =========================
-    // 3. Wick rejection
-    // =========================
-    const upperWick = last.high - Math.max(last.close, last.open);
-    const lowerWick = Math.min(last.close, last.open) - last.low;
-
-    if (side === "BUY" && upperWick > Math.max(body1, 0.0001) * 1.5) {
-        score += 2;
+    // HIGH: ต้องได้กำไรมากขึ้นก่อน
+    if (
+      riskLevel === "HIGH" &&
+      profit >= profile.minProfitForHighRiskExit &&
+      adjustedScore >= 2.8
+    ) {
+      return {
+        action: "TAKE_SMALL_PROFIT",
+        reason: "High risk, secure small profit",
+        riskLevel,
+        score: adjustedScore
+      };
     }
 
-    if (side === "SELL" && lowerWick > Math.max(body1, 0.0001) * 1.5) {
-        score += 2;
+    // Reversal ชัดจริง + กำไรถึงขั้นต่ำ
+    if (
+      adjustedScore >= profile.strongReversalThresholdProfit &&
+      profit >= profile.minProfitForStrongReversalExit
+    ) {
+      return {
+        action: "TAKE_SMALL_PROFIT",
+        reason: "Strong reversal detected with enough profit",
+        riskLevel,
+        score: adjustedScore
+      };
     }
 
-    // =========================
-    // 4. Simple structure break
-    // =========================
-    const recentCandles = candles.slice(-5);
-    const recentHigh = Math.max(...recentCandles.map(c => Number(c.high || 0)));
-    const recentLow = Math.min(...recentCandles.map(c => Number(c.low || 0)));
-
-    if (side === "BUY" && last.close < recentLow) {
-        score += 2;
+    // ถ้าไปได้ไกลจาก entry พอสมควรแล้วและเริ่มมี reversal ชัด
+    if (
+      progress.progressToTarget >= 0.55 &&
+      adjustedScore >= 3.2 &&
+      profit >= profile.minProfitToProtect
+    ) {
+      return {
+        action: "TAKE_SMALL_PROFIT",
+        reason: "Trade already progressed well, protect profit",
+        riskLevel,
+        score: adjustedScore
+      };
     }
+  }
 
-    if (side === "SELL" && last.close > recentHigh) {
-        score += 2;
+  // 4) WAIT FOR SMALL BOUNCE
+  if (profit <= 0) {
+    if (
+      riskLevel === "HIGH" ||
+      (riskLevel === "MEDIUM" && adjustedScore >= profile.mediumBounceThreshold)
+    ) {
+      return {
+        action: "WAIT_FOR_SMALL_BOUNCE",
+        reason: "Risk detected, wait for small recovery before exit",
+        riskLevel,
+        score: adjustedScore
+      };
     }
+  }
 
-    return score;
+  return {
+    action: "HOLD",
+    reason: `No strong exit signal (score=${adjustedScore}, mode=${normalizedMode})`,
+    riskLevel,
+    score: adjustedScore
+  };
 }
 
 module.exports = {
-    analyzeEarlyExit
+  analyzeEarlyExit
 };
