@@ -425,6 +425,7 @@ async function runDailyLearning() {
     }
 
     let mappedResults = [];
+    let adaptiveRows = [];
     let openOrder = null;
 
     try {
@@ -486,8 +487,7 @@ async function runDailyLearning() {
                     if (tpPips > 0 && tpPips < 150) postMortem = "SCALP_WIN";
                 }
 
-                const microTrend =
-                    analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
+                const microTrend = analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
                 const volumeProfile = getVolumeProfile(matchedCandleLog.candles || []);
                 const prePatternShape = buildPrePatternShape(matchedCandleLog.candles || []);
                 const rangeState = getRangeState(matchedCandleLog.candles || []);
@@ -558,6 +558,25 @@ async function runDailyLearning() {
                     contextHash: learningItem.contextHash,
                 });
 
+              adaptiveRows.push(
+                {
+                    firebaseUserId: learningItem.firebaseUserId,
+                    accountId: learningItem.accountId,
+                    symbol: learningItem.symbol,
+                    timeframe: "M5",
+                    patternType,
+                    side: openOrder.side,
+                    mode: learningItem.mode,
+                    sessionName,
+                    microTrend,
+                    volumeProfile,
+                    rangeState,
+                    result: learningItem.result,
+                    profit: t.profit,
+                    closedAt: t.event_time,
+              }
+            )
+
                 await upsertFailedPattern(learningItem);
 
                 if (patternType !== "NONE" && patternType !== "None") {
@@ -594,8 +613,6 @@ async function runDailyLearning() {
         }
 
         await insertManyMappedTradeAnalysis(mappedResults);
-
-         let adaptiveRows = [];
         adaptiveRows.push(
             {
                 firebaseUserId: mappedResults.firebaseUserId,
