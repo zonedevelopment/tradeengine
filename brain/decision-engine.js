@@ -381,6 +381,20 @@ if (
   }
     }
 
+    // กันเข้าในจังหวะเสียง่าย
+    if (
+      tradeMode === "SCALP" &&
+      trendContext.overallTrend === "MIXED" &&
+      !trendFollow4.volumeConfirmed &&
+      pattern.isVolumeDrying
+    ) {
+      return {
+        action: "NO_TRADE",
+        reason: "LOW_QUALITY_SCALP_SETUP",
+        score: 0,
+      };
+    }
+    
     score += patternScore;
   }
 
