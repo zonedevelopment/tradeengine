@@ -264,6 +264,7 @@ app.post("/signal", async (req, res) => {
         candlesH1: candles_h1,
         candlesH4: candles_h4,
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
+        sessionName: session.name,
       },
     });
 
