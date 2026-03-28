@@ -101,6 +101,31 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const { trace } = require("console");
 
+const microScalpEngine = require("./microScalpEngine");
+
+const MICRO_SCALP_CONFIG = {
+  enabled: true,
+  minScore: 45,
+  minScoreGap: 8,
+  maxSpread: 20,
+
+  onePositionOnly: true,
+  maxHoldBars: 2,
+  maxLossUsd: 8,
+  minProfitToClose: 2,
+
+  trendWeight: 1,
+  momentumWeight: 1,
+  entryWeight: 1,
+  volumeWeight: 1,
+  penaltyWeight: 1,
+
+  extremeBodyMultiplier: 2.5,
+  momentumBodyMultiplier: 1.2,
+
+  useVolume: true,
+  minVolumeRatio: 1.05,
+};
 
 const symbolConfig = {
   "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
@@ -213,6 +238,13 @@ function calculateAvgRange(candles = [], length = 3, pipMultiplier) {
 
   const avg = ranges.reduce((sum, v) => sum + v, 0) / ranges.length;
   return (avg * pipMultiplier);
+}
+
+function hasPrimarySignal(result) {
+  if (!result || typeof result !== "object") return false;
+
+  const signal = String(result.signal || "").toUpperCase();
+  return signal === "BUY" || signal === "SELL";
 }
 
 app.post("/signal", async (req, res) => {
