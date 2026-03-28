@@ -8,6 +8,8 @@ const { insertManyMappedTradeAnalysis } = require("../mappedTradeAnalysis.repo")
 const { getTradeEventsForLearning, getHistoryLearnWeight } = require("../tradeHistory.repo")
 const { upsertAdaptiveScoreStat } = require("../adaptiveScore.repo");
 
+const CandleTrainingData = require("../models/CandleTrainingData");
+
 function clamp(num, min, max) {
   return Math.max(min, Math.min(max, Number(num || 0)));
 }
@@ -363,66 +365,98 @@ async function runDailyLearning() {
     console.log("[Daily Learner] Starting Contextual Learning...");
 
     const initialDefaultWeights = {
-        // "Pin_Bar_Shooting_Star": -0.5,
-        // "Morning_Star_Base_Break": 0,
-        // "Evening_Star_Base_Break": -0.75,
-        // "Pin_Bar_Hammer": 2.0,
-        // "Piercing_Pattern": 0.5,
-        // "Waterfall_Drop_Continuation": 1.8,
-        // "Dark_Cloud_Cover": 1.9,
-        // "Bullish_Engulfing": -1.25,
-        // "Rocket_Surge_Continuation": 1.0,
-        // "Bearish_Engulfing": -1.75
+        "Pin_Bar_Shooting_Star": -0.5,
+        "Morning_Star_Base_Break": 0,
+        "Evening_Star_Base_Break": -0.75,
+        "Pin_Bar_Hammer": 2.0,
+        "Piercing_Pattern": 0.5,
+        "Waterfall_Drop_Continuation": 1.8,
+        "Dark_Cloud_Cover": 1.9,
+        "Bullish_Engulfing": -1.25,
+        "Rocket_Surge_Continuation": 1.0,
+        "Bearish_Engulfing": -1.75
     };
 
-    const dataDir = path.join(__dirname, "../data");
-    const learningDir = path.join(__dirname, "../learning");
+    // const dataDir = path.join(__dirname, "../data");
+    // const learningDir = path.join(__dirname, "../learning");
 
-    if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
+    // if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
 
-    const candleDataPath = path.join(dataDir, "candle_training_data.json");
-    const weightPath = path.join(learningDir, "pattern-weight.json");
+    // const candleDataPath = path.join(dataDir, "candle_training_data.json");
+    // const weightPath = path.join(learningDir, "pattern-weight.json");
 
-    if (!fs.existsSync(candleDataPath)) {
-        console.log("[Daily Learner] Missing data files. Skipping learning.");
-        return;
-    }
+    // if (!fs.existsSync(candleDataPath)) {
+    //     console.log("[Daily Learner] Missing data files. Skipping learning.");
+    //     return;
+    // }
 
     let trades = await getTradeEventsForLearning();
     // console.log(`[Daily Learner] History ${JSON.stringify(trades)}.`);
+
+    let candleLogs = [];
+
     try {
-        candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
-        console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
+        candleLogs = await CandleTrainingData.find({})
+          .sort({ eventTime: 1, createdAt: 1 })
+          .lean();
+      
+        console.log(`[Daily Learner] Candles ${candleLogs.length}.`);
     } catch (e) {
-        console.log("[Daily Learner] JSON parse error:", e.message);
+        console.log("[Daily Learner] Mongo read error:", e.message);
         return;
     }
+    
+    // if (!candleLogs.length) {
+    //   console.log("[Daily Learner] No candle training data in MongoDB. Skipping learning.");
+    //   return;
+    // } else {
+    //   try {
+    //       candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+    //       console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
+    //   } catch (e) {
+    //       console.log("[Daily Learner] JSON parse error:", e.message);
+    //       return;
+    //   }
+    // }
 
-    let weights = {};
+    let weightsBySymbol = {};
     try {
+        // const sql = `
+        //         SELECT pattern_name, 
+        //             CASE 
+        //                 WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+        //                 ELSE weight_score
+        //             END AS weight_score
+        //         FROM strategy_weights
+        //     `;
         const sql = `
-                SELECT pattern_name, 
-                    CASE 
-                        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-                        ELSE weight_score
-                    END AS weight_score
-                FROM strategy_weights
+              SELECT
+                symbol,
+                pattern_name,
+                CASE
+                  WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+                  ELSE weight_score
+                END AS weight_score
+              FROM strategy_weights
             `;
         const result = await query(sql);
         const rows = Array.isArray(result?.[0]) ? result[0] : result;
-        if (rows) {
-            weights = rows.reduce((acc, row) => {
-                acc[row.pattern_name] = Number(row.weight_score);
-                return acc;
-            }, {});
-            console.log("[Daily Learner] Weights loaded from Database.");
+
+        weightsBySymbol.DEFAULT = { ...initialDefaultWeights };
+
+        if (rows && rows.length) {
+          for (const row of rows) {
+            const symbol = String(row.symbol || "DEFAULT").toUpperCase();
+            if (!weightsBySymbol[symbol]) weightsBySymbol[symbol] = {};
+            weightsBySymbol[symbol][row.pattern_name] = Number(row.weight_score || 0);
+          }
+          console.log("[Daily Learner] Weights loaded from Database by symbol.");
         } else {
-            weights = { ...initialDefaultWeights };
-            console.log("[Daily Learner] Database is empty. Using Initial Default Weights.");
+          console.log("[Daily Learner] Database is empty.");
         }
-    } catch (err) {
-        console.log("[Daily Learner] Get initial weights error:", err.message);
-    }
+      } catch (err) {
+          console.log("[Daily Learner] Get initial weights error:", err.message);
+      }
 
     let mappedResults = [];
     let adaptiveRows = [];
@@ -574,46 +608,87 @@ async function runDailyLearning() {
                     result: learningItem.result,
                     profit: t.profit,
                     closedAt: t.event_time,
-              }
-            )
+              });
 
                 await upsertFailedPattern(learningItem);
 
-                if (patternType !== "NONE" && patternType !== "None") {
-                    if (!weights[patternType]) weights[patternType] = 0;
-                    if (isWin) weights[patternType] += 0.08;
-                    else weights[patternType] -= 0.08;
+                // if (patternType !== "NONE" && patternType !== "None") {
+                //     if (!weights[patternType]) weights[patternType] = 0;
+                //     if (isWin) weights[patternType] += 0.08;
+                //     else weights[patternType] -= 0.08;
 
-                    if (weights[patternType] > 2.0) weights[patternType] = 2.0;
-                    if (weights[patternType] < -2.0) weights[patternType] = -2.0;
-                }
+                //     if (weights[patternType] > 2.0) weights[patternType] = 2.0;
+                //     if (weights[patternType] < -2.0) weights[patternType] = -2.0;
+                // }
+              const targetSymbol = String(t.symbol || DEFAULT").toUpperCase();
 
-                // console.log("[Daily Learner] leaing item: " + learningItem);
+              if (!weightsBySymbol[targetSymbol]) {
+                  weightsBySymbol[targetSymbol] = {};
+              }
+              
+              if (patternType !== "NONE" && patternType !== "None") {
+                  if (weightsBySymbol[targetSymbol][patternType] == null) {
+                      const defaultWeight =
+                          weightsBySymbol.DEFAULT?.[patternType] ??
+                          initialDefaultWeights?.[patternType] ??
+                          0;
+              
+                      weightsBySymbol[targetSymbol][patternType] = defaultWeight;
+                  }
+              
+                  if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
+                  else weightsBySymbol[targetSymbol][patternType] -= 0.08;
+              
+                  if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
+                      weightsBySymbol[targetSymbol][patternType] = 2.0;
+                  }
+              
+                  if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
+                      weightsBySymbol[targetSymbol][patternType] = -2.0;
+                  }
+              }
             }
-            
-            // console.log("[Daily Learner] Mapped result: " + mappedResults);
-
             openOrder = null;
         }
 
         // fs.writeFileSync(mappedDataPath, JSON.stringify(mappedResults, null, 2));
         // fs.writeFileSync(weightPath, JSON.stringify(weights, null, 2));
 
-        try {
-            const weightEntries = Object.entries(weights);
-            if (weightEntries.length > 0) {
-                const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
-                for (const [name, score] of weightEntries) {
-                    await query(upsertSql, [score, name]);
-                }
-                console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
-            }
-        } catch (err) {
-            console.error("[Daily Learner] Save weights to DB error:", err.message);
-        }
+        // try {
+        //     const weightEntries = Object.entries(weights);
+        //     if (weightEntries.length > 0) {
+        //         // const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
+        //         for (const [name, score] of weightEntries) {
+        //             // await query(upsertSql, [score, name]);
+        //             await upsertStrategyWeightBySymbol(targetSymbol, patternName, newWeight);
+        //         }
+        //         console.log(`[Daily Learner] Successfully saved ${weightEntries} weights to DB.`);
+        //     }
+        // } catch (err) {
+        //     console.error("[Daily Learner] Save weights to DB error:", err.message);
+        // }
+      try {
+          const symbolEntries = Object.entries(weightsBySymbol);
+      
+          if (symbolEntries.length > 0) {
+              let savedCount = 0;
+      
+              for (const [symbol, patternMap] of symbolEntries) {
+                  const patternEntries = Object.entries(patternMap || {});
+      
+                  for (const [patternName, newWeight] of patternEntries) {
+                      await upsertStrategyWeightBySymbol(symbol, patternName, newWeight);
+                      savedCount++;
+                  }
+              }
+      
+              console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
+          }
+      } catch (err) {
+          console.error("[Daily Learner] Save weights to DB error:", err.message);
+      }
 
         await insertManyMappedTradeAnalysis(mappedResults);
-        
         await updateAdaptiveScoreStats(adaptiveRows);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
@@ -622,6 +697,25 @@ async function runDailyLearning() {
     console.log(`[Daily Learner] Mapped ${mappedResults.length} completed trades.`);
     console.log(`[Daily Learner] Wegiht ${JSON.stringify(weights, null, 2)} completed trades.`);
     console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
+}
+
+async function upsertStrategyWeightBySymbol(symbol, patternName, weightScore) {
+  await query(
+    `
+      INSERT INTO strategy_weights
+        (symbol, pattern_name, weight_score, user_score, is_use_user_score, total_trades, last_updated)
+      VALUES
+        (?, ?, ?, NULL, 0, 0, NOW())
+      ON DUPLICATE KEY UPDATE
+        weight_score = VALUES(weight_score),
+        last_updated = NOW()
+    `,
+    [
+      String(symbol || "DEFAULT").toUpperCase(),
+      patternName,
+      Number(weightScore || 0),
+    ]
+  );
 }
 
 function buildAdaptiveKey(row) {

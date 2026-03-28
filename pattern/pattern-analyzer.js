@@ -75,7 +75,9 @@ async function analyzePattern(signal) {
         score = 2.5;
     } else if (result.pattern === "CLAW_SELL" && result.type === "Waterfall_Drop_Continuation") {
         score = -2.5;
-    } else if (result.pattern === "CLAW_SELL" && result.type === "Descending_Triangle_Breakdown") {
+    } else if (result.pattern === "CLAW_BUY" && result.type === "Ascending_Triangle_Breakout") {
+        score = 2.8;
+    }  else if (result.pattern === "CLAW_SELL" && result.type === "Descending_Triangle_Breakdown") {
         score = -2.8;
     } else if (result.pattern === "CLAW_BUY") {
         score = 2;

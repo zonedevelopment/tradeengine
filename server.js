@@ -28,32 +28,6 @@ const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getT
 
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
 const { exec } = require("child_process");
-// const {
-//   upsertAccountSnapshot,
-//   getAccountSnapshotByUser
-// } = require("./accountSnapshot.repo");
-
-// const { getActivePositionsByUser, upsertActivePositionsSnapshot } = require("./activePosition.repo")
-
-// const {
-//   upsertDailyAccountSnapshot,
-//   getTodayAccountSnapshotByUser,
-//   getAccountSnapshotsByUser
-// } = require("./accountSnapshot.repo");
-
-// const {
-//   upsertLiveAccountSnapshot,
-//   getLiveAccountSnapshotByUserAndAccount
-// } = require("./accountSnapshotLive.repo");
-
-// const {
-//   getAccountSnapshotStreamKey,
-//   addAccountSnapshotClient,
-//   removeAccountSnapshotClient,
-//   sendSse,
-//   broadcastAccountSnapshot,
-//   initSseHeaders
-// } = require("./accountSnapshot.stream");
 
 const {
   broadcastActivePositionChange
@@ -91,14 +65,16 @@ const {
   syncActivePositionsToMongo,
   getActivePositionsByUserAndSymbol,
 } = require("./activePosition.mongo.repo");
+
 const {
-  // sendSse,
   registerSseClient,
   unregisterSseClient,
 } = require("./activePosition.stream");
 
 const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
+const CandleTrainingData = require("./models/CandleTrainingData");
+
 const { trace } = require("console");
 
 const microScalpEngine = require("./microScalpEngine");
@@ -339,6 +315,7 @@ function buildTradeSetupFromPattern({
     }
   }
 
+  // Calculate Retracement
   retracePoints = Math.round(avgRange * 0.85);
 
   if (signalStrength >= 6) {
@@ -366,6 +343,48 @@ function buildTradeSetupFromPattern({
   const maxR = 200 * (mult / 100);
   if (retracePoints < minR) retracePoints = minR;
   if (retracePoints > maxR) retracePoints = maxR;
+  // const lastCandle = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : null;
+  // const recentBodies = Array.isArray(candles) ? candles.slice(-5).map(c => Math.abs(Number(c.close || 0) - Number(c.open || 0))) : [];
+  // const avgBody = recentBodies.length
+  //   ? recentBodies.reduce((sum, v) => sum + v, 0) / recentBodies.length
+  //   : 0;
+  
+  // const lastBody = lastCandle
+  //   ? Math.abs(Number(lastCandle.close || 0) - Number(lastCandle.open || 0))
+  //   : 0;
+  
+  // const lastVolume = lastCandle ? Number(lastCandle.tickVolume || lastCandle.tick_volume || 0) : 0;
+  // const recentVolumes = Array.isArray(candles)
+  //   ? candles.slice(-5).map(c => Number(c.tickVolume || c.tick_volume || 0))
+  //   : [];
+  // const avgVolume = recentVolumes.length
+  //   ? recentVolumes.reduce((sum, v) => sum + v, 0) / recentVolumes.length
+  //   : 0;
+  
+  // const isStrongMomentumCandle = avgBody > 0 && lastBody >= avgBody * 1.35;
+  // const isStrongVolume = avgVolume > 0 && lastVolume >= avgVolume * 1.10;
+  // const isHighConfidence = signalStrength >= 6;
+  // const isMediumConfidence = signalStrength >= 4;
+  
+  // if (isStrongMomentumCandle && isStrongVolume && isHighConfidence) {
+  //   retracePoints = Math.round(retracePoints * 0.20);
+  // } else if ((isStrongMomentumCandle && isMediumConfidence) || (isStrongVolume && isHighConfidence)) {
+  //   retracePoints = Math.round(retracePoints * 0.35);
+  // } else if (signalStrength >= 2) {
+  //   retracePoints = Math.round(retracePoints * 0.60);
+  // } else {
+  //   retracePoints = Math.round(retracePoints * 0.90);
+  // }
+  
+  // if (pattern?.isVolumeClimax) {
+  //   retracePoints = Math.round(retracePoints * 0.75);
+  // }
+  
+  // if (pattern?.isVolumeDrying) {
+  //   retracePoints = Math.round(retracePoints * 1.10);
+  // }
+
+  // End Calculate Retracement
 
   if (balance && balance > 0) {
     const riskPercent = calculateDynamicRisk(
@@ -560,6 +579,33 @@ app.post("/signal", async (req, res) => {
     const score = evaluateResult.score || 0;
     const finalDecision = decision(evaluateResult);
 
+    try {
+      if (Array.isArray(candles) && candles.length > 0) {
+        const contextCandles = candles.slice(-10).map((c) => ({
+          time: c.time ? new Date(c.time) : null,
+          open: Number(c.open || 0),
+          high: Number(c.high || 0),
+          low: Number(c.low || 0),
+          close: Number(c.close || 0),
+          tickVolume: Number(c.tickVolume || c.tick_volume || 0),
+        }));
+    
+        await CandleTrainingData.create({
+          firebaseUserId: resolvedUserId || "",
+          accountId: accountId || "",
+          symbol: symbol || "",
+          timeframe: "M5",
+          eventTime: new Date(),
+          price: Number(price || 0),
+          candles: contextCandles,
+          source: "signal",
+          mode: evaluateResult.mode || "NORMAL",
+        });
+      }
+    } catch (e) {
+      console.error("Error saving candle training data to MongoDB:", e);
+    }
+
     console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
     console.log(`Price: ${price}`);
     console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
@@ -608,133 +654,7 @@ app.post("/signal", async (req, res) => {
       tpMultiplier: 1,
       reason: null,
     };
-
-    // let slPoints = 500;
-    // let tpPoints = 800;
-    // let lotSize = 0.01;
-    // let retracePoints = 0;
-
-    // let signalStrength = 0;
-    // if (side === "BUY") {
-    //   signalStrength = score;
-    // } else if (side === "SELL") {
-    //   signalStrength = -score;
-    // }
-
-    // const mult = activeCfg.pipMultiplier;
-    // const avgRange = calculateAvgRange(candles, 3, mult);
-
-    // if (side === "BUY") {
-    //   if (pattern.slPrice < price) {
-    //     slPoints = Math.round((price - pattern.slPrice) * mult);
-    //   } else {
-    //     slPoints = Math.round(avgRange * 1.4);
-    //   }
-    //   if (pattern.tpPrice > price) {
-    //     tpPoints = Math.round((pattern.tpPrice - price) * mult);
-    //   } else {
-    //     tpPoints = Math.round(avgRange * 2.2);
-    //   }
-
-    //   if (spreadPoints > 0) {
-    //     slPoints += Math.round(spreadPoints * 1.75);
-    //     tpPoints += Math.round(spreadPoints * 1.75);
-    //   }
-
-    // } else if (side === "SELL") {
-    //   if (pattern.slPrice > price) {
-    //     slPoints = Math.round((pattern.slPrice - price) * mult);
-    //   } else {
-    //     slPoints = Math.round(avgRange * 1.4);
-    //   }
-    //   if (pattern.tpPrice < price) {
-    //     tpPoints = Math.round((price - pattern.tpPrice) * mult);
-    //   } else {
-    //     tpPoints = Math.round(avgRange * 2.2);
-    //   }
-
-    //   if (spreadPoints > 0) {
-    //     slPoints += Math.round(spreadPoints * 1.75);
-    //     tpPoints += Math.round(spreadPoints * 1.75);
-    //   }
-    // }
-
-    // retracePoints = Math.round(avgRange * 0.85);
-
-    // if (signalStrength >= 6) {
-    //   retracePoints = Math.round(retracePoints * 0.35);
-    // } else if (signalStrength >= 4) {
-    //   retracePoints = Math.round(retracePoints * 0.60);
-    // } else if (signalStrength >= 2) {
-    //   retracePoints = Math.round(retracePoints * 0.90);
-    // } else {
-    //   retracePoints = Math.round(retracePoints * 1.20);
-    // }
-
-    // if (pattern?.isVolumeClimax) {
-    //   retracePoints = Math.round(retracePoints * 0.80);
-    // }
-
-    // if (pattern?.isVolumeDrying) {
-    //   retracePoints = Math.round(retracePoints * 1.15);
-    // }
-
-    // const maxRetraceBySL = Math.round(slPoints * 0.4);
-    // if (retracePoints > maxRetraceBySL) {
-    //   retracePoints = maxRetraceBySL;
-    // }
-
-    // const minR = 20 * (mult / 100);
-    // const maxR = 200 * (mult / 100);
-    // if (retracePoints < minR) retracePoints = minR;
-    // if (retracePoints > maxR) retracePoints = maxR;
-
-    // if (balance && balance > 0) {
-    //   const riskPercent = calculateDynamicRisk(
-    //     score,
-    //     pattern.type,
-    //     evaluateResult.mode,
-    //     2.0
-    //   );
-    //   const riskAmount = balance * (riskPercent / 100);
-    //   let calculatedLot = riskAmount / slPoints;
-
-    //   if (signalStrength >= 6) {
-    //     calculatedLot *= 1.1;
-    //   } else if (signalStrength < 3) {
-    //     calculatedLot *= 0.75;
-    //   }
-
-    //   lotSize = Number(calculatedLot.toFixed(2));
-    //   if (lotSize < 0.01) lotSize = 0.01;
-    //   if (lotSize > 5.0) lotSize = 5.0;
-    // }
-
-    // // ===== TP / SL Scaling (USE signalStrength) =====
-    // if (signalStrength < 3.0) {
-    //   tpPoints = Math.round(tpPoints * 0.6);
-    //   slPoints = Math.round(slPoints * 0.85);
-    // } else if (signalStrength < 5.5) {
-    //   tpPoints = Math.round(tpPoints * 0.9);
-    //   slPoints = Math.round(slPoints * 0.95);
-    // } else if (signalStrength >= 6.0) {
-    //   tpPoints = Math.round(tpPoints * 1.15);
-    // }
-
-    // if (defensiveFlags.warningMatched) {
-    //   lotSize = Number((lotSize * defensiveFlags.lotMultiplier).toFixed(2));
-    //   if (lotSize < 0.01) lotSize = 0.01;
-
-    //   tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
-    //   // tpPoints = Math.round(tpPoints * 0.8);
-    //   evaluateResult.mode = "SCALP";
-    // }
-
-    // if (tpPoints < activeCfg.minTP) tpPoints = activeCfg.minTP;
-    // if (slPoints < activeCfg.minSL) slPoints = activeCfg.minSL;
-    // if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
-    // if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
-
+    
     const trade_setup = buildTradeSetupFromPattern({
       side,
       price: Number(price || 0),
