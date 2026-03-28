@@ -377,18 +377,18 @@ async function runDailyLearning() {
         "Bearish_Engulfing": -1.75
     };
 
-    const dataDir = path.join(__dirname, "../data");
-    const learningDir = path.join(__dirname, "../learning");
+    // const dataDir = path.join(__dirname, "../data");
+    // const learningDir = path.join(__dirname, "../learning");
 
-    if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
+    // if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir);
 
-    const candleDataPath = path.join(dataDir, "candle_training_data.json");
-    const weightPath = path.join(learningDir, "pattern-weight.json");
+    // const candleDataPath = path.join(dataDir, "candle_training_data.json");
+    // const weightPath = path.join(learningDir, "pattern-weight.json");
 
-    if (!fs.existsSync(candleDataPath)) {
-        console.log("[Daily Learner] Missing data files. Skipping learning.");
-        return;
-    }
+    // if (!fs.existsSync(candleDataPath)) {
+    //     console.log("[Daily Learner] Missing data files. Skipping learning.");
+    //     return;
+    // }
 
     let trades = await getTradeEventsForLearning();
     // console.log(`[Daily Learner] History ${JSON.stringify(trades)}.`);
@@ -406,37 +406,49 @@ async function runDailyLearning() {
         return;
     }
     
-    if (!candleLogs.length) {
-      console.log("[Daily Learner] No candle training data in MongoDB. Skipping learning.");
-      return;
-    } else {
-      try {
-          candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
-          console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
-      } catch (e) {
-          console.log("[Daily Learner] JSON parse error:", e.message);
-          return;
-      }
-    }
+    // if (!candleLogs.length) {
+    //   console.log("[Daily Learner] No candle training data in MongoDB. Skipping learning.");
+    //   return;
+    // } else {
+    //   try {
+    //       candleLogs = JSON.parse(fs.readFileSync(candleDataPath, "utf8"));
+    //       console.log(`[Daily Learner] Candels ${candleLogs.length}.`);
+    //   } catch (e) {
+    //       console.log("[Daily Learner] JSON parse error:", e.message);
+    //       return;
+    //   }
+    // }
 
-    let weights = {};
+    let weightsBySymbol = {};
     try {
+        // const sql = `
+        //         SELECT pattern_name, 
+        //             CASE 
+        //                 WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+        //                 ELSE weight_score
+        //             END AS weight_score
+        //         FROM strategy_weights
+        //     `;
         const sql = `
-                SELECT pattern_name, 
-                    CASE 
-                        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-                        ELSE weight_score
-                    END AS weight_score
-                FROM strategy_weights
+              SELECT
+                symbol,
+                pattern_name,
+                CASE
+                  WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+                  ELSE weight_score
+                END AS weight_score
+              FROM strategy_weights
             `;
         const result = await query(sql);
         const rows = Array.isArray(result?.[0]) ? result[0] : result;
 
+        weightsBySymbol.DEFAULT = { ...initialDefaultWeights };
+
         if (rows && rows.length) {
           for (const row of rows) {
             const symbol = String(row.symbol || "DEFAULT").toUpperCase();
-            if (!weights[symbol]) weights[symbol] = {};
-            weights[symbol][row.pattern_name] = Number(row.weight_score || 0);
+            if (!weightsBySymbol[symbol]) weightsBySymbol[symbol] = {};
+            weightsBySymbol[symbol][row.pattern_name] = Number(row.weight_score || 0);
           }
           console.log("[Daily Learner] Weights loaded from Database by symbol.");
         } else {
@@ -610,29 +622,29 @@ async function runDailyLearning() {
                 // }
               const targetSymbol = String(t.symbol || DEFAULT").toUpperCase();
 
-              if (!weights[targetSymbol]) {
-                  weights[targetSymbol] = {};
+              if (!weightsBySymbol[targetSymbol]) {
+                  weightsBySymbol[targetSymbol] = {};
               }
               
               if (patternType !== "NONE" && patternType !== "None") {
-                  if (weights[targetSymbol][patternType] == null) {
+                  if (weightsBySymbol[targetSymbol][patternType] == null) {
                       const defaultWeight =
-                          weights.DEFAULT?.[patternType] ??
+                          weightsBySymbol.DEFAULT?.[patternType] ??
                           initialDefaultWeights?.[patternType] ??
                           0;
               
-                      weights[targetSymbol][patternType] = defaultWeight;
+                      weightsBySymbol[targetSymbol][patternType] = defaultWeight;
                   }
               
-                  if (isWin) weights[targetSymbol][patternType] += 0.08;
-                  else weights[targetSymbol][patternType] -= 0.08;
+                  if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
+                  else weightsBySymbol[targetSymbol][patternType] -= 0.08;
               
-                  if (weights[targetSymbol][patternType] > 2.0) {
-                      weights[targetSymbol][patternType] = 2.0;
+                  if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
+                      weightsBySymbol[targetSymbol][patternType] = 2.0;
                   }
               
-                  if (weights[targetSymbol][patternType] < -2.0) {
-                      weights[targetSymbol][patternType] = -2.0;
+                  if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
+                      weightsBySymbol[targetSymbol][patternType] = -2.0;
                   }
               }
             }
@@ -656,7 +668,7 @@ async function runDailyLearning() {
         //     console.error("[Daily Learner] Save weights to DB error:", err.message);
         // }
       try {
-          const symbolEntries = Object.entries(weights);
+          const symbolEntries = Object.entries(weightsBySymbol);
       
           if (symbolEntries.length > 0) {
               let savedCount = 0;
@@ -677,7 +689,6 @@ async function runDailyLearning() {
       }
 
         await insertManyMappedTradeAnalysis(mappedResults);
-        
         await updateAdaptiveScoreStats(adaptiveRows);
     } catch (err) {
         console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
