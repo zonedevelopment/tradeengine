@@ -6,6 +6,20 @@ const {
   buildContextHashNew,
 } = require("../utils/context-features");
 
+const { findAdaptiveScoreRule } = require("../adaptiveScore.repo");
+
+function clamp(num, min, max) {
+  return Math.max(min, Math.min(max, Number(num || 0)));
+}
+
+function applyAdaptiveScore(patternScore, adaptiveDelta) {
+  const delta = clamp(adaptiveDelta, -0.60, 0.60);
+
+  // adaptiveDelta เป็นการ "บวกคะแนน" โดยตรง
+  // ไม่ใช่ multiplier จะควบคุมง่ายกว่า
+  return Number(patternScore || 0) + delta;
+}
+
 function applyLearnedPatternWeight(patternScore, learnedWeight) {
   const w = Number(learnedWeight || 0);
 
@@ -393,6 +407,36 @@ if (
         reason: "LOW_QUALITY_SCALP_SETUP",
         score: 0,
       };
+    }
+
+    const sessionName = market?.sessionName || session?.name || null;
+    const adaptiveRule = await findAdaptiveScoreRule({
+      firebaseUserId: market?.userId || null,
+      accountId: market?.accountId || null,
+      symbol: market?.symbol || "XAUUSD",
+      timeframe: market?.timeframe || "M5",
+      patternType: pattern?.type || "Unknown",
+      side: isBuyPattern ? "BUY" : "SELL",
+      mode: tradeMode,
+      sessionName,
+      microTrend: pattern?.structure?.microTrend || null,
+      volumeProfile: pattern?.volumeProfile || null,
+      rangeState: pattern?.rangeState || null,
+    });
+    
+    if (adaptiveRule) {
+      patternScore = applyAdaptiveScore(
+        patternScore,
+        Number(adaptiveRule.adaptive_score_delta || 0)
+      );
+    
+      // ถ้าบริบทนี้แย่มาก ให้ลดเกรดเป็น SCALP
+      if (
+        Number(adaptiveRule.adaptive_score_delta || 0) <= -0.25 &&
+        tradeMode === "NORMAL"
+      ) {
+        tradeMode = "SCALP";
+      }
     }
     
     score += patternScore;
