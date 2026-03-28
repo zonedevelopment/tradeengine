@@ -73,6 +73,8 @@ const {
 
 const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
+const CandleTrainingData = require("./models/CandleTrainingData");
+
 const { trace } = require("console");
 
 const microScalpEngine = require("./microScalpEngine");
@@ -576,6 +578,33 @@ app.post("/signal", async (req, res) => {
 
     const score = evaluateResult.score || 0;
     const finalDecision = decision(evaluateResult);
+
+    try {
+      if (Array.isArray(candles) && candles.length > 0) {
+        const contextCandles = candles.slice(-10).map((c) => ({
+          time: c.time ? new Date(c.time) : null,
+          open: Number(c.open || 0),
+          high: Number(c.high || 0),
+          low: Number(c.low || 0),
+          close: Number(c.close || 0),
+          tickVolume: Number(c.tickVolume || c.tick_volume || 0),
+        }));
+    
+        await CandleTrainingData.create({
+          firebaseUserId: resolvedUserId || "",
+          accountId: accountId || "",
+          symbol: symbol || "",
+          timeframe: "M5",
+          eventTime: new Date(),
+          price: Number(price || 0),
+          candles: contextCandles,
+          source: "signal",
+          mode: evaluateResult.mode || "NORMAL",
+        });
+      }
+    } catch (e) {
+      console.error("Error saving candle training data to MongoDB:", e);
+    }
 
     console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
     console.log(`Price: ${price}`);
