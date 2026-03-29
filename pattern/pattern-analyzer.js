@@ -56,7 +56,7 @@ function analyzeM5FourCandleFollow(candles = []) {
 async function analyzePattern(signal) {
 
     // const weights = loadWeights();
-    const weights = await loadWeightsFromDB();
+    const weights = await loadWeightsFromDB(signal.symbol);
 
     // 1. Detect Candle Pattern & Market Structure
     const result = detectMotherFishPattern({
@@ -191,7 +191,7 @@ function loadWeights() {
     return JSON.parse(fs.readFileSync(file));
 }
 
-async function loadWeightsFromDB() {
+async function loadWeightsFromDB(symbol) {
     const initialDefaultWeights = {
         // "Pin_Bar_Shooting_Star": -0.5,
         // "Morning_Star_Base_Break": 0,
@@ -212,9 +212,9 @@ async function loadWeightsFromDB() {
                         WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
                         ELSE weight_score
                     END AS weight_score
-                FROM strategy_weights
+                FROM strategy_weights WHERE symbol = ?
             `;
-        const result = await query(sql);
+        const result = await query(sql, symbol);
         const rows = Array.isArray(result?.[0]) ? result[0] : result;
         if (rows.length > 0) {
             // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
