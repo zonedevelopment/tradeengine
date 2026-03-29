@@ -17,33 +17,40 @@ function safeReadJson(file, fallback) {
     }
 }
 
-async function saveSuggestedWeightsToDB(patternWeights) {
+async function saveSuggestedWeightsToDB(patternWeights, symbol = "DEFAULT") {
     if (!patternWeights) return;
 
     const entries = Object.entries(patternWeights);
     if (entries.length === 0) return;
-
-    // คำสั่ง SQL สำหรับ Insert หรือ Update ถ้ามีชื่อ Pattern อยู่แล้ว
-    // const sql = `
-    //     INSERT INTO strategy_weights (pattern_name, weight_score) 
-    //     VALUES (?, ?) 
-    //     ON DUPLICATE KEY UPDATE 
-    //         weight_score = VALUES(weight_score), 
-    //         last_updated = NOW()
-    // `;
-
+    // try {
+    //     const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
+    //     for (const [name, score] of entries) {
+    //         await query(upsertSql, [score, name]);
+    //     }
+    //     console.log(`[Performance] Successfully updated ${entries.length} weights in Database.`);
+    // } catch (err) {
+    //     console.error("[Performance] Error saving weights to DB:", err.message);
+    //     throw err; // โยน Error เพื่อให้ฟังก์ชันหลักรับทราบ
+    // }
     try {
-        const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
+        const upsertSql = `
+            INSERT INTO strategy_weights
+                (symbol, pattern_name, weight_score, user_score, is_use_user_score, total_trades, last_updated)
+            VALUES
+                (?, ?, ?, NULL, 0, 0, NOW())
+            ON DUPLICATE KEY UPDATE
+                weight_score = VALUES(weight_score),
+                last_updated = NOW()
+        `;
+
         for (const [name, score] of entries) {
-            // ทำการ Clamp ค่าให้อยู่ใน -2.0 ถึง 2.0 เพื่อความปลอดภัยของระบบเทรด
-            // const clampedScore = Math.max(-2.0, Math.min(2.0, score));
-            // await query(sql, [name, clampedScore]);
-            await query(upsertSql, [score, name]);
+            await query(upsertSql, [String(symbol || "DEFAULT").toUpperCase(), name, score]);
         }
-        console.log(`[Performance] Successfully updated ${entries.length} weights in Database.`);
+
+        console.log(`[Performance] Successfully updated ${entries.length} weights in Database for ${symbol}.`);
     } catch (err) {
         console.error("[Performance] Error saving weights to DB:", err.message);
-        throw err; // โยน Error เพื่อให้ฟังก์ชันหลักรับทราบ
+        throw err;
     }
 }
 
@@ -150,7 +157,7 @@ async function analyzePerformance(firebaseUserId, symbol, mode) {
 
     try {
         // 1. บันทึก Weights ลงตาราง strategy_weights
-        await saveSuggestedWeightsToDB(patternWeights);
+        await saveSuggestedWeightsToDB(patternWeights, symbol);
 
         // 2. สำหรับ stateFile (performance-state) ถ้ายังจำเป็นต้องใช้ไฟล์อยู่ 
         // แนะนำให้ใช้ path.resolve เพื่อป้องกันปัญหา Path บน Shared Hosting

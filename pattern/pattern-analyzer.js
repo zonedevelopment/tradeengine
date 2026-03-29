@@ -77,7 +77,7 @@ async function analyzePattern(signal) {
         score = -2.5;
     } else if (result.pattern === "CLAW_BUY" && result.type === "Ascending_Triangle_Breakout") {
         score = 2.8;
-    }  else if (result.pattern === "CLAW_SELL" && result.type === "Descending_Triangle_Breakdown") {
+    } else if (result.pattern === "CLAW_SELL" && result.type === "Descending_Triangle_Breakdown") {
         score = -2.8;
     } else if (result.pattern === "CLAW_BUY") {
         score = 2;
@@ -192,38 +192,63 @@ function loadWeights() {
 }
 
 async function loadWeightsFromDB(symbol) {
-    const initialDefaultWeights = {
-        // "Pin_Bar_Shooting_Star": -0.5,
-        // "Morning_Star_Base_Break": 0,
-        // "Evening_Star_Base_Break": -0.75,
-        // "Pin_Bar_Hammer": 2.0,
-        // "Piercing_Pattern": 0.5,
-        // "Waterfall_Drop_Continuation": 1.8,
-        // "Dark_Cloud_Cover": 1.9,
-        // "Bullish_Engulfing": -1.25,
-        // "Rocket_Surge_Continuation": 1.0,
-        // "Bearish_Engulfing": -1.75
-    };
-
+    // try {
+    //     const sql = `
+    //             SELECT pattern_name, 
+    //                 CASE 
+    //                     WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+    //                     ELSE weight_score
+    //                 END AS weight_score
+    //             FROM strategy_weights WHERE symbol = ?
+    //         `;
+    //     const result = await query(sql, symbol);
+    //     const rows = Array.isArray(result?.[0]) ? result[0] : result;
+    //     if (rows.length > 0) {
+    //         // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
+    //         return rows.reduce((acc, row) => {
+    //             acc[row.pattern_name] = Number(row.weight_score);
+    //             return acc;
+    //         }, {});
+    //     }
+    //     return rows;
+    // } catch (err) {
+    //     console.error("[Loader] Load weights error, using defaults:", err.message);
+    //     return initialDefaultWeights;
+    // }
     try {
         const sql = `
-                SELECT pattern_name, 
-                    CASE 
-                        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-                        ELSE weight_score
-                    END AS weight_score
-                FROM strategy_weights WHERE symbol = ?
-            `;
-        const result = await query(sql, symbol);
+          SELECT pattern_name,
+            CASE
+              WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+              ELSE weight_score
+            END AS weight_score
+          FROM strategy_weights
+          WHERE symbol = ?
+        `;
+
+        const result = await query(sql, [String(symbol || "DEFAULT").toUpperCase()]);
         const rows = Array.isArray(result?.[0]) ? result[0] : result;
+
         if (rows.length > 0) {
-            // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
-            return rows.reduce((acc, row) => {
-                acc[row.pattern_name] = Number(row.weight_score);
-                return acc;
-            }, {});
+            const defaultWeights = {};
+            const symbolWeights = {};
+
+            for (const row of rows) {
+                const rowSymbol = String(row.symbol || "DEFAULT").toUpperCase();
+
+                if (rowSymbol === "DEFAULT") {
+                    defaultWeights[row.pattern_name] = Number(row.weight_score || 0);
+                } else {
+                    symbolWeights[row.pattern_name] = Number(row.weight_score || 0);
+                }
+            }
+
+            return {
+                ...symbolWeights,
+            };
         }
-        return rows;
+
+        return initialDefaultWeights;
     } catch (err) {
         console.error("[Loader] Load weights error, using defaults:", err.message);
         return initialDefaultWeights;
