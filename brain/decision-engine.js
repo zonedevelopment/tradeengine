@@ -218,7 +218,7 @@ async function evaluateDecision({
 
     let patternScore = pattern.score || 0;
 
-    const learnedWeight = await getPatternWeight(pattern.type);
+    const learnedWeight = await getPatternWeight(market?.symbol || "DEFAULT", pattern.type);
     patternScore = applyLearnedPatternWeight(patternScore, learnedWeight);
 
     const strongPatterns = [
