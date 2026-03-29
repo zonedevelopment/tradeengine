@@ -620,7 +620,7 @@ async function runDailyLearning() {
                 //     if (weights[patternType] > 2.0) weights[patternType] = 2.0;
                 //     if (weights[patternType] < -2.0) weights[patternType] = -2.0;
                 // }
-              const targetSymbol = String(t.symbol || "DEFAULT").toUpperCase();
+              const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
 
               if (!weightsBySymbol[targetSymbol]) {
                   weightsBySymbol[targetSymbol] = {};
