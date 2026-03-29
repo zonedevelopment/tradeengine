@@ -542,6 +542,7 @@ app.post("/signal", async (req, res) => {
     const risk = getRiskState();
 
     const pattern = await analyzePattern({
+      symbol: symbol,
       candles: candles,
       candlesH1: candles_h1,
       candlesH4: candles_h4,
