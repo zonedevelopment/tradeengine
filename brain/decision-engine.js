@@ -109,7 +109,7 @@ function detectEarlySellMomentum(candles = []) {
 
 function isGoldSymbol(symbol = "") {
   const s = String(symbol || "").toUpperCase();
-  return s === "XAUUSD" || s === "XAUUSDM";
+  return s === "XAUUSD" || s === "XAUUSDM" || s === "XAUUSDm";
 }
 
 function clampThreshold(value, min, max) {
@@ -126,8 +126,11 @@ function getDynamicThresholdContext({
   historicalVolumeSignal = null,
   defensiveFlags = {},
 }) {
-  let buyThreshold = mode === "SCALP" ? 2.45 : 2.15;
-  let sellThreshold = mode === "SCALP" ? -2.45 : -2.15;
+  // let buyThreshold = mode === "SCALP" ? 2.45 : 2.15;
+  // let sellThreshold = mode === "SCALP" ? -2.45 : -2.15;
+
+  let buyThreshold = mode === "SCALP" ? 2.25 : 2.0;
+  let sellThreshold = mode === "SCALP" ? -2.25 : -2.0;
 
   // 1) trend ผสม = เข้ายากขึ้น
   if (trend === "MIXED") {
@@ -642,8 +645,9 @@ async function evaluateDecision({
       if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
         if (!isGoldSymbol(market?.symbol)) {
           tradeMode = "SCALP";
-        } else {
           patternScore *= 0.93;
+        } else {
+          patternScore *= 0.97;
         }
       }
     }
@@ -673,8 +677,11 @@ async function evaluateDecision({
     }
 
     if (historicalVolume.signal === "LOW_VOLUME") {
-      // volume เบา = สัญญาณไม่น่าเชื่อถือ โดยเฉพาะ breakout
-      score *= 0.75;
+      if (!isGoldSymbol(market?.symbol)) {
+        score *= 0.75;
+      } else {
+        score *= 0.88;
+      }
 
       if (tradeMode === "NORMAL") {
         tradeMode = "SCALP";
@@ -685,8 +692,12 @@ async function evaluateDecision({
   score *= confidenceMultiplier;
 
   if (defensiveFlags.warningMatched) {
-    score *= 0.5;
-    tradeMode = "SCALP";
+    if (!isGoldSymbol(market?.symbol)) {
+      score *= 0.5;
+      tradeMode = "SCALP";
+    } else {
+      score *= 0.75;
+    }
   }
 
   if (market && market.portfolio) {
