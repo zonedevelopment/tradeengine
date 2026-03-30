@@ -55,21 +55,13 @@ function analyzeM5FourCandleFollow(candles = []) {
 
 async function analyzePattern(signal) {
 
-    // const weights = loadWeights();
     const weights = await loadWeightsFromDB(signal.symbol);
 
-    // 1. Detect Candle Pattern & Market Structure
     const result = detectMotherFishPattern({
         candles: signal.candles || [signal.prevCandle, signal.currentCandle].filter(Boolean)
     });
 
     let score = 0;
-
-    // if (result.pattern === "CLAW_BUY") {
-    //     score = 2;
-    // } else if (result.pattern === "CLAW_SELL") {
-    //     score = -2;
-    // }
 
     if (result.pattern === "CLAW_BUY" && result.type === "Rocket_Surge_Continuation") {
         score = 2.5;
@@ -85,7 +77,6 @@ async function analyzePattern(signal) {
         score = -2;
     }
 
-    // Stop early if no pattern
     if (score === 0) {
         return {
             pattern: "NONE",
@@ -96,21 +87,15 @@ async function analyzePattern(signal) {
         };
     }
 
-    // const research = loadMotherFishState();
-
-    // Fallback to pattern name if specific type weight is missing
     const weightKey = weights[result.type] ? result.type : result.pattern;
     if (weights[weightKey]) {
-        // Adjust for SELL (negative score) so weight makes it more negative
         score += (score > 0 ? weights[weightKey] : -weights[weightKey]);
     }
 
-    // Overlap bonus (e.g., tight stops, high RR)
     if (signal.overlapPips && signal.overlapPips <= 200 && score !== 0) {
         score = score * 1.5;
     }
 
-    // [NEW] Live VSA (Volume Spread Analysis) on current payload (20 candles)
     let isVolumeClimax = false;
     let isVolumeDrying = false;
     let recentMassiveBear = false;
@@ -122,9 +107,7 @@ async function analyzePattern(signal) {
     if (candles.length >= 7) {
         let totalVol = 0;
         let count = 0;
-        // หาค่าเฉลี่ย Volume ของ 5 แท่งในอดีต (ไม่นับ 2 แท่งล่าสุดที่เป็นสัญญาณ)
         let useCandles = (candles.length - 15);
-        // for (let i = candles.length - 7; i < candles.length - 2; i++) {
         for (let i = useCandles; i < useCandles - 2; i++) {
             if (i >= 0 && candles[i].tick_volume) {
                 totalVol += Number(candles[i].tick_volume);
@@ -134,20 +117,17 @@ async function analyzePattern(signal) {
 
         const avgVol = count > 0 ? (totalVol / count) : 0;
 
-        // ดึง Volume ของ 2 แท่งล่าสุดที่เกิด Pattern
         const currVol = candles[candles.length - 1] ? Number(candles[candles.length - 1].tick_volume || 0) : 0;
         const prevVol = candles[candles.length - 2] ? Number(candles[candles.length - 2].tick_volume || 0) : 0;
 
-        // ใช้ Volume ที่สูงสุดระหว่าง 2 แท่งนั้นเป็นตัวแทน (เพราะ Climax อาจเกิดที่แท่งก่อนหน้า)
         const triggerVol = Math.max(currVol, prevVol);
 
         if (avgVol > 0 && triggerVol >= avgVol * 1.5) {
-            isVolumeClimax = true; // วอลุ่มพุ่งผิดปกติ > 1.5 เท่าของค่าเฉลี่ย (รายใหญ่เข้า)
+            isVolumeClimax = true; 
         } else if (avgVol > 0 && triggerVol < avgVol * 0.6) {
-            isVolumeDrying = true; // วอลุ่มแห้งเหือด < 60% ของค่าเฉลี่ย (หมดแรง)
+            isVolumeDrying = true;
         }
 
-        // [NEW] Momentum Bias Check (หาแท่งยาววอลุ่มสูงใน 3 แท่งล่าสุด เพื่อความสดใหม่ของเทรนด์)
         for (let i = candles.length - 3; i < candles.length; i++) {
             if (i >= 0) {
                 const c = candles[i];
@@ -155,7 +135,6 @@ async function analyzePattern(signal) {
                 const isBear = c.close < c.open;
                 const isBull = c.close > c.open;
 
-                // เนื้อเทียนยาวกว่า 200 จุด (2.0$) และมี Volume ทะลุ 1.5 เท่า
                 if (body > 2.0 && c.tick_volume > avgVol * 1.5) {
                     if (isBear) recentMassiveBear = true;
                     if (isBull) recentMassiveBull = true;
@@ -170,51 +149,18 @@ async function analyzePattern(signal) {
         score,
         trendFollow4,
         strength: result.strength || 0,
-        structure: result.structure, // Structure analysis for Decision Engine
-        slPrice: result.slPrice, // Dynamic SL Price
-        tpPrice: result.tpPrice, // Dynamic TP Price
-        isVolumeClimax, // แนบสถานะ VSA กลับไปให้ Decision Engine
+        structure: result.structure, 
+        slPrice: result.slPrice,
+        tpPrice: result.tpPrice,
+        isVolumeClimax,
         isVolumeDrying,
-        recentMassiveBear, // แนบ Bias ห้ามสวนกลับไปให้ Decision Engine
+        recentMassiveBear,
         recentMassiveBull
     };
 
 }
 
-function loadWeights() {
-    const learningDir = path.join(__dirname, "../learning");
-    const file = path.join(learningDir, "pattern-weight.json");
-    // const file = "../learning/pattern-weight.json";
-    if (!fs.existsSync(file)) {
-        return {};
-    }
-    return JSON.parse(fs.readFileSync(file));
-}
-
 async function loadWeightsFromDB(symbol) {
-    // try {
-    //     const sql = `
-    //             SELECT pattern_name, 
-    //                 CASE 
-    //                     WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-    //                     ELSE weight_score
-    //                 END AS weight_score
-    //             FROM strategy_weights WHERE symbol = ?
-    //         `;
-    //     const result = await query(sql, symbol);
-    //     const rows = Array.isArray(result?.[0]) ? result[0] : result;
-    //     if (rows.length > 0) {
-    //         // ถ้ามีข้อมูลใน DB ให้ใช้ข้อมูลจาก DB
-    //         return rows.reduce((acc, row) => {
-    //             acc[row.pattern_name] = Number(row.weight_score);
-    //             return acc;
-    //         }, {});
-    //     }
-    //     return rows;
-    // } catch (err) {
-    //     console.error("[Loader] Load weights error, using defaults:", err.message);
-    //     return initialDefaultWeights;
-    // }
     try {
         const sql = `
           SELECT pattern_name,

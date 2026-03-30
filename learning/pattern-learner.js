@@ -17,22 +17,8 @@ function buildPatternKey(trade) {
 }
 
 async function learnPatternWeights() {
-
-    // const dataDir = path.join(__dirname, "../data");
-    // const learningDir = path.join(__dirname, "learning");
-
-    // const historyFile = "../data/trade-history.json";
-    // const weightFile = "./pattern-weight.json";
-
-    // const historyFile = path.join(dataDir, "trade-history.json");
-    // const weightFile = path.join(__dirname, "pattern-weight.json");
-
-    //if (!fs.existsSync(historyFile)) return;
-
     const history = await getHistoryLearnWeight();
-
     const stats = {};
-
     history.forEach(trade => {
 
         if (!stats[trade.pattern]) {
@@ -64,7 +50,6 @@ async function learnPatternWeights() {
         const { win, loss, total } = stats[pattern];
         const winRate = win / (win + loss);
         const score = (winRate - 0.5) * 10;
-        // score = Math.max(-2.0, Math.min(2.0, score));
         const finalScore = Number(score.toFixed(2));
         weights[pattern] = finalScore;
 
@@ -75,9 +60,6 @@ async function learnPatternWeights() {
             console.error(`[Learning] Failed to save weight for ${patternName}:`, err.message);
         }
     }
-
-    // fs.writeFileSync(weightFile, JSON.stringify(weights, null, 2));
-
     return weights;
 
 }

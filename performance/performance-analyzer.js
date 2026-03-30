@@ -22,16 +22,6 @@ async function saveSuggestedWeightsToDB(patternWeights, symbol = "DEFAULT") {
 
     const entries = Object.entries(patternWeights);
     if (entries.length === 0) return;
-    // try {
-    //     const upsertSql = `UPDATE strategy_weights SET weight_score = ?, last_updated = NOW() WHERE pattern_name = ?`;
-    //     for (const [name, score] of entries) {
-    //         await query(upsertSql, [score, name]);
-    //     }
-    //     console.log(`[Performance] Successfully updated ${entries.length} weights in Database.`);
-    // } catch (err) {
-    //     console.error("[Performance] Error saving weights to DB:", err.message);
-    //     throw err; // โยน Error เพื่อให้ฟังก์ชันหลักรับทราบ
-    // }
     try {
         const upsertSql = `
             INSERT INTO strategy_weights
@@ -55,15 +45,6 @@ async function saveSuggestedWeightsToDB(patternWeights, symbol = "DEFAULT") {
 }
 
 async function analyzePerformance(firebaseUserId, symbol, mode) {
-    const dataDir = path.join(__dirname, "../data");
-    const learningDir = path.join(__dirname, "../learning");
-
-    // const weightFile = path.join(learningDir, "pattern-weight.json");
-    // const historyFile = path.join(dataDir, "../data/trade-history.json");
-    // const stateFile = path.join(__dirname, "performance-state.json");
-    //const weightFile = path.join(__dirname, "../learning/pattern-weight.json");
-
-    // const history = safeReadJson(historyFile, []);
     const history = await getTradeEventsForAnalysis({
         firebaseUserId,
         symbol,
@@ -152,15 +133,10 @@ async function analyzePerformance(firebaseUserId, symbol, mode) {
         suggestedWeights: patternWeights
     };
 
-    // fs.writeFileSync(stateFile, JSON.stringify(result, null, 2), "utf8");
-    // fs.writeFileSync(weightFile, JSON.stringify(patternWeights, null, 2), "utf8");
 
     try {
-        // 1. บันทึก Weights ลงตาราง strategy_weights
         await saveSuggestedWeightsToDB(patternWeights, symbol);
 
-        // 2. สำหรับ stateFile (performance-state) ถ้ายังจำเป็นต้องใช้ไฟล์อยู่ 
-        // แนะนำให้ใช้ path.resolve เพื่อป้องกันปัญหา Path บน Shared Hosting
         const stateFile = path.resolve(__dirname, "performance-state.json");
         fs.writeFileSync(stateFile, JSON.stringify(result, null, 2), "utf8");
 
