@@ -114,8 +114,8 @@ const symbolConfig = {
   SCALP: {
     "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 500, maxSL: 700, minTP: 650, maxTP: 950 },
-    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 1500 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 300, maxSL: 500, minTP: 450, maxTP: 550 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 400, maxSL: 600, minTP: 500, maxTP: 1000 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }
 };
@@ -551,7 +551,7 @@ app.post("/signal", async (req, res) => {
     });
 
     const score = evaluateResult.score || 0;
-    const finalDecision = decision(evaluateResult);
+    const finalDecision = decision(evaluateResult, symbol);
 
     try {
       if (Array.isArray(candles) && candles.length > 0) {
@@ -580,18 +580,29 @@ app.post("/signal", async (req, res) => {
       console.error("Error saving candle training data to MongoDB:", e);
     }
 
-    console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
-    console.log(`Price: ${price}`);
-    console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
-    if (pattern.structure) {
-      console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
-      console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
-      console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
-    }
-    console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
-    console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
-    console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
-    console.log(`--------------------------------------\n`);
+    // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
+    // console.log(`Price: ${price}`);
+    // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
+    // if (pattern.structure) {
+    //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
+    //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
+    //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
+    // }
+    // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
+    // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
+    // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
+    // console.log(`--------------------------------------\n`);
+
+    console.log("[DECISION_BREAKDOWN]", {
+      symbol,
+      mode: evaluateResult.mode,
+      trend: evaluateResult.trend,
+      score: evaluateResult.score,
+      adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+      historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+      thresholdContext: evaluateResult.thresholdContext,
+      finalDecision
+    });
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
@@ -945,7 +956,7 @@ app.post("/active-positions", async (req, res) => {
     eventTime = null
   } = req.body;
 
-  console.log(req.body)
+  // console.log(req.body)
 
   try {
     const result = await syncActivePositionsToMongo({
@@ -1261,7 +1272,7 @@ app.post("/account-snapshot", async (req, res) => {
       body.eventTime
     );
 
-    console.log(tradeStats)
+    // console.log(tradeStats)
 
     const payloadToSave = {
       firebaseUserId,

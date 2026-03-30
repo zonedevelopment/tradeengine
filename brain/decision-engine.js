@@ -125,6 +125,7 @@ function getDynamicThresholdContext({
   adaptiveScoreDelta = 0,
   historicalVolumeSignal = null,
   defensiveFlags = {},
+  symbol
 }) {
   // let buyThreshold = mode === "SCALP" ? 2.45 : 2.15;
   // let sellThreshold = mode === "SCALP" ? -2.45 : -2.15;
@@ -165,8 +166,15 @@ function getDynamicThresholdContext({
     buyThreshold -= 0.04;
     sellThreshold += 0.04;
   } else if (historicalVolumeSignal === "LOW_VOLUME") {
-    buyThreshold += 0.12;
-    sellThreshold -= 0.12;
+    // buyThreshold += 0.12;
+    // sellThreshold -= 0.12;
+    if (isGoldSymbol(symbol)) {
+      buyThreshold += 0.05;
+      sellThreshold -= 0.05;
+    } else {
+      buyThreshold += 0.12;
+      sellThreshold -= 0.12;
+    }
   }
 
   // 4) defensive flag = เข้ายากขึ้นชัดเจน
@@ -769,6 +777,19 @@ async function evaluateDecision({
     adaptiveScoreDelta,
     historicalVolumeSignal,
     defensiveFlags,
+    symbol: market?.symbol
+  });
+
+  console.log("[EVALUATE_BREAKDOWN]", {
+    symbol: market?.symbol,
+    mode: tradeMode,
+    trend: trendContext?.overallTrend,
+    patternType: pattern?.type || "Unknown",
+    adaptiveScoreDelta,
+    historicalVolumeSignal,
+    warningMatched: defensiveFlags?.warningMatched,
+    finalScore: score,
+    thresholdContext
   });
 
   return {
@@ -783,7 +804,7 @@ async function evaluateDecision({
   };
 }
 
-function decision(evaluation) {
+function decision(evaluation, symbol) {
   if (evaluation.action === "NO_TRADE") {
     return evaluation.action;
   }
@@ -827,6 +848,7 @@ function decision(evaluation) {
       adaptiveScoreDelta,
       historicalVolumeSignal,
       defensiveFlags,
+      symbol
     });
 
   const buyThreshold = Number(dynamicThreshold.buyThreshold || 2.15);
