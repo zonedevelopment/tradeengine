@@ -688,7 +688,7 @@ async function evaluateDecision({
       if (!isGoldSymbol(market?.symbol)) {
         score *= 0.75;
       } else {
-        score *= 0.88;
+        score *= 0.90;
       }
 
       if (tradeMode === "NORMAL") {
