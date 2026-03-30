@@ -8,6 +8,11 @@ const {
 
 const { findAdaptiveScoreRule } = require("../adaptiveScore.repo");
 
+function isGoldSymbol(symbol = "") {
+  const s = String(symbol || "").toUpperCase();
+  return s === "XAUUSD" || s === "XAUUSDM";
+}
+
 function clampThreshold(value, min, max) {
   const num = Number(value || 0);
   if (num < min) return min;
@@ -449,12 +454,24 @@ async function evaluateDecision({
         patternScore *= 0.70;
       }
 
+      const goldModeSoftening = isGoldSymbol(market?.symbol);
+
+      // if (
+      //   trendContext.overallTrend === "MIXED" &&
+      //   tradeMode === "NORMAL"
+      // ) {
+      //   tradeMode = "SCALP";
+      //   patternScore *= 0.90;
+      // }
       if (
         trendContext.overallTrend === "MIXED" &&
         tradeMode === "NORMAL"
       ) {
-        tradeMode = "SCALP";
-        patternScore *= 0.90;
+        patternScore *= goldModeSoftening ? 0.95 : 0.90;
+    
+        if (!goldModeSoftening) {
+          tradeMode = "SCALP";
+        }
       }
 
       // ===== Use recentMassive flags จริง =====
@@ -474,26 +491,50 @@ async function evaluateDecision({
         patternScore *= 1.15;
       }
 
+      // if (pattern.isVolumeDrying) {
+      //   patternScore *= 0.85;
+      //   if (tradeMode === "NORMAL") {
+      //     tradeMode = "SCALP";
+      //   }
+      // }
+
       if (pattern.isVolumeDrying) {
-        patternScore *= 0.85;
-        if (tradeMode === "NORMAL") {
+        patternScore *= goldModeSoftening ? 0.92 : 0.85;
+      
+        if (tradeMode === "NORMAL" && !goldModeSoftening) {
           tradeMode = "SCALP";
         }
       }
     }
 
     // กันเข้าในจังหวะเสียง่าย
+    // if (
+    //   tradeMode === "SCALP" &&
+    //   trendContext.overallTrend === "MIXED" &&
+    //   !trendFollow4.volumeConfirmed &&
+    //   pattern.isVolumeDrying
+    // ) {
+    //   return {
+    //     action: "NO_TRADE",
+    //     reason: "LOW_QUALITY_SCALP_SETUP",
+    //     score: 0,
+    //   };
+    // }
     if (
       tradeMode === "SCALP" &&
       trendContext.overallTrend === "MIXED" &&
       !trendFollow4.volumeConfirmed &&
       pattern.isVolumeDrying
     ) {
-      return {
-        action: "NO_TRADE",
-        reason: "LOW_QUALITY_SCALP_SETUP",
-        score: 0,
-      };
+      if (!isGoldSymbol(market?.symbol)) {
+        return {
+          action: "NO_TRADE",
+          reason: "LOW_QUALITY_SCALP_SETUP",
+          score: 0,
+        };
+      }
+    
+      patternScore *= 0.88;
     }
 
 
@@ -533,8 +574,15 @@ async function evaluateDecision({
 
       patternScore = applyAdaptiveScore(patternScore, adaptiveScoreDelta);
 
+      // if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
+      //   tradeMode = "SCALP";
+      // }
       if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
-        tradeMode = "SCALP";
+        if (!isGoldSymbol(market?.symbol)) {
+          tradeMode = "SCALP";
+        } else {
+          patternScore *= 0.93;
+        }
       }
     }
 
