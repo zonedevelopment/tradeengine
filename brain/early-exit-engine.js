@@ -327,25 +327,25 @@ function analyzeEarlyExit({
 
     if (suggestedAction === "BLOCK_TRADE") {
       riskLevel = "CRITICAL";
-      adjustedScore += 3.0;
+      adjustedScore += 2.5;
     } else if (suggestedAction === "WARNING") {
       riskLevel = "HIGH";
-      adjustedScore += 1.5;
+      adjustedScore += 1.0;
     } else if (suggestedAction === "REDUCE_SCORE") {
       riskLevel = "MEDIUM";
       adjustedScore += parseFloat(failedPattern.score_penalty || 1);
     } else if (suggestedAction === "REDUCE_RISK") {
       riskLevel = "MEDIUM";
-      adjustedScore += 1.0;
+      adjustedScore += .80;
     }
 
-    if (failRate >= 0.85) {
+    if (failRate >= 0.8) {
       riskLevel = "CRITICAL";
-      adjustedScore += 2.0;
-    } else if (failRate >= 0.70 && riskLevel !== "CRITICAL") {
+      adjustedScore += 1.75;
+    } else if (failRate >= 0.65 && riskLevel !== "CRITICAL") {
       riskLevel = "HIGH";
       adjustedScore += 1.0;
-    } else if (failRate >= 0.50 && riskLevel === "LOW") {
+    } else if (failRate >= 0.45 && riskLevel === "LOW") {
       riskLevel = "MEDIUM";
       adjustedScore += 0.5;
     }
