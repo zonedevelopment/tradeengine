@@ -494,8 +494,7 @@ async function evaluateDecision({
       };
     }
 
-    let adaptiveScoreDelta = 0;
-    const historicalVolumeSignal = historicalVolume?.signal || null;
+    
 
     const sessionName = market?.sessionName || session?.name || null;
     const adaptiveRule = await findAdaptiveScoreRule({
@@ -526,6 +525,8 @@ async function evaluateDecision({
     //     tradeMode = "SCALP";
     //   }
     // }
+    let adaptiveScoreDelta = 0;
+    const historicalVolumeSignal = historicalVolume?.signal || null;
     if (adaptiveRule) {
         adaptiveScoreDelta = Number(adaptiveRule.adaptive_score_delta || 0);
       
