@@ -40,7 +40,7 @@ async function getPatternWeight(symbol = "DEFAULT", patternName) {
           ELSE weight_score
         END AS weight_score
       FROM strategy_weights
-      WHERE pattern_name = ? symbol = ?
+      WHERE pattern_name = ? AND symbol = ?
       ORDER BY CASE WHEN symbol = ? THEN 0 ELSE 1 END
       LIMIT 1
     `;
