@@ -104,11 +104,25 @@ const MICRO_SCALP_CONFIG = {
 };
 
 const symbolConfig = {
-  "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
-  "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
-  "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
-  "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
-  "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+  // "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
+  // "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
+  // "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
+  // "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
+  // "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+  NORMAL: {
+    "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
+    "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
+    "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
+    "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
+    "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+  },
+  SCALP: {
+    "XAUUSD": { pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
+    "BTCUSD": { pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
+    "XAUUSDm": { pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
+    "BTCUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
+    "DEFAULT": { pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+  }
 };
 
 const app = express();
@@ -127,6 +141,12 @@ var corsOptionsDelegate = function (req, callback) {
 }
 
 app.use(cors(corsOptionsDelegate));
+
+function getActiveSymbolConfig(symbol, mode = "NORMAL") {
+  const safeMode = String(mode || "NORMAL").toUpperCase();
+  const configByMode = symbolConfig[safeMode] || symbolConfig.NORMAL;
+  return configByMode[symbol] || configByMode.DEFAULT;
+}
 
 function ensureDataDir() {
   const dataPath = path.join(__dirname, "data");
@@ -620,7 +640,8 @@ app.post("/signal", async (req, res) => {
     console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
     console.log(`--------------------------------------\n`);
 
-    const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+    // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+    const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
     
     // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
