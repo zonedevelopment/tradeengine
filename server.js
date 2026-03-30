@@ -110,18 +110,18 @@ const symbolConfig = {
   // "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
   // "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   NORMAL: {
-    "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
-    "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
-    "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
-    "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
-    "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
+    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
+    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
+    "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
-    "XAUUSD": { pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
-    "BTCUSD": { pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
-    "XAUUSDm": { pipMultiplier: 100, minSL: 500, maxSL: 800, minTP: 650, maxTP: 1000 },
-    "BTCUSDm": { pipMultiplier: 100, minSL: 1000, maxSL: 3000, minTP: 1200, maxTP: 3000 },
-    "DEFAULT": { pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
+    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 500, maxSL: 800, minTP: 650, maxTP: 1000 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 1000, maxSL: 3000, minTP: 1200, maxTP: 3000 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }
 };
 
@@ -647,7 +647,7 @@ app.post("/signal", async (req, res) => {
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.evaluateMicroScalp({
         candles: Array.isArray(candles) ? candles : [],
-        spread: Number(spreadPoints || 0),
+        spread: Number(activeCfg.maxSpread || 0),
         openPositions: [],
         config: MICRO_SCALP_CONFIG,
       });
