@@ -8,6 +8,105 @@ const {
 
 const { findAdaptiveScoreRule } = require("../adaptiveScore.repo");
 
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function getCandleDirection(candle = {}) {
+  const open = toNumber(candle.open);
+  const close = toNumber(candle.close);
+  const high = toNumber(candle.high);
+  const low = toNumber(candle.low);
+
+  return {
+    open,
+    close,
+    high,
+    low,
+    body: Math.abs(close - open),
+    range: Math.max(high - low, 0),
+    isBull: close > open,
+    isBear: close < open,
+  };
+}
+
+function averageBody(candles = [], lookback = 5) {
+  if (!Array.isArray(candles) || candles.length === 0) return 0;
+
+  const sample = candles.slice(-lookback);
+  if (!sample.length) return 0;
+
+  const total = sample.reduce((sum, candle) => {
+    const c = getCandleDirection(candle);
+    return sum + c.body;
+  }, 0);
+
+  return total / sample.length;
+}
+
+function detectEarlyBuyMomentum(candles = []) {
+  if (!Array.isArray(candles) || candles.length < 4) return 0;
+
+  const c1 = getCandleDirection(candles[candles.length - 1]);
+  const c2 = getCandleDirection(candles[candles.length - 2]);
+  const c3 = getCandleDirection(candles[candles.length - 3]);
+  const avgRecentBody = averageBody(candles.slice(0, -1), 5);
+
+  let scoreBoost = 0;
+
+  const hasTwoBullishCandles = c1.isBull && c2.isBull;
+  const higherHigh = c1.high > c2.high || c2.high > c3.high;
+  const higherLow = c1.low > c2.low || c2.low > c3.low;
+  const higherClose = c1.close > c2.close && c2.close >= c3.close;
+
+  const bodyStrength =
+    avgRecentBody > 0 &&
+    (c1.body >= avgRecentBody * 0.8 || c2.body >= avgRecentBody * 0.8);
+
+  if (hasTwoBullishCandles) scoreBoost += 0.12;
+  if (higherHigh) scoreBoost += 0.08;
+  if (higherLow) scoreBoost += 0.08;
+  if (higherClose) scoreBoost += 0.10;
+  if (bodyStrength) scoreBoost += 0.07;
+
+  if (c1.close > c2.high) scoreBoost += 0.10;
+  if (c2.close > c3.high) scoreBoost += 0.08;
+
+  return Number(scoreBoost.toFixed(4));
+}
+
+function detectEarlySellMomentum(candles = []) {
+  if (!Array.isArray(candles) || candles.length < 4) return 0;
+
+  const c1 = getCandleDirection(candles[candles.length - 1]);
+  const c2 = getCandleDirection(candles[candles.length - 2]);
+  const c3 = getCandleDirection(candles[candles.length - 3]);
+  const avgRecentBody = averageBody(candles.slice(0, -1), 5);
+
+  let scoreBoost = 0;
+
+  const hasTwoBearishCandles = c1.isBear && c2.isBear;
+  const lowerLow = c1.low < c2.low || c2.low < c3.low;
+  const lowerHigh = c1.high < c2.high || c2.high < c3.high;
+  const lowerClose = c1.close < c2.close && c2.close <= c3.close;
+
+  const bodyStrength =
+    avgRecentBody > 0 &&
+    (c1.body >= avgRecentBody * 0.8 || c2.body >= avgRecentBody * 0.8);
+
+  if (hasTwoBearishCandles) scoreBoost -= 0.12;
+  if (lowerLow) scoreBoost -= 0.08;
+  if (lowerHigh) scoreBoost -= 0.08;
+  if (lowerClose) scoreBoost -= 0.10;
+  if (bodyStrength) scoreBoost -= 0.07;
+
+  if (c1.close < c2.low) scoreBoost -= 0.10;
+  if (c2.close < c3.low) scoreBoost -= 0.08;
+
+  return Number(scoreBoost.toFixed(4));
+}
+
 function isGoldSymbol(symbol = "") {
   const s = String(symbol || "").toUpperCase();
   return s === "XAUUSD" || s === "XAUUSDM";
@@ -456,19 +555,12 @@ async function evaluateDecision({
 
       const goldModeSoftening = isGoldSymbol(market?.symbol);
 
-      // if (
-      //   trendContext.overallTrend === "MIXED" &&
-      //   tradeMode === "NORMAL"
-      // ) {
-      //   tradeMode = "SCALP";
-      //   patternScore *= 0.90;
-      // }
       if (
         trendContext.overallTrend === "MIXED" &&
         tradeMode === "NORMAL"
       ) {
         patternScore *= goldModeSoftening ? 0.95 : 0.90;
-    
+
         if (!goldModeSoftening) {
           tradeMode = "SCALP";
         }
@@ -491,35 +583,15 @@ async function evaluateDecision({
         patternScore *= 1.15;
       }
 
-      // if (pattern.isVolumeDrying) {
-      //   patternScore *= 0.85;
-      //   if (tradeMode === "NORMAL") {
-      //     tradeMode = "SCALP";
-      //   }
-      // }
-
       if (pattern.isVolumeDrying) {
         patternScore *= goldModeSoftening ? 0.92 : 0.85;
-      
+
         if (tradeMode === "NORMAL" && !goldModeSoftening) {
           tradeMode = "SCALP";
         }
       }
     }
 
-    // กันเข้าในจังหวะเสียง่าย
-    // if (
-    //   tradeMode === "SCALP" &&
-    //   trendContext.overallTrend === "MIXED" &&
-    //   !trendFollow4.volumeConfirmed &&
-    //   pattern.isVolumeDrying
-    // ) {
-    //   return {
-    //     action: "NO_TRADE",
-    //     reason: "LOW_QUALITY_SCALP_SETUP",
-    //     score: 0,
-    //   };
-    // }
     if (
       tradeMode === "SCALP" &&
       trendContext.overallTrend === "MIXED" &&
@@ -533,11 +605,19 @@ async function evaluateDecision({
           score: 0,
         };
       }
-    
+
       patternScore *= 0.88;
     }
 
 
+    const earlyBuyMomentum = detectEarlyBuyMomentum(market?.candles);
+    const earlySellMomentum = detectEarlySellMomentum(market?.candles);
+
+    if (isBuyPattern) {
+      score += earlyBuyMomentum;
+    } else {
+      score += earlySellMomentum;
+    }
 
     const sessionName = market?.sessionName || session?.name || null;
     const adaptiveRule = await findAdaptiveScoreRule({
@@ -554,29 +634,11 @@ async function evaluateDecision({
       rangeState: pattern?.rangeState || null,
     });
 
-    // if (adaptiveRule) {
-    //   patternScore = applyAdaptiveScore(
-    //     patternScore,
-    //     Number(adaptiveRule.adaptive_score_delta || 0)
-    //   );
-
-    //   // ถ้าบริบทนี้แย่มาก ให้ลดเกรดเป็น SCALP
-    //   if (
-    //     Number(adaptiveRule.adaptive_score_delta || 0) <= -0.25 &&
-    //     tradeMode === "NORMAL"
-    //   ) {
-    //     tradeMode = "SCALP";
-    //   }
-    // }
-
     if (adaptiveRule) {
       adaptiveScoreDelta = Number(adaptiveRule.adaptive_score_delta || 0);
 
       patternScore = applyAdaptiveScore(patternScore, adaptiveScoreDelta);
 
-      // if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
-      //   tradeMode = "SCALP";
-      // }
       if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
         if (!isGoldSymbol(market?.symbol)) {
           tradeMode = "SCALP";
@@ -690,13 +752,6 @@ async function evaluateDecision({
     }
   }
 
-  // return {
-  //   score,
-  //   patternType: pattern ? pattern.type : "Unknown",
-  //   trend: trendContext.overallTrend,
-  //   mode: tradeMode,
-  //   defensiveFlags,
-  // };
   const thresholdContext = getDynamicThresholdContext({
     mode: tradeMode,
     trend: trendContext.overallTrend,

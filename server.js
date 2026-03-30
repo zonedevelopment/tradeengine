@@ -104,11 +104,6 @@ const MICRO_SCALP_CONFIG = {
 };
 
 const symbolConfig = {
-  // "XAUUSD": { pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
-  // "BTCUSD": { pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
-  // "XAUUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1800 },
-  // "BTCUSDm": { pipMultiplier: 100, minSL: 1200, maxSL: 5000, minTP: 1500, maxTP: 5000 },
-  // "DEFAULT": { pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   NORMAL: {
     "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
     "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
@@ -363,49 +358,7 @@ function buildTradeSetupFromPattern({
   const maxR = 200 * (mult / 100);
   if (retracePoints < minR) retracePoints = minR;
   if (retracePoints > maxR) retracePoints = maxR;
-  // const lastCandle = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : null;
-  // const recentBodies = Array.isArray(candles) ? candles.slice(-5).map(c => Math.abs(Number(c.close || 0) - Number(c.open || 0))) : [];
-  // const avgBody = recentBodies.length
-  //   ? recentBodies.reduce((sum, v) => sum + v, 0) / recentBodies.length
-  //   : 0;
   
-  // const lastBody = lastCandle
-  //   ? Math.abs(Number(lastCandle.close || 0) - Number(lastCandle.open || 0))
-  //   : 0;
-  
-  // const lastVolume = lastCandle ? Number(lastCandle.tickVolume || lastCandle.tick_volume || 0) : 0;
-  // const recentVolumes = Array.isArray(candles)
-  //   ? candles.slice(-5).map(c => Number(c.tickVolume || c.tick_volume || 0))
-  //   : [];
-  // const avgVolume = recentVolumes.length
-  //   ? recentVolumes.reduce((sum, v) => sum + v, 0) / recentVolumes.length
-  //   : 0;
-  
-  // const isStrongMomentumCandle = avgBody > 0 && lastBody >= avgBody * 1.35;
-  // const isStrongVolume = avgVolume > 0 && lastVolume >= avgVolume * 1.10;
-  // const isHighConfidence = signalStrength >= 6;
-  // const isMediumConfidence = signalStrength >= 4;
-  
-  // if (isStrongMomentumCandle && isStrongVolume && isHighConfidence) {
-  //   retracePoints = Math.round(retracePoints * 0.20);
-  // } else if ((isStrongMomentumCandle && isMediumConfidence) || (isStrongVolume && isHighConfidence)) {
-  //   retracePoints = Math.round(retracePoints * 0.35);
-  // } else if (signalStrength >= 2) {
-  //   retracePoints = Math.round(retracePoints * 0.60);
-  // } else {
-  //   retracePoints = Math.round(retracePoints * 0.90);
-  // }
-  
-  // if (pattern?.isVolumeClimax) {
-  //   retracePoints = Math.round(retracePoints * 0.75);
-  // }
-  
-  // if (pattern?.isVolumeDrying) {
-  //   retracePoints = Math.round(retracePoints * 1.10);
-  // }
-
-  // End Calculate Retracement
-
   if (balance && balance > 0) {
     const riskPercent = calculateDynamicRisk(
       score,
