@@ -8,6 +8,79 @@ const {
 
 const { findAdaptiveScoreRule } = require("../adaptiveScore.repo");
 
+function clampThreshold(value, min, max) {
+  const num = Number(value || 0);
+  if (num < min) return min;
+  if (num > max) return max;
+  return num;
+}
+
+function getDynamicThresholdContext({
+  mode = "NORMAL",
+  trend = "NEUTRAL",
+  adaptiveScoreDelta = 0,
+  historicalVolumeSignal = null,
+  defensiveFlags = {},
+}) {
+  let buyThreshold = mode === "SCALP" ? 2.45 : 2.15;
+  let sellThreshold = mode === "SCALP" ? -2.45 : -2.15;
+
+  // 1) trend ผสม = เข้ายากขึ้น
+  if (trend === "MIXED") {
+    buyThreshold += 0.15;
+    sellThreshold -= 0.15;
+  }
+
+  // 2) adaptive_score_delta
+  // บริบทดี (delta บวก) = threshold ผ่อนลงเล็กน้อย
+  // บริบทแย่ (delta ลบ) = threshold เข้มขึ้น
+  const adaptiveDelta = Number(adaptiveScoreDelta || 0);
+
+  if (adaptiveDelta >= 0.30) {
+    buyThreshold -= 0.12;
+    sellThreshold += 0.12;
+  } else if (adaptiveDelta >= 0.15) {
+    buyThreshold -= 0.07;
+    sellThreshold += 0.07;
+  } else if (adaptiveDelta <= -0.30) {
+    buyThreshold += 0.18;
+    sellThreshold -= 0.18;
+  } else if (adaptiveDelta <= -0.15) {
+    buyThreshold += 0.10;
+    sellThreshold -= 0.10;
+  }
+
+  // 3) volume context
+  if (historicalVolumeSignal === "HISTORICAL_CLIMAX") {
+    buyThreshold -= 0.08;
+    sellThreshold += 0.08;
+  } else if (historicalVolumeSignal === "ABOVE_AVERAGE") {
+    buyThreshold -= 0.04;
+    sellThreshold += 0.04;
+  } else if (historicalVolumeSignal === "LOW_VOLUME") {
+    buyThreshold += 0.12;
+    sellThreshold -= 0.12;
+  }
+
+  // 4) defensive flag = เข้ายากขึ้นชัดเจน
+  if (defensiveFlags?.warningMatched) {
+    buyThreshold += 0.20;
+    sellThreshold -= 0.20;
+  }
+
+  // clamp กัน threshold เพี้ยนเกิน
+  const minAbs = mode === "SCALP" ? 2.10 : 1.90;
+  const maxAbs = mode === "SCALP" ? 2.90 : 2.60;
+
+  buyThreshold = clampThreshold(buyThreshold, minAbs, maxAbs);
+  sellThreshold = -clampThreshold(Math.abs(sellThreshold), minAbs, maxAbs);
+
+  return {
+    buyThreshold,
+    sellThreshold,
+  };
+}
+
 function clamp(num, min, max) {
   return Math.max(min, Math.min(max, Number(num || 0)));
 }
@@ -421,6 +494,9 @@ async function evaluateDecision({
       };
     }
 
+    let adaptiveScoreDelta = 0;
+    const historicalVolumeSignal = historicalVolume?.signal || null;
+
     const sessionName = market?.sessionName || session?.name || null;
     const adaptiveRule = await findAdaptiveScoreRule({
       firebaseUserId: market?.userId || null,
@@ -436,19 +512,28 @@ async function evaluateDecision({
       rangeState: pattern?.rangeState || null,
     });
     
-    if (adaptiveRule) {
-      patternScore = applyAdaptiveScore(
-        patternScore,
-        Number(adaptiveRule.adaptive_score_delta || 0)
-      );
+    // if (adaptiveRule) {
+    //   patternScore = applyAdaptiveScore(
+    //     patternScore,
+    //     Number(adaptiveRule.adaptive_score_delta || 0)
+    //   );
     
-      // ถ้าบริบทนี้แย่มาก ให้ลดเกรดเป็น SCALP
-      if (
-        Number(adaptiveRule.adaptive_score_delta || 0) <= -0.25 &&
-        tradeMode === "NORMAL"
-      ) {
-        tradeMode = "SCALP";
-      }
+    //   // ถ้าบริบทนี้แย่มาก ให้ลดเกรดเป็น SCALP
+    //   if (
+    //     Number(adaptiveRule.adaptive_score_delta || 0) <= -0.25 &&
+    //     tradeMode === "NORMAL"
+    //   ) {
+    //     tradeMode = "SCALP";
+    //   }
+    // }
+    if (adaptiveRule) {
+        adaptiveScoreDelta = Number(adaptiveRule.adaptive_score_delta || 0);
+      
+        patternScore = applyAdaptiveScore(patternScore, adaptiveScoreDelta);
+      
+        if (adaptiveScoreDelta <= -0.25 && tradeMode === "NORMAL") {
+          tradeMode = "SCALP";
+        }
     }
     
     score += patternScore;
@@ -555,12 +640,30 @@ async function evaluateDecision({
     }
   }
 
+  // return {
+  //   score,
+  //   patternType: pattern ? pattern.type : "Unknown",
+  //   trend: trendContext.overallTrend,
+  //   mode: tradeMode,
+  //   defensiveFlags,
+  // };
+  const thresholdContext = getDynamicThresholdContext({
+    mode: tradeMode,
+    trend: trendContext.overallTrend,
+    adaptiveScoreDelta,
+    historicalVolumeSignal,
+    defensiveFlags,
+  });
+  
   return {
     score,
     patternType: pattern ? pattern.type : "Unknown",
     trend: trendContext.overallTrend,
     mode: tradeMode,
     defensiveFlags,
+    adaptiveScoreDelta,
+    historicalVolumeSignal,
+    thresholdContext,
   };
 }
 
@@ -576,20 +679,42 @@ function decision(evaluation) {
     return evaluation.action;
   }
 
-  const { score, mode, trend } = evaluation;
-  let buyThreshold = 2.15;
-  let sellThreshold = -2.15;
+  // const { score, mode, trend } = evaluation;
+  // let buyThreshold = 2.15;
+  // let sellThreshold = -2.15;
 
-  if (mode === "SCALP") {
-    buyThreshold = 2.45;
-    sellThreshold = -2.45;
-  }
+  // if (mode === "SCALP") {
+  //   buyThreshold = 2.45;
+  //   sellThreshold = -2.45;
+  // }
 
-  // trend ผสม ให้เข้ายากขึ้นอีก
-  if (trend === "MIXED") {
-    buyThreshold += 0.15;
-    sellThreshold -= 0.15;
-  }
+  // // trend ผสม ให้เข้ายากขึ้นอีก
+  // if (trend === "MIXED") {
+  //   buyThreshold += 0.15;
+  //   sellThreshold -= 0.15;
+  // }
+  const {
+    score,
+    mode,
+    trend,
+    adaptiveScoreDelta = 0,
+    historicalVolumeSignal = null,
+    defensiveFlags = {},
+    thresholdContext,
+  } = evaluation;
+  
+  const dynamicThreshold =
+    thresholdContext ||
+    getDynamicThresholdContext({
+      mode,
+      trend,
+      adaptiveScoreDelta,
+      historicalVolumeSignal,
+      defensiveFlags,
+    });
+  
+  const buyThreshold = Number(dynamicThreshold.buyThreshold || 2.15);
+  const sellThreshold = Number(dynamicThreshold.sellThreshold || -2.15);
 
   if (score >= buyThreshold) {
     return mode === "SCALP" ? "ALLOW_BUY_SCALP" : "ALLOW_BUY";
