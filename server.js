@@ -119,8 +119,8 @@ const symbolConfig = {
   SCALP: {
     "XAUUSD": { pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
     "BTCUSD": { pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
-    "XAUUSDm": { pipMultiplier: 100, minSL: 300, maxSL: 600, minTP: 500, maxTP: 800 },
-    "BTCUSDm": { pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
+    "XAUUSDm": { pipMultiplier: 100, minSL: 500, maxSL: 800, minTP: 650, maxTP: 1000 },
+    "BTCUSDm": { pipMultiplier: 100, minSL: 1000, maxSL: 3000, minTP: 1200, maxTP: 3000 },
     "DEFAULT": { pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }
 };
