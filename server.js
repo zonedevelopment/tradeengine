@@ -358,7 +358,7 @@ function buildTradeSetupFromPattern({
   const maxR = 200 * (mult / 100);
   if (retracePoints < minR) retracePoints = minR;
   if (retracePoints > maxR) retracePoints = maxR;
-  
+
   if (balance && balance > 0) {
     const riskPercent = calculateDynamicRisk(
       score,
@@ -455,8 +455,8 @@ function buildMicroFallbackResponse({
     mode: "MICRO_SCALP",
     trend:
       microSignal === "BUY" ? "BULLISH" :
-      microSignal === "SELL" ? "BEARISH" :
-      "NEUTRAL",
+        microSignal === "SELL" ? "BEARISH" :
+          "NEUTRAL",
     pattern,
     historicalVolume,
     defensiveFlags,
@@ -547,7 +547,7 @@ app.post("/signal", async (req, res) => {
         candlesH4: candles_h4,
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
         sessionName: session.name,
-      },
+      }
     });
 
     const score = evaluateResult.score || 0;
@@ -563,7 +563,7 @@ app.post("/signal", async (req, res) => {
           close: Number(c.close || 0),
           tickVolume: Number(c.tickVolume || c.tick_volume || 0),
         }));
-    
+
         await CandleTrainingData.create({
           firebaseUserId: resolvedUserId || "",
           accountId: accountId || "",
@@ -595,12 +595,12 @@ app.post("/signal", async (req, res) => {
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
-    
+
     // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.evaluateMicroScalp({
         candles: Array.isArray(candles) ? candles : [],
-        spread: Number(activeCfg.maxSpread || 0),
+        spread: Number(spreadPoints || 0),
         openPositions: [],
         config: MICRO_SCALP_CONFIG,
       });
@@ -622,14 +622,14 @@ app.post("/signal", async (req, res) => {
         }
       }
     }
-    
+
     const defensiveFlags = evaluateResult.defensiveFlags || {
       warningMatched: false,
       lotMultiplier: 1,
       tpMultiplier: 1,
       reason: null,
     };
-    
+
     const trade_setup = buildTradeSetupFromPattern({
       side,
       price: Number(price || 0),
@@ -653,22 +653,6 @@ app.post("/signal", async (req, res) => {
       defensiveFlags: defensiveFlags,
       trade_setup,
     });
-    // return res.json({
-    //   decision: finalDecision,
-    //   score: score,
-    //   firebaseUserId: resolvedUserId,
-    //   mode: evaluateResult.mode || "NORMAL",
-    //   trend: evaluateResult.trend || "NEUTRAL",
-    //   pattern: pattern,
-    //   historicalVolume: historicalVolume,
-    //   defensiveFlags: defensiveFlags,
-    //   trade_setup: {
-    //     recommended_lot: lotSize,
-    //     sl_points: slPoints,
-    //     tp_points: tpPoints,
-    //     retrace_points: retracePoints,
-    //   },
-    // });
   } catch (error) {
     console.error("Signal processing error:", error);
     return res.status(500).json({
@@ -865,7 +849,7 @@ app.post("/check-exit-signal", async (req, res) => {
       openPosition?.sl_points ??
       0
     );
-    
+
     const result = analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
       openPosition,
