@@ -290,6 +290,14 @@ function calculateMomentumScore(candles = [], config = DEFAULT_CONFIG) {
 /* =========================
  * ENTRY TIMING SCORE
  * ========================= */
+function getRetraceRatio(baseCandle = {}, pullbackCandle = {}) {
+  const baseRange = Math.abs((Number(baseCandle.high || 0)) - (Number(baseCandle.low || 0)));
+  const pullbackBody = Math.abs((Number(pullbackCandle.close || 0)) - (Number(pullbackCandle.open || 0)));
+
+  if (baseRange <= 0) return 0;
+  return pullbackBody / baseRange;
+}
+
 function calculateEntryTimingScore(candles = []) {
   if (!hasEnoughCandles(candles, 4)) {
     return {
@@ -307,25 +315,41 @@ function calculateEntryTimingScore(candles = []) {
   let sell = 0;
   const reasons = [];
 
-  // SELL continuation:
-  // previous candle green and smaller pullback, now red and breaks lower
-  if (isBull(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBear(c1)) {
-    if (c1.low < c2.low) {
+  const retraceRatio = getRetraceRatio(c3, c2);
+
+  // continuation ที่ดีควรย่อพอดี ไม่ตื้นเกินและไม่ลึกเกิน
+  const validScalpPullback = retraceRatio >= 0.18 && retraceRatio <= 0.38;
+  const validNormalPullback = retraceRatio >= 0.25 && retraceRatio <= 0.50;
+
+  // SELL continuation
+  if (isBull(c2) && isBear(c1) && c1.low < c2.low) {
+    if (validScalpPullback || validNormalPullback) {
       sell += 15;
-      reasons.push("SELL_PULLBACK_CONTINUATION");
+      reasons.push("SELL_PULLBACK_CONTINUATION_VALID");
+    } else if (retraceRatio < 0.18) {
+      sell += 6;
+      reasons.push("SELL_CONTINUATION_SHALLOW_PULLBACK");
+    } else {
+      sell -= 5;
+      reasons.push("SELL_PULLBACK_TOO_DEEP");
     }
   }
 
-  // BUY continuation:
-  // previous candle red and smaller pullback, now green and breaks higher
-  if (isBear(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBull(c1)) {
-    if (c1.high > c2.high) {
+  // BUY continuation
+  if (isBear(c2) && isBull(c1) && c1.high > c2.high) {
+    if (validScalpPullback || validNormalPullback) {
       buy += 15;
-      reasons.push("BUY_PULLBACK_CONTINUATION");
+      reasons.push("BUY_PULLBACK_CONTINUATION_VALID");
+    } else if (retraceRatio < 0.18) {
+      buy += 6;
+      reasons.push("BUY_CONTINUATION_SHALLOW_PULLBACK");
+    } else {
+      buy -= 5;
+      reasons.push("BUY_PULLBACK_TOO_DEEP");
     }
   }
 
-  // Break continuation
+  // break continuation
   if (isBear(c1) && c1.low < c2.low && c2.low < c3.low) {
     sell += 8;
     reasons.push("SELL_BREAKDOWN_CONTINUATION");
@@ -338,6 +362,55 @@ function calculateEntryTimingScore(candles = []) {
 
   return { buy, sell, reasons };
 }
+
+// function calculateEntryTimingScore(candles = []) {
+//   if (!hasEnoughCandles(candles, 4)) {
+//     return {
+//       buy: 0,
+//       sell: 0,
+//       reasons: [],
+//     };
+//   }
+
+//   const c1 = last(candles, 1);
+//   const c2 = last(candles, 2);
+//   const c3 = last(candles, 3);
+
+//   let buy = 0;
+//   let sell = 0;
+//   const reasons = [];
+
+//   // SELL continuation:
+//   // previous candle green and smaller pullback, now red and breaks lower
+//   if (isBull(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBear(c1)) {
+//     if (c1.low < c2.low) {
+//       sell += 15;
+//       reasons.push("SELL_PULLBACK_CONTINUATION");
+//     }
+//   }
+
+//   // BUY continuation:
+//   // previous candle red and smaller pullback, now green and breaks higher
+//   if (isBear(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBull(c1)) {
+//     if (c1.high > c2.high) {
+//       buy += 15;
+//       reasons.push("BUY_PULLBACK_CONTINUATION");
+//     }
+//   }
+
+//   // Break continuation
+//   if (isBear(c1) && c1.low < c2.low && c2.low < c3.low) {
+//     sell += 8;
+//     reasons.push("SELL_BREAKDOWN_CONTINUATION");
+//   }
+
+//   if (isBull(c1) && c1.high > c2.high && c2.high > c3.high) {
+//     buy += 8;
+//     reasons.push("BUY_BREAKOUT_CONTINUATION");
+//   }
+
+//   return { buy, sell, reasons };
+// }
 
 /* =========================
  * VOLUME SCORE
@@ -755,7 +828,7 @@ function runDemo() {
     { open: 66440, high: 66460, low: 66390, close: 66400, tickVolume: 100 },
     { open: 66400, high: 66410, low: 66350, close: 66360, tickVolume: 110 },
     { open: 66360, high: 66380, low: 66320, close: 66330, tickVolume: 120 },
-    { open: 66330, high: 66350, low: 66300, close: 66340, tickVolume: 90  }, // pullback green
+    { open: 66330, high: 66350, low: 66300, close: 66340, tickVolume: 90 }, // pullback green
     { open: 66340, high: 66345, low: 66270, close: 66280, tickVolume: 140 }, // continuation red
     { open: 66280, high: 66290, low: 66240, close: 66255, tickVolume: 150 },
   ];
