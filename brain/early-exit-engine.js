@@ -10,6 +10,11 @@
  * - ไม่ปิดกำไรจิ๋วเร็วเกินไป
  * - ใช้ mode / tpPoints / slPoints ช่วยตัดสินใจ
  */
+const { findFailedPattern } = require("../failedPattern.repo");
+const {
+  buildContextFeatures,
+  buildContextHashNew,
+} = require("../utils/context-features");
 
 function isGoldSymbol(symbol = "") {
   const s = String(symbol || "").toUpperCase();
@@ -320,17 +325,55 @@ function shouldTakeProfitOnLowVolume({
   return toNumber(holdingMinutes, 0) >= minHoldMinutes;
 }
 
-function analyzeEarlyExit({
+async function findFailedPatternRule({
+  userId,
+  accountId = null,
+  symbol,
+  timeframe,
+  side,
+  mode,
+  pattern,
+  market,
+}) {
+  const candles = market && Array.isArray(market.candles) ? market.candles : [];
+
+  const contextFeatures = buildContextFeatures({
+    symbol,
+    timeframe,
+    side,
+    mode,
+    pattern,
+    marketPrice: market?.price || 0,
+    candles,
+    now: new Date(),
+  });
+
+  const contextHash = buildContextHashNew(contextFeatures);
+
+  return await findFailedPattern({
+    userId: userId || null,
+    accountId,
+    symbol,
+    timeframe,
+    side,
+    mode,
+    contextHash,
+  });
+}
+
+async function analyzeEarlyExit({
   firebaseUserId,
+  symbol,
   openPosition,
   currentProfit = 0,
   candles = [],
-  failedPattern = null,
   mode = "NORMAL",
+  price,
   tpPoints = 0,
   slPoints = 0,
   historicalVolume = null,
   holdingMinutes = 0,
+  pattern
 }) {
   if (!openPosition || !openPosition.side) {
     return {
@@ -357,6 +400,17 @@ function analyzeEarlyExit({
   const profit = toNumber(currentProfit, 0);
 
   const reversalScore = detectReversalScore(candles, side, normalizedMode);
+
+  const failedPattern = await findFailedPatternRule({
+    userId: firebaseUserId || null,
+    accountId: null,
+    symbol,
+    timeframe: "M5",
+    side,
+    normalizedMode,
+    pattern,
+    price,
+  });
 
   let adjustedScore = reversalScore;
   let riskLevel = "LOW";

@@ -833,8 +833,8 @@ app.post("/check-exit-signal", async (req, res) => {
     openPosition,
     candles,
     currentProfit,
-    failedPattern = null,
     mode = null,
+    price,
     tpPoints = null,
     slPoints = null
   } = req.body;
@@ -868,17 +868,27 @@ app.post("/check-exit-signal", async (req, res) => {
       0
     );
 
+    const pattern = await analyzePattern({
+      symbol: symbol,
+      candles: candles,
+      candlesH1: null,
+      candlesH4: null,
+      overlapPips: 100,
+    });
+
     const result = analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
+      symbol,
       openPosition,
       currentProfit,
       candles,
-      failedPattern,
       mode: String(resolvedMode || "NORMAL").toUpperCase(),
+      price,
       tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
       slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
       historicalVolume,
-      holdingMinutes: 10
+      holdingMinutes: 10,
+      pattern
     });
 
     return res.json(result);
