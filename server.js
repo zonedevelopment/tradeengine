@@ -112,9 +112,9 @@ const symbolConfig = {
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 350, maxSL: 550, minTP: 500, maxTP: 650 },
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 500, maxSL: 850, minTP: 800, maxTP: 1250 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 350, maxSL: 550, minTP: 500, maxTP: 650 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 500, maxSL: 850, minTP: 800, maxTP: 1250 },
     "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 400, maxSL: 600, minTP: 500, maxTP: 1000 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }

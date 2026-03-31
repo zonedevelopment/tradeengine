@@ -130,8 +130,8 @@ function getDynamicThresholdContext({
   // let buyThreshold = mode === "SCALP" ? 2.45 : 2.15;
   // let sellThreshold = mode === "SCALP" ? -2.45 : -2.15;
 
-  let buyThreshold = mode === "SCALP" ? 2.25 : 2.0;
-  let sellThreshold = mode === "SCALP" ? -2.25 : -2.0;
+  let buyThreshold = mode === "SCALP" ? 2.25 : 2.10;
+  let sellThreshold = mode === "SCALP" ? -2.25 : -2.10;
 
   // 1) trend ผสม = เข้ายากขึ้น
   if (trend === "MIXED") {
@@ -634,7 +634,7 @@ async function evaluateDecision({
     const adaptiveRule = await findAdaptiveScoreRule({
       firebaseUserId: market?.userId || null,
       accountId: market?.accountId || null,
-      symbol: market?.symbol || "XAUUSD",
+      symbol: market?.symbol || "XAUUSDm",
       timeframe: market?.timeframe || "M5",
       patternType: pattern?.type || "Unknown",
       side: isBuyPattern ? "BUY" : "SELL",
@@ -780,17 +780,17 @@ async function evaluateDecision({
     symbol: market?.symbol
   });
 
-  // console.log("[EVALUATE_BREAKDOWN]", {
-  //   symbol: market?.symbol,
-  //   mode: tradeMode,
-  //   trend: trendContext?.overallTrend,
-  //   patternType: pattern?.type || "Unknown",
-  //   adaptiveScoreDelta,
-  //   historicalVolumeSignal,
-  //   warningMatched: defensiveFlags?.warningMatched,
-  //   finalScore: score,
-  //   thresholdContext
-  // });
+  console.log("[EVALUATE_BREAKDOWN]", {
+    symbol: market?.symbol,
+    mode: tradeMode,
+    trend: trendContext?.overallTrend,
+    patternType: pattern?.type || "Unknown",
+    adaptiveScoreDelta,
+    historicalVolumeSignal,
+    warningMatched: defensiveFlags?.warningMatched,
+    finalScore: score,
+    thresholdContext
+  });
 
   return {
     score,
