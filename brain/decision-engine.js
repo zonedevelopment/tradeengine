@@ -780,17 +780,17 @@ async function evaluateDecision({
     symbol: market?.symbol
   });
 
-  console.log("[EVALUATE_BREAKDOWN]", {
-    symbol: market?.symbol,
-    mode: tradeMode,
-    trend: trendContext?.overallTrend,
-    patternType: pattern?.type || "Unknown",
-    adaptiveScoreDelta,
-    historicalVolumeSignal,
-    warningMatched: defensiveFlags?.warningMatched,
-    finalScore: score,
-    thresholdContext
-  });
+  // console.log("[EVALUATE_BREAKDOWN]", {
+  //   symbol: market?.symbol,
+  //   mode: tradeMode,
+  //   trend: trendContext?.overallTrend,
+  //   patternType: pattern?.type || "Unknown",
+  //   adaptiveScoreDelta,
+  //   historicalVolumeSignal,
+  //   warningMatched: defensiveFlags?.warningMatched,
+  //   finalScore: score,
+  //   thresholdContext
+  // });
 
   return {
     score,

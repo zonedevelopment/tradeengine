@@ -69,6 +69,60 @@ async function findFailedPattern({
   }
 }
 
+async function findFailedPatternForEarly({
+  userId = null,
+  accountId = null,
+  symbol,
+  timeframe,
+  side,
+  mode,
+  contextHash,
+}) {
+  const sql = `
+    SELECT *
+    FROM failed_patterns
+    WHERE symbol = ?
+      AND timeframe = ?
+      AND side = ?
+      AND mode = ?
+      AND failure_count >= 3
+      AND fail_rate >= 0.5000
+    ORDER BY
+      failure_count DESC,
+      updated_at DESC
+    LIMIT 1
+  `;
+
+  const params = [
+    symbol,
+    timeframe,
+    side,
+    mode
+  ];
+
+  try {
+    const rows = await query(sql, params, { retries: 2 });
+    return rows?.[0] || null;
+  } catch (error) {
+    console.error("[failedPattern.repo] findFailedPattern failed:", {
+      code: error.code || null,
+      message: error.message,
+      symbol,
+      timeframe,
+      side,
+      mode,
+      contextHash,
+      userId,
+      accountId,
+      userId,
+      accountId
+    });
+
+    return null;
+  }
+}
+
 module.exports = {
   findFailedPattern,
+  findFailedPatternForEarly
 };

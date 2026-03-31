@@ -622,7 +622,7 @@ async function runDailyLearning() {
           }
         }
 
-        console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
+        // console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
       }
     } catch (err) {
       console.error("[Daily Learner] Save weights to DB error:", err.message);
@@ -635,7 +635,7 @@ async function runDailyLearning() {
     console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
   }
 
-  console.log(`[Daily Learner] Mapped ${JSON.stringify(mappedResults)} completed trades.`);
+  // console.log(`[Daily Learner] Mapped ${JSON.stringify(mappedResults.length)} completed trades.`);
   // console.log(`[Daily Learner] Wegiht ${JSON.stringify(weightsBySymbol, null, 2)} completed trades.`);
   console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
 }

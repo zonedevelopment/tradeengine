@@ -839,6 +839,8 @@ app.post("/check-exit-signal", async (req, res) => {
     slPoints = null
   } = req.body;
 
+  // console.log("Early exit body: " + JSON.stringify(req.body));
+
   const resolvedUserId = firebaseUserId || null;
 
   const historicalVolume = evaluateCurrentVolumeAgainstHistory({
@@ -846,6 +848,8 @@ app.post("/check-exit-signal", async (req, res) => {
     symbol,
     candles,
   });
+
+  // console.log("Early exit historical: " + JSON.stringify(historicalVolume));
 
   try {
     const resolvedMode =
@@ -876,7 +880,7 @@ app.post("/check-exit-signal", async (req, res) => {
       overlapPips: 100,
     });
 
-    const result = analyzeEarlyExit({
+    const result = await analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
       symbol,
       openPosition,
@@ -890,6 +894,8 @@ app.post("/check-exit-signal", async (req, res) => {
       holdingMinutes: 10,
       pattern
     });
+
+    console.log("Early exit result: " + JSON.stringify(result));
 
     return res.json(result);
   } catch (error) {

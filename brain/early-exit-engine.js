@@ -10,7 +10,7 @@
  * - ไม่ปิดกำไรจิ๋วเร็วเกินไป
  * - ใช้ mode / tpPoints / slPoints ช่วยตัดสินใจ
  */
-const { findFailedPattern } = require("../failedPattern.repo");
+const { findFailedPattern, findFailedPatternForEarly } = require("../failedPattern.repo");
 const {
   buildContextFeatures,
   buildContextHashNew,
@@ -333,9 +333,10 @@ async function findFailedPatternRule({
   side,
   mode,
   pattern,
-  market,
+  price,
+  candlesM
 }) {
-  const candles = market && Array.isArray(market.candles) ? market.candles : [];
+  // const candles = Array.isArray(candlesM) ? candlesM : [];
 
   const contextFeatures = buildContextFeatures({
     symbol,
@@ -343,14 +344,14 @@ async function findFailedPatternRule({
     side,
     mode,
     pattern,
-    marketPrice: market?.price || 0,
-    candles,
+    marketPrice: price || 0,
+    candlesM,
     now: new Date(),
   });
 
   const contextHash = buildContextHashNew(contextFeatures);
 
-  return await findFailedPattern({
+  return await findFailedPatternForEarly({
     userId: userId || null,
     accountId,
     symbol,
@@ -393,6 +394,8 @@ async function analyzeEarlyExit({
     };
   }
 
+  // console.log(`[Early exit] Params symbol: ${symbol}, pattern: ${JSON.stringify(pattern)}`);
+
   const historicalVolumeSignal = historicalVolume?.signal || null;
   const side = String(openPosition.side || "").toUpperCase();
   const normalizedMode = normalizeMode(mode || openPosition.mode || "NORMAL");
@@ -402,15 +405,18 @@ async function analyzeEarlyExit({
   const reversalScore = detectReversalScore(candles, side, normalizedMode);
 
   const failedPattern = await findFailedPatternRule({
-    userId: firebaseUserId || null,
+    userId: 0 || null,
     accountId: null,
     symbol,
     timeframe: "M5",
     side,
-    normalizedMode,
+    mode,
     pattern,
     price,
+    candles
   });
+
+  // console.log(`[Early exit] Failed pattern ${JSON.stringify(failedPattern)}.`);
 
   let adjustedScore = reversalScore;
   let riskLevel = "LOW";
@@ -445,12 +451,15 @@ async function analyzeEarlyExit({
       riskLevel = "MEDIUM";
       adjustedScore += 0.5;
     }
+
+    console.log("Early exit check failed: riskLevel" + JSON.stringify(riskLevel) + ", adjustedScore: "  + JSON.stringify(adjustedScore) + ", profit: "  + JSON.stringify(profit));
   }
 
   adjustedScore = Number(adjustedScore.toFixed(2));
 
+  let result = {};
   // 1) CUT LOSS NOW
-  if (profit < 0) {
+  // if (profit < 0) {
     if (riskLevel === "CRITICAL" && adjustedScore >= 2.2) {
       return {
         action: "CUT_LOSS_NOW",
@@ -477,10 +486,10 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  }
+  // }
 
   // 2) MOVE TO BE ก่อน
-  if (profit > 0) {
+  // if (profit > 0) {
     const moveToBe = shouldMoveToBreakeven(
       openPosition,
       profit,
@@ -498,7 +507,7 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  }
+  // }
 
   if (
     shouldTakeProfitOnLowVolume({
@@ -518,7 +527,7 @@ async function analyzeEarlyExit({
   }
 
   // 3) TAKE SMALL PROFIT
-  if (profit > 0) {
+  // if (profit > 0) {
     const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
 
     // CRITICAL: ยอมออกได้เร็วกว่า
@@ -574,10 +583,10 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  }
+  // }
 
   // 4) WAIT FOR SMALL BOUNCE
-  if (profit <= 0) {
+  // if (profit <= 0) {
     if (
       riskLevel === "HIGH" ||
       (riskLevel === "MEDIUM" && adjustedScore >= profile.mediumBounceThreshold)
@@ -589,7 +598,7 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  }
+  // }
 
   return {
     action: "HOLD",
