@@ -316,7 +316,7 @@ function shouldTakeProfitOnLowVolume({
     return false;
   }
 
-  if (toNumberSafe(currentProfit, 0) <= 0) {
+  if (toNumber(currentProfit, 0) <= 0) {
     return false;
   }
 
