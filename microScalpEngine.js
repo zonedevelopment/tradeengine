@@ -71,6 +71,10 @@ function candleRange(c) {
   return Math.abs(toNumber(c.high) - toNumber(c.low));
 }
 
+function candleBody(c = {}) {
+  return Math.abs(toNum(c.close) - toNum(c.open));
+}
+
 function upperWick(c) {
   return toNumber(c.high) - Math.max(toNumber(c.open), toNumber(c.close));
 }
@@ -298,71 +302,139 @@ function getRetraceRatio(baseCandle = {}, pullbackCandle = {}) {
   return pullbackBody / baseRange;
 }
 
-function calculateEntryTimingScore(candles = []) {
-  if (!hasEnoughCandles(candles, 4)) {
+function getPullbackDepthRatio(impulseCandle = {}, pullbackCandle = {}) {
+  const impulseRange = candleRange(impulseCandle);
+  const pullbackBody = candleBody(pullbackCandle);
+  if (impulseRange <= 0) return 0;
+  return pullbackBody / impulseRange;
+}
+
+function detectScalpContinuationSetup(candles = []) {
+  if (!Array.isArray(candles) || candles.length < 4) {
     return {
-      buy: 0,
-      sell: 0,
-      reasons: [],
+      buy: { valid: false, score: 0, reason: "NOT_ENOUGH_CANDLES" },
+      sell: { valid: false, score: 0, reason: "NOT_ENOUGH_CANDLES" }
     };
   }
 
-  const c1 = last(candles, 1);
-  const c2 = last(candles, 2);
-  const c3 = last(candles, 3);
+  const c1 = candles[candles.length - 1]; // current/last
+  const c2 = candles[candles.length - 2]; // pullback candle
+  const c3 = candles[candles.length - 3]; // impulse candle
+
+  const c1Bull = toNum(c1.close) > toNum(c1.open);
+  const c1Bear = toNum(c1.close) < toNum(c1.open);
+  const c2Bull = toNum(c2.close) > toNum(c2.open);
+  const c2Bear = toNum(c2.close) < toNum(c2.open);
+
+  const pullbackDepth = getPullbackDepthRatio(c3, c2);
+
+  const shallowPullback = pullbackDepth >= 0.15 && pullbackDepth <= 0.38;
+  const mediumPullback = pullbackDepth > 0.38 && pullbackDepth <= 0.52;
+  const tooDeepPullback = pullbackDepth > 0.52;
+
+  let buy = { valid: false, score: 0, reason: "NO_BUY_CONTINUATION" };
+  let sell = { valid: false, score: 0, reason: "NO_SELL_CONTINUATION" };
+
+  // BUY continuation:
+  // c3 แรงขึ้น -> c2 ย่อลง -> c1 กลับขึ้นและทะลุ high ของ c2
+  if (c2Bear && c1Bull && toNum(c1.high) > toNum(c2.high)) {
+    if (shallowPullback) {
+      buy = { valid: true, score: 18, reason: "BUY_CONTINUATION_SHALLOW_PULLBACK" };
+    } else if (mediumPullback) {
+      buy = { valid: true, score: 10, reason: "BUY_CONTINUATION_MEDIUM_PULLBACK" };
+    } else if (tooDeepPullback) {
+      buy = { valid: false, score: -8, reason: "BUY_PULLBACK_TOO_DEEP" };
+    }
+  }
+
+  // SELL continuation:
+  // c3 แรงลง -> c2 ย่อขึ้น -> c1 กลับลงและทะลุ low ของ c2
+  if (c2Bull && c1Bear && toNum(c1.low) < toNum(c2.low)) {
+    if (shallowPullback) {
+      sell = { valid: true, score: 18, reason: "SELL_CONTINUATION_SHALLOW_PULLBACK" };
+    } else if (mediumPullback) {
+      sell = { valid: true, score: 10, reason: "SELL_CONTINUATION_MEDIUM_PULLBACK" };
+    } else if (tooDeepPullback) {
+      sell = { valid: false, score: -8, reason: "SELL_PULLBACK_TOO_DEEP" };
+    }
+  }
+
+  return { buy, sell };
+}
+
+function validateScalpPullbackQuality(candles = [], side = "") {
+  if (!Array.isArray(candles) || candles.length < 4) {
+    return { ok: false, reason: "NOT_ENOUGH_CANDLES" };
+  }
+
+  const c2 = candles[candles.length - 2];
+  const c3 = candles[candles.length - 3];
+  const depth = getPullbackDepthRatio(c3, c2);
+
+  if (depth > 0.52) {
+    return { ok: false, reason: "PULLBACK_TOO_DEEP", depth };
+  }
+
+  if (depth < 0.12) {
+    return { ok: false, reason: "PULLBACK_TOO_SHALLOW", depth };
+  }
+
+  return { ok: true, reason: "VALID_PULLBACK", depth };
+}
+
+function calculateEntryTimingScore(candles = []) {
+  if (!Array.isArray(candles) || candles.length < 4) {
+    return {
+      buy: 0,
+      sell: 0,
+      reasons: []
+    };
+  }
+
+  const c1 = candles[candles.length - 1];
+  const c2 = candles[candles.length - 2];
+  const c3 = candles[candles.length - 3];
 
   let buy = 0;
   let sell = 0;
   const reasons = [];
 
-  const retraceRatio = getRetraceRatio(c3, c2);
+  const continuation = detectScalpContinuationSetup(candles);
 
-  // continuation ที่ดีควรย่อพอดี ไม่ตื้นเกินและไม่ลึกเกิน
-  const validScalpPullback = retraceRatio >= 0.18 && retraceRatio <= 0.38;
-  const validNormalPullback = retraceRatio >= 0.25 && retraceRatio <= 0.50;
-
-  // SELL continuation
-  if (isBull(c2) && isBear(c1) && c1.low < c2.low) {
-    if (validScalpPullback || validNormalPullback) {
-      sell += 15;
-      reasons.push("SELL_PULLBACK_CONTINUATION_VALID");
-    } else if (retraceRatio < 0.18) {
-      sell += 6;
-      reasons.push("SELL_CONTINUATION_SHALLOW_PULLBACK");
-    } else {
-      sell -= 5;
-      reasons.push("SELL_PULLBACK_TOO_DEEP");
-    }
+  if (continuation.buy.score !== 0) {
+    buy += continuation.buy.score;
+    reasons.push(continuation.buy.reason);
   }
 
-  // BUY continuation
-  if (isBear(c2) && isBull(c1) && c1.high > c2.high) {
-    if (validScalpPullback || validNormalPullback) {
-      buy += 15;
-      reasons.push("BUY_PULLBACK_CONTINUATION_VALID");
-    } else if (retraceRatio < 0.18) {
-      buy += 6;
-      reasons.push("BUY_CONTINUATION_SHALLOW_PULLBACK");
-    } else {
-      buy -= 5;
-      reasons.push("BUY_PULLBACK_TOO_DEEP");
-    }
+  if (continuation.sell.score !== 0) {
+    sell += continuation.sell.score;
+    reasons.push(continuation.sell.reason);
   }
 
-  // break continuation
-  if (isBear(c1) && c1.low < c2.low && c2.low < c3.low) {
-    sell += 8;
-    reasons.push("SELL_BREAKDOWN_CONTINUATION");
+  // breakout follow-through
+  if (toNum(c1.close) > toNum(c2.high) && toNum(c2.high) > toNum(c3.high)) {
+    buy += 6;
+    reasons.push("BUY_BREAKOUT_FOLLOW_THROUGH");
   }
 
-  if (isBull(c1) && c1.high > c2.high && c2.high > c3.high) {
-    buy += 8;
-    reasons.push("BUY_BREAKOUT_CONTINUATION");
+  if (toNum(c1.close) < toNum(c2.low) && toNum(c2.low) < toNum(c3.low)) {
+    sell += 6;
+    reasons.push("SELL_BREAKDOWN_FOLLOW_THROUGH");
+  }
+
+  // ถ้าแท่งล่าสุด body เล็กเกิน ลดความมั่นใจ
+  const c1Body = candleBody(c1);
+  const c1Range = candleRange(c1);
+  const weakLastCandle = c1Range > 0 && c1Body / c1Range < 0.35;
+
+  if (weakLastCandle) {
+    buy -= 4;
+    sell -= 4;
+    reasons.push("WEAK_LAST_CANDLE");
   }
 
   return { buy, sell, reasons };
 }
-
 // function calculateEntryTimingScore(candles = []) {
 //   if (!hasEnoughCandles(candles, 4)) {
 //     return {
@@ -380,25 +452,41 @@ function calculateEntryTimingScore(candles = []) {
 //   let sell = 0;
 //   const reasons = [];
 
-//   // SELL continuation:
-//   // previous candle green and smaller pullback, now red and breaks lower
-//   if (isBull(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBear(c1)) {
-//     if (c1.low < c2.low) {
+//   const retraceRatio = getRetraceRatio(c3, c2);
+
+//   // continuation ที่ดีควรย่อพอดี ไม่ตื้นเกินและไม่ลึกเกิน
+//   const validScalpPullback = retraceRatio >= 0.18 && retraceRatio <= 0.38;
+//   const validNormalPullback = retraceRatio >= 0.25 && retraceRatio <= 0.50;
+
+//   // SELL continuation
+//   if (isBull(c2) && isBear(c1) && c1.low < c2.low) {
+//     if (validScalpPullback || validNormalPullback) {
 //       sell += 15;
-//       reasons.push("SELL_PULLBACK_CONTINUATION");
+//       reasons.push("SELL_PULLBACK_CONTINUATION_VALID");
+//     } else if (retraceRatio < 0.18) {
+//       sell += 6;
+//       reasons.push("SELL_CONTINUATION_SHALLOW_PULLBACK");
+//     } else {
+//       sell -= 5;
+//       reasons.push("SELL_PULLBACK_TOO_DEEP");
 //     }
 //   }
 
-//   // BUY continuation:
-//   // previous candle red and smaller pullback, now green and breaks higher
-//   if (isBear(c2) && bodySize(c2) < bodySize(c3) * 0.8 && isBull(c1)) {
-//     if (c1.high > c2.high) {
+//   // BUY continuation
+//   if (isBear(c2) && isBull(c1) && c1.high > c2.high) {
+//     if (validScalpPullback || validNormalPullback) {
 //       buy += 15;
-//       reasons.push("BUY_PULLBACK_CONTINUATION");
+//       reasons.push("BUY_PULLBACK_CONTINUATION_VALID");
+//     } else if (retraceRatio < 0.18) {
+//       buy += 6;
+//       reasons.push("BUY_CONTINUATION_SHALLOW_PULLBACK");
+//     } else {
+//       buy -= 5;
+//       reasons.push("BUY_PULLBACK_TOO_DEEP");
 //     }
 //   }
 
-//   // Break continuation
+//   // break continuation
 //   if (isBear(c1) && c1.low < c2.low && c2.low < c3.low) {
 //     sell += 8;
 //     reasons.push("SELL_BREAKDOWN_CONTINUATION");
@@ -806,6 +894,16 @@ function evaluateMicroScalp(params = {}) {
       reason: signalResult.reason,
       score: signalResult.score || 0,
       detail: signalResult.detail || null,
+    };
+  }
+
+  const scalpPullbackCheck = validateScalpPullbackQuality(candles, signalResult?.signal);
+
+  if (!scalpPullbackCheck.ok) {
+    return {
+      action: "NO_TRADE",
+      reason: scalpPullbackCheck.reason,
+      score: 0,
     };
   }
 
