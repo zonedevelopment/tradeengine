@@ -829,6 +829,7 @@ app.post("/trade-event", async (req, res) => {
 app.post("/check-exit-signal", async (req, res) => {
   const {
     firebaseUserId,
+    symbol,
     openPosition,
     candles,
     currentProfit,
@@ -839,6 +840,12 @@ app.post("/check-exit-signal", async (req, res) => {
   } = req.body;
 
   const resolvedUserId = firebaseUserId || null;
+
+  const historicalVolume = evaluateCurrentVolumeAgainstHistory({
+    firebaseUserId: resolvedUserId,
+    symbol,
+    candles,
+  });
 
   try {
     const resolvedMode =
@@ -869,7 +876,9 @@ app.post("/check-exit-signal", async (req, res) => {
       failedPattern,
       mode: String(resolvedMode || "NORMAL").toUpperCase(),
       tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
-      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0
+      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      historicalVolume,
+      holdingMinutes: 10
     });
 
     return res.json(result);

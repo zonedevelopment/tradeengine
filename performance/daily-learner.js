@@ -69,136 +69,136 @@ function computeAdaptiveScoreDelta({
 }
 
 function bucketizePoints(points) {
-    const p = Number(points || 0);
-    if (p <= 0) return "0";
-    if (p <= 150) return "0-150";
-    if (p <= 300) return "151-300";
-    if (p <= 500) return "301-500";
-    if (p <= 800) return "501-800";
-    return "800+";
+  const p = Number(points || 0);
+  if (p <= 0) return "0";
+  if (p <= 150) return "0-150";
+  if (p <= 300) return "151-300";
+  if (p <= 500) return "301-500";
+  if (p <= 800) return "501-800";
+  return "800+";
 }
 
 function getSessionName(timestamp) {
-    const date = new Date(timestamp);
-    const bangkokHour = (date.getUTCHours() + 7) % 24;
-    if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
-    if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
-    if (bangkokHour >= 19 && bangkokHour < 23) return "NEWYORK";
-    if (bangkokHour >= 23 || bangkokHour < 1) return "OVERLAP";
-    return "UNKNOWN";
+  const date = new Date(timestamp);
+  const bangkokHour = (date.getUTCHours() + 7) % 24;
+  if (bangkokHour >= 7 && bangkokHour < 14) return "ASIAN";
+  if (bangkokHour >= 14 && bangkokHour < 19) return "LONDON";
+  if (bangkokHour >= 19 && bangkokHour < 23) return "NEWYORK";
+  if (bangkokHour >= 23 || bangkokHour < 1) return "OVERLAP";
+  return "UNKNOWN";
 }
 
 function getRangeState(candles) {
-    if (!Array.isArray(candles) || candles.length < 3) return "UNKNOWN";
+  if (!Array.isArray(candles) || candles.length < 3) return "UNKNOWN";
 
-    const ranges = candles.map((c) => Math.abs(Number(c.high || 0) - Number(c.low || 0)));
-    const lastRange = ranges[ranges.length - 1];
-    const prev = ranges.slice(0, -1);
-    const avgPrev = prev.reduce((a, b) => a + b, 0) / (prev.length || 1);
+  const ranges = candles.map((c) => Math.abs(Number(c.high || 0) - Number(c.low || 0)));
+  const lastRange = ranges[ranges.length - 1];
+  const prev = ranges.slice(0, -1);
+  const avgPrev = prev.reduce((a, b) => a + b, 0) / (prev.length || 1);
 
-    if (avgPrev <= 0) return "UNKNOWN";
-    if (lastRange > avgPrev * 1.4) return "EXPANDING";
-    if (lastRange < avgPrev * 0.7) return "CONTRACTING";
+  if (avgPrev <= 0) return "UNKNOWN";
+  if (lastRange > avgPrev * 1.4) return "EXPANDING";
+  if (lastRange < avgPrev * 0.7) return "CONTRACTING";
 
-    const closes = candles.map((c) => Number(c.close || 0));
-    const move = Math.abs(closes[closes.length - 1] - closes[0]);
+  const closes = candles.map((c) => Number(c.close || 0));
+  const move = Math.abs(closes[closes.length - 1] - closes[0]);
 
-    if (move > avgPrev * 1.5) return "TRENDING";
-    return "RANGING";
+  if (move > avgPrev * 1.5) return "TRENDING";
+  return "RANGING";
 }
 
 function getVolumeProfile(candles) {
-    if (!Array.isArray(candles) || candles.length < 3) return "UNKNOWN";
+  if (!Array.isArray(candles) || candles.length < 3) return "UNKNOWN";
 
-    const vols = candles.map((c) => Number(c.tick_volume || 0)).filter((v) => v > 0);
-    if (vols.length < 3) return "UNKNOWN";
+  const vols = candles.map((c) => Number(c.tick_volume || 0)).filter((v) => v > 0);
+  if (vols.length < 3) return "UNKNOWN";
 
-    const last = vols[vols.length - 1];
-    const prev = vols.slice(0, -1);
-    const avgPrev = prev.reduce((a, b) => a + b, 0) / (prev.length || 1);
+  const last = vols[vols.length - 1];
+  const prev = vols.slice(0, -1);
+  const avgPrev = prev.reduce((a, b) => a + b, 0) / (prev.length || 1);
 
-    if (avgPrev <= 0) return "UNKNOWN";
-    if (last >= avgPrev * 1.5) return "CLIMAX";
-    if (last <= avgPrev * 0.6) return "DRYING";
+  if (avgPrev <= 0) return "UNKNOWN";
+  if (last >= avgPrev * 1.5) return "CLIMAX";
+  if (last <= avgPrev * 0.6) return "DRYING";
 
-    const a = vols[vols.length - 3];
-    const b = vols[vols.length - 2];
-    const c = vols[vols.length - 1];
+  const a = vols[vols.length - 3];
+  const b = vols[vols.length - 2];
+  const c = vols[vols.length - 1];
 
-    if (a < b && b < c) return "INCREASING";
-    if (a > b && b > c) return "DECREASING";
-    return "MIXED";
+  if (a < b && b < c) return "INCREASING";
+  if (a > b && b > c) return "DECREASING";
+  return "MIXED";
 }
 
 function getCandleShape(candle) {
-    if (!candle) return "UNKNOWN";
+  if (!candle) return "UNKNOWN";
 
-    const open = Number(candle.open || 0);
-    const close = Number(candle.close || 0);
-    const high = Number(candle.high || 0);
-    const low = Number(candle.low || 0);
+  const open = Number(candle.open || 0);
+  const close = Number(candle.close || 0);
+  const high = Number(candle.high || 0);
+  const low = Number(candle.low || 0);
 
-    const body = Math.abs(close - open);
-    const range = Math.abs(high - low);
-    if (range <= 0) return "UNKNOWN";
+  const body = Math.abs(close - open);
+  const range = Math.abs(high - low);
+  if (range <= 0) return "UNKNOWN";
 
-    const bodyRatio = body / range;
-    const isBull = close > open;
-    const isBear = close < open;
+  const bodyRatio = body / range;
+  const isBull = close > open;
+  const isBear = close < open;
 
-    if (bodyRatio < 0.15) return "DOJI";
-    if (bodyRatio >= 0.65 && isBull) return "BIG_BULL";
-    if (bodyRatio >= 0.65 && isBear) return "BIG_BEAR";
-    if (bodyRatio >= 0.35 && isBull) return "MEDIUM_BULL";
-    if (bodyRatio >= 0.35 && isBear) return "MEDIUM_BEAR";
-    if (isBull) return "SMALL_BULL";
-    if (isBear) return "SMALL_BEAR";
+  if (bodyRatio < 0.15) return "DOJI";
+  if (bodyRatio >= 0.65 && isBull) return "BIG_BULL";
+  if (bodyRatio >= 0.65 && isBear) return "BIG_BEAR";
+  if (bodyRatio >= 0.35 && isBull) return "MEDIUM_BULL";
+  if (bodyRatio >= 0.35 && isBear) return "MEDIUM_BEAR";
+  if (isBull) return "SMALL_BULL";
+  if (isBear) return "SMALL_BEAR";
 
-    return "UNKNOWN";
+  return "UNKNOWN";
 }
 
 function buildPrePatternShape(candles) {
-    if (!Array.isArray(candles) || candles.length === 0) return "";
-    const lookback = candles.slice(-5, -2).map(getCandleShape);
-    return lookback.join(",");
+  if (!Array.isArray(candles) || candles.length === 0) return "";
+  const lookback = candles.slice(-5, -2).map(getCandleShape);
+  return lookback.join(",");
 }
 
 function buildContextHash(features) {
-    const raw = JSON.stringify({
-        symbol: features.symbol,
-        timeframe: features.timeframe,
-        side: features.side,
-        mode: features.mode,
-        triggerPattern: features.triggerPattern,
-        patternType: features.patternType,
-        microTrend: features.microTrend,
-        volumeProfile: features.volumeProfile,
-        prePatternShape: features.prePatternShape,
-        rangeState: features.rangeState,
-        sessionName: features.sessionName,
-        slBucket: features.slBucket,
-        tpBucket: features.tpBucket,
-    });
+  const raw = JSON.stringify({
+    symbol: features.symbol,
+    timeframe: features.timeframe,
+    side: features.side,
+    mode: features.mode,
+    triggerPattern: features.triggerPattern,
+    patternType: features.patternType,
+    microTrend: features.microTrend,
+    volumeProfile: features.volumeProfile,
+    prePatternShape: features.prePatternShape,
+    rangeState: features.rangeState,
+    sessionName: features.sessionName,
+    slBucket: features.slBucket,
+    tpBucket: features.tpBucket,
+  });
 
-    return crypto.createHash("sha256").update(raw).digest("hex");
+  return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
 function buildDescription(features) {
-    return [
-        features.patternType,
-        `side=${features.side}`,
-        `mode=${features.mode}`,
-        `microTrend=${features.microTrend}`,
-        `volume=${features.volumeProfile}`,
-        `shape=${features.prePatternShape || "NONE"}`,
-        `sl=${features.slBucket}`,
-        `tp=${features.tpBucket}`,
-    ].join(" | ");
+  return [
+    features.patternType,
+    `side=${features.side}`,
+    `mode=${features.mode}`,
+    `microTrend=${features.microTrend}`,
+    `volume=${features.volumeProfile}`,
+    `shape=${features.prePatternShape || "NONE"}`,
+    `sl=${features.slBucket}`,
+    `tp=${features.tpBucket}`,
+  ].join(" | ");
 }
 
 async function upsertFailedPattern(item) {
-    const existing = await query(
-        `
+  const existing = await query(
+    `
         SELECT id, sample_count, failure_count, win_count, avg_loss, avg_win
         FROM failed_patterns
         WHERE user_id <=> ?
@@ -210,65 +210,65 @@ async function upsertFailedPattern(item) {
           AND context_hash = ?
         LIMIT 1
         `,
-        [
-            item.userId || null,
-            item.accountId || null,
-            item.symbol,
-            item.timeframe,
-            item.side,
-            item.mode,
-            item.contextHash,
-        ]
-    );
+    [
+      item.userId || null,
+      item.accountId || null,
+      item.symbol,
+      item.timeframe,
+      item.side,
+      item.mode,
+      item.contextHash,
+    ]
+  );
 
-    let sampleCount = 1;
-    let failureCount = item.result === "LOSS" ? 1 : 0;
-    let winCount = item.result === "WIN" ? 1 : 0;
-    let avgLoss = item.result === "LOSS" ? Math.abs(Number(item.profit || 0)) : 0;
-    let avgWin = item.result === "WIN" ? Math.abs(Number(item.profit || 0)) : 0;
+  let sampleCount = 1;
+  let failureCount = item.result === "LOSS" ? 1 : 0;
+  let winCount = item.result === "WIN" ? 1 : 0;
+  let avgLoss = item.result === "LOSS" ? Math.abs(Number(item.profit || 0)) : 0;
+  let avgWin = item.result === "WIN" ? Math.abs(Number(item.profit || 0)) : 0;
 
-    if (existing.length > 0) {
-        const row = existing[0];
-        sampleCount = Number(row.sample_count || 0) + 1;
-        failureCount = Number(row.failure_count || 0) + (item.result === "LOSS" ? 1 : 0);
-        winCount = Number(row.win_count || 0) + (item.result === "WIN" ? 1 : 0);
+  if (existing.length > 0) {
+    const row = existing[0];
+    sampleCount = Number(row.sample_count || 0) + 1;
+    failureCount = Number(row.failure_count || 0) + (item.result === "LOSS" ? 1 : 0);
+    winCount = Number(row.win_count || 0) + (item.result === "WIN" ? 1 : 0);
 
-        if (item.result === "LOSS") {
-            const prevLossCount = Number(row.failure_count || 0);
-            avgLoss =
-                ((Number(row.avg_loss || 0) * prevLossCount) +
-                    Math.abs(Number(item.profit || 0))) /
-                (prevLossCount + 1);
-            avgWin = Number(row.avg_win || 0);
-        } else {
-            const prevWinCount = Number(row.win_count || 0);
-            avgWin =
-                ((Number(row.avg_win || 0) * prevWinCount) +
-                    Math.abs(Number(item.profit || 0))) /
-                (prevWinCount + 1);
-            avgLoss = Number(row.avg_loss || 0);
-        }
+    if (item.result === "LOSS") {
+      const prevLossCount = Number(row.failure_count || 0);
+      avgLoss =
+        ((Number(row.avg_loss || 0) * prevLossCount) +
+          Math.abs(Number(item.profit || 0))) /
+        (prevLossCount + 1);
+      avgWin = Number(row.avg_win || 0);
+    } else {
+      const prevWinCount = Number(row.win_count || 0);
+      avgWin =
+        ((Number(row.avg_win || 0) * prevWinCount) +
+          Math.abs(Number(item.profit || 0))) /
+        (prevWinCount + 1);
+      avgLoss = Number(row.avg_loss || 0);
     }
+  }
 
-    const failRate = sampleCount > 0 ? failureCount / sampleCount : 0;
-    const expectancy = ((winCount * avgWin) - (failureCount * avgLoss)) / (sampleCount || 1);
+  const failRate = sampleCount > 0 ? failureCount / sampleCount : 0;
+  const expectancy = ((winCount * avgWin) - (failureCount * avgLoss)) / (sampleCount || 1);
 
-    let suggestedAction = "REDUCE_SCORE";
-    let scorePenalty = 0.50;
-    let riskMultiplier = 1.00;
+  let suggestedAction = "REDUCE_SCORE";
+  let scorePenalty = 0.50;
+  let riskMultiplier = 1.00;
 
-    if (failRate > 0.70) {
-        suggestedAction = "BLOCK_TRADE";
-        scorePenalty = 1.00;
-        riskMultiplier = 0.50;
-    } else if (failRate >= 0.50) {
-        suggestedAction = "WARNING";
-        scorePenalty = 0.50;
-        riskMultiplier = 0.50;
-    }
+  if (failRate > 0.70) {
+    suggestedAction = "BLOCK_TRADE";
+    scorePenalty = 1.00;
+    riskMultiplier = 0.50;
+  } else if (failRate >= 0.50) {
+    suggestedAction = "WARNING";
+    scorePenalty = 0.50;
+    riskMultiplier = 0.50;
+  }
 
-    await query(
-        `
+  await query(
+    `
         INSERT INTO failed_patterns (
             user_id,
             account_id,
@@ -323,77 +323,77 @@ async function upsertFailedPattern(item) {
             last_seen_at = NOW(),
             updated_at = NOW()
         `,
-        [
-            item.userId || null,
-            item.accountId || null,
-            item.symbol,
-            item.timeframe,
-            item.side,
-            item.mode,
-            item.triggerPattern,
-            item.patternType,
-            item.contextHash,
-            item.microTrend,
-            item.volumeProfile,
-            item.prePatternShape,
-            item.rangeState,
-            item.sessionName,
-            item.slPips,
-            item.tpPips,
-            item.rrRatio,
-            item.slBucket,
-            item.tpBucket,
-            sampleCount,
-            failureCount,
-            winCount,
-            Number(failRate.toFixed(4)),
-            Number(avgLoss.toFixed(4)),
-            Number(avgWin.toFixed(4)),
-            Number(expectancy.toFixed(4)),
-            suggestedAction,
-            Number(scorePenalty.toFixed(4)),
-            Number(riskMultiplier.toFixed(4)),
-            "KNOWN_FAILURE_PATTERN",
-            item.description,
-            JSON.stringify(item.exampleContext || null),
-            JSON.stringify(item.notes || null),
-        ]
-    );
+    [
+      item.userId || null,
+      item.accountId || null,
+      item.symbol,
+      item.timeframe,
+      item.side,
+      item.mode,
+      item.triggerPattern,
+      item.patternType,
+      item.contextHash,
+      item.microTrend,
+      item.volumeProfile,
+      item.prePatternShape,
+      item.rangeState,
+      item.sessionName,
+      item.slPips,
+      item.tpPips,
+      item.rrRatio,
+      item.slBucket,
+      item.tpBucket,
+      sampleCount,
+      failureCount,
+      winCount,
+      Number(failRate.toFixed(4)),
+      Number(avgLoss.toFixed(4)),
+      Number(avgWin.toFixed(4)),
+      Number(expectancy.toFixed(4)),
+      suggestedAction,
+      Number(scorePenalty.toFixed(4)),
+      Number(riskMultiplier.toFixed(4)),
+      "KNOWN_FAILURE_PATTERN",
+      item.description,
+      JSON.stringify(item.exampleContext || null),
+      JSON.stringify(item.notes || null),
+    ]
+  );
 }
 
 async function runDailyLearning() {
-    console.log("[Daily Learner] Starting Contextual Learning...");
+  console.log("[Daily Learner] Starting Contextual Learning...");
 
-    const initialDefaultWeights = {
-        "Pin_Bar_Shooting_Star": -0.5,
-        "Morning_Star_Base_Break": 0,
-        "Evening_Star_Base_Break": -0.75,
-        "Pin_Bar_Hammer": 2.0,
-        "Piercing_Pattern": 0.5,
-        "Waterfall_Drop_Continuation": 1.8,
-        "Dark_Cloud_Cover": 1.9,
-        "Bullish_Engulfing": -1.25,
-        "Rocket_Surge_Continuation": 1.0,
-        "Bearish_Engulfing": -1.75
-    };
+  const initialDefaultWeights = {
+    "Pin_Bar_Shooting_Star": -0.5,
+    "Morning_Star_Base_Break": 0,
+    "Evening_Star_Base_Break": -0.75,
+    "Pin_Bar_Hammer": 2.0,
+    "Piercing_Pattern": 0.5,
+    "Waterfall_Drop_Continuation": 1.8,
+    "Dark_Cloud_Cover": 1.9,
+    "Bullish_Engulfing": -1.25,
+    "Rocket_Surge_Continuation": 1.0,
+    "Bearish_Engulfing": -1.75
+  };
 
-    let trades = await getTradeEventsForLearning();
-    let candleLogs = [];
+  let trades = await getTradeEventsForLearning();
+  let candleLogs = [];
 
-    try {
-        candleLogs = await CandleTrainingData.find({})
-          .sort({ eventTime: 1, createdAt: 1 })
-          .lean();
-      
-        console.log(`[Daily Learner] Candles ${candleLogs.length}.`);
-    } catch (e) {
-        console.log("[Daily Learner] Mongo read error:", e.message);
-        return;
-    }
-    
-    let weightsBySymbol = {};
-    try {
-        const sql = `
+  try {
+    candleLogs = await CandleTrainingData.find({})
+      .sort({ eventTime: 1, createdAt: 1 })
+      .lean();
+
+    console.log(`[Daily Learner] Candles ${candleLogs.length}.`);
+  } catch (e) {
+    console.log("[Daily Learner] Mongo read error:", e.message);
+    return;
+  }
+
+  let weightsBySymbol = {};
+  try {
+    const sql = `
               SELECT
                 symbol,
                 pattern_name,
@@ -403,239 +403,241 @@ async function runDailyLearning() {
                 END AS weight_score
               FROM strategy_weights
             `;
-        const result = await query(sql);
-        const rows = Array.isArray(result?.[0]) ? result[0] : result;
+    const result = await query(sql);
+    const rows = Array.isArray(result?.[0]) ? result[0] : result;
 
-        weightsBySymbol.DEFAULT = { ...initialDefaultWeights };
+    weightsBySymbol.DEFAULT = { ...initialDefaultWeights };
 
-        if (rows && rows.length) {
-          for (const row of rows) {
-            const symbol = String(row.symbol || "DEFAULT").toUpperCase();
-            if (!weightsBySymbol[symbol]) weightsBySymbol[symbol] = {};
-            weightsBySymbol[symbol][row.pattern_name] = Number(row.weight_score || 0);
-          }
-          console.log("[Daily Learner] Weights loaded from Database by symbol.");
+    if (rows && rows.length) {
+      for (const row of rows) {
+        const symbol = String(row.symbol || "DEFAULT").toUpperCase();
+        if (!weightsBySymbol[symbol]) weightsBySymbol[symbol] = {};
+        weightsBySymbol[symbol][row.pattern_name] = Number(row.weight_score || 0);
+      }
+      console.log("[Daily Learner] Weights loaded from Database by symbol.");
+    } else {
+      console.log("[Daily Learner] Database is empty.");
+    }
+  } catch (err) {
+    console.log("[Daily Learner] Get initial weights error:", err.message);
+  }
+
+  let mappedResults = [];
+  let adaptiveRows = [];
+  let openOrder = null;
+  let closeOrder = null;
+  try {
+    for (let i = 0; i < trades.length; i++) {
+      const t = trades[i];
+
+      console.log("[Daily Learner] Trade: " + JSON.stringify(t));
+
+      if (t.event_type === "OPEN_ORDER") {
+        openOrder = t;
+        continue;
+      }
+
+      if (t.event_type !== "CLOSE_ORDER" || !openOrder || t.side !== openOrder.side) {
+        closeOrder = t;
+        continue;
+      }
+
+      let matchedCandleLog = null;
+      let minDiff = 999999;
+
+      for (const cLog of candleLogs) {
+        const diff = Math.abs(Number(cLog.price || 0) - Number(openOrder.price || 0));
+        if (diff < minDiff) {
+          minDiff = diff;
+          matchedCandleLog = cLog;
+        }
+      }
+
+      console.log("[Daily Learner] Match & Diff: " + matchedCandleLog + ": " + minDiff);
+
+      if (matchedCandleLog && minDiff < 5.0) {
+        const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
+        const patternType = analysis.type !== "Unknown" ? analysis.type : analysis.pattern;
+        const triggerPattern = analysis.pattern || "NONE";
+
+        const triggerCandle =
+          matchedCandleLog.candles && matchedCandleLog.candles.length > 0
+            ? matchedCandleLog.candles[matchedCandleLog.candles.length - 1]
+            : null;
+
+        const tickVolume = triggerCandle ? Number(triggerCandle.strength || 0) : 0;
+        const isWin = Number(t.profit || 0) > 0;
+
+        const slPips = openOrder.sl
+          ? Math.round(Math.abs(Number(openOrder.price) - Number(openOrder.sl)) * 100)
+          : 0;
+
+        const tpPips = openOrder.tp
+          ? Math.round(Math.abs(Number(openOrder.tp) - Number(openOrder.price)) * 100)
+          : 0;
+
+        const rrRatio = slPips > 0 ? Number((tpPips / slPips).toFixed(4)) : 0;
+
+        let postMortem = isWin ? "TARGET_REACHED" : "STOPPED_OUT";
+        if (!isWin) {
+          if (slPips > 0 && slPips < 150) postMortem = "SL_TOO_TIGHT";
+          else if (tpPips > 500) postMortem = "TP_TOO_FAR";
         } else {
-          console.log("[Daily Learner] Database is empty.");
-        }
-      } catch (err) {
-          console.log("[Daily Learner] Get initial weights error:", err.message);
-      }
-
-    let mappedResults = [];
-    let adaptiveRows = [];
-    let openOrder = null;
-
-    try {
-        for (let i = 0; i < trades.length; i++) {
-            const t = trades[i];
-
-            console.log("[Daily Learner] Trade: " + JSON.stringify(t));
-
-            if (t.event_type === "OPEN_ORDER") {
-                openOrder = t;
-                continue;
-            }
-
-            if (t.event_type !== "CLOSE_ORDER" || !openOrder || t.side !== openOrder.side) {
-                continue;
-            }
-
-            let matchedCandleLog = null;
-            let minDiff = 999999;
-
-            for (const cLog of candleLogs) {
-                const diff = Math.abs(Number(cLog.price || 0) - Number(openOrder.price || 0));
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    matchedCandleLog = cLog;
-                }
-            }
-
-            console.log("[Daily Learner] Match & Diff: " + matchedCandleLog + ": " + minDiff);
-
-            if (matchedCandleLog && minDiff < 5.0) {
-                const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
-                const patternType = analysis.type !== "Unknown" ? analysis.type : analysis.pattern;
-                const triggerPattern = analysis.pattern || "NONE";
-
-                const triggerCandle =
-                    matchedCandleLog.candles && matchedCandleLog.candles.length > 0
-                        ? matchedCandleLog.candles[matchedCandleLog.candles.length - 1]
-                        : null;
-
-                const tickVolume = triggerCandle ? Number(triggerCandle.tick_volume || 0) : 0;
-                const isWin = Number(t.profit || 0) > 0;
-
-                const slPips = openOrder.sl
-                    ? Math.round(Math.abs(Number(openOrder.price) - Number(openOrder.sl)) * 100)
-                    : 0;
-
-                const tpPips = openOrder.tp
-                    ? Math.round(Math.abs(Number(openOrder.tp) - Number(openOrder.price)) * 100)
-                    : 0;
-
-                const rrRatio = slPips > 0 ? Number((tpPips / slPips).toFixed(4)) : 0;
-
-                let postMortem = isWin ? "TARGET_REACHED" : "STOPPED_OUT";
-                if (!isWin) {
-                    if (slPips > 0 && slPips < 150) postMortem = "SL_TOO_TIGHT";
-                    else if (tpPips > 500) postMortem = "TP_TOO_FAR";
-                } else {
-                    if (tpPips > 0 && tpPips < 150) postMortem = "SCALP_WIN";
-                }
-
-                const microTrend = analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
-                const volumeProfile = getVolumeProfile(matchedCandleLog.candles || []);
-                const prePatternShape = buildPrePatternShape(matchedCandleLog.candles || []);
-                const rangeState = getRangeState(matchedCandleLog.candles || []);
-                const sessionName = getSessionName(matchedCandleLog.timestamp);
-
-                const learningItem = {
-                    userId: openOrder.firebase_user_id || null,
-                    accountId: openOrder.account_id || null,
-                    symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
-                    timeframe: "M5",
-                    side: openOrder.side,
-                    mode: openOrder.mode || "NORMAL",
-                    triggerPattern,
-                    patternType,
-                    microTrend,
-                    volumeProfile,
-                    prePatternShape,
-                    rangeState,
-                    sessionName,
-                    slPips,
-                    tpPips,
-                    rrRatio,
-                    slBucket: bucketizePoints(slPips),
-                    tpBucket: bucketizePoints(tpPips),
-                    profit: Number(t.profit || 0),
-                    result: isWin ? "WIN" : "LOSS",
-                };
-
-                learningItem.contextHash = buildContextHash(learningItem);
-                learningItem.description = buildDescription(learningItem);
-                learningItem.exampleContext = {
-                    timestamp: matchedCandleLog.timestamp,
-                    symbol: learningItem.symbol,
-                    candles: matchedCandleLog.candles || [],
-                    triggerCandle,
-                    postMortem,
-                };
-                learningItem.notes = {
-                    postMortem,
-                    minPriceDiff: minDiff,
-                };
-
-                mappedResults.push({
-                    firebaseUserId: learningItem.userId || null,
-                    accountId: learningItem.accountId || null,
-                    eventTime: matchedCandleLog.timestamp,
-                    symbol: learningItem.symbol,
-                    patternType,
-                    triggerPattern,
-                    mode: learningItem.mode,
-                    tickVolume,
-                    microTrend,
-                    volumeProfile,
-                    prePatternShape,
-                    rangeState,
-                    sessionName,
-                    openPrice: openOrder.price,
-                    closePrice: t.price,
-                    slPrice: openOrder.sl,
-                    tpPrice: openOrder.tp,
-                    slPips,
-                    tpPips,
-                    rrRatio,
-                    profit: t.profit,
-                    result: learningItem.result,
-                    side: openOrder.side,
-                    postMortem,
-                    contextHash: learningItem.contextHash,
-                });
-
-              adaptiveRows.push(
-                {
-                    firebaseUserId: learningItem.userId,
-                    accountId: learningItem.accountId,
-                    symbol: learningItem.symbol,
-                    timeframe: "M5",
-                    patternType,
-                    side: openOrder.side,
-                    mode: learningItem.mode,
-                    sessionName,
-                    microTrend,
-                    volumeProfile,
-                    rangeState,
-                    result: learningItem.result,
-                    profit: t.profit,
-                    closedAt: t.event_time,
-              });
-
-                await upsertFailedPattern(learningItem);
-              const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
-
-              if (!weightsBySymbol[targetSymbol]) {
-                  weightsBySymbol[targetSymbol] = {};
-              }
-              
-              if (patternType !== "NONE" && patternType !== "None") {
-                  if (weightsBySymbol[targetSymbol][patternType] == null) {
-                      const defaultWeight =
-                          weightsBySymbol.DEFAULT?.[patternType] ??
-                          initialDefaultWeights?.[patternType] ??
-                          0;
-              
-                      weightsBySymbol[targetSymbol][patternType] = defaultWeight;
-                  }
-              
-                  if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
-                  else weightsBySymbol[targetSymbol][patternType] -= 0.08;
-              
-                  if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
-                      weightsBySymbol[targetSymbol][patternType] = 2.0;
-                  }
-              
-                  if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
-                      weightsBySymbol[targetSymbol][patternType] = -2.0;
-                  }
-              }
-            }
-            openOrder = null;
+          if (tpPips > 0 && tpPips < 150) postMortem = "SCALP_WIN";
         }
 
-      try {
-          const symbolEntries = Object.entries(weightsBySymbol);
-      
-          if (symbolEntries.length > 0) {
-              let savedCount = 0;
-      
-              for (const [symbol, patternMap] of symbolEntries) {
-                  const patternEntries = Object.entries(patternMap || {});
-      
-                  for (const [patternName, newWeight] of patternEntries) {
-                      await upsertStrategyWeightBySymbol(symbol, patternName, newWeight);
-                      savedCount++;
-                  }
-              }
-      
-              console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
+        const microTrend = analysis.structure ? analysis.structure.microTrend || "UNKNOWN" : "UNKNOWN";
+        const volumeProfile = getVolumeProfile(matchedCandleLog.candles || []);
+        const prePatternShape = buildPrePatternShape(matchedCandleLog.candles || []);
+        const rangeState = getRangeState(matchedCandleLog.candles || []);
+        const sessionName = getSessionName(matchedCandleLog.timestamp);
+
+        const learningItem = {
+          userId: t.firebase_user_id || null,
+          accountId: t.account_id || null,
+          symbol: openOrder.symbol || matchedCandleLog.symbol || "XAUUSD",
+          timeframe: "M5",
+          side: openOrder.side,
+          mode: openOrder.mode || "NORMAL",
+          triggerPattern,
+          patternType,
+          microTrend,
+          volumeProfile,
+          prePatternShape,
+          rangeState,
+          sessionName,
+          slPips,
+          tpPips,
+          rrRatio,
+          slBucket: bucketizePoints(slPips),
+          tpBucket: bucketizePoints(tpPips),
+          profit: Number(t.profit || 0),
+          result: isWin ? "WIN" : "LOSS",
+        };
+
+        learningItem.contextHash = buildContextHash(learningItem);
+        learningItem.description = buildDescription(learningItem);
+        learningItem.exampleContext = {
+          timestamp: matchedCandleLog.timestamp,
+          symbol: learningItem.symbol,
+          candles: matchedCandleLog.candles || [],
+          triggerCandle,
+          postMortem,
+        };
+        learningItem.notes = {
+          postMortem,
+          minPriceDiff: minDiff,
+        };
+
+        mappedResults.push({
+          firebaseUserId: learningItem.userId || null,
+          accountId: learningItem.accountId || null,
+          eventTime: matchedCandleLog.timestamp,
+          symbol: learningItem.symbol,
+          patternType,
+          triggerPattern,
+          mode: learningItem.mode,
+          tickVolume,
+          microTrend,
+          volumeProfile,
+          prePatternShape,
+          rangeState,
+          sessionName,
+          openPrice: openOrder.price,
+          closePrice: t.price,
+          slPrice: openOrder.sl,
+          tpPrice: openOrder.tp,
+          slPips,
+          tpPips,
+          rrRatio,
+          profit: t.profit,
+          result: learningItem.result,
+          side: openOrder.side,
+          postMortem,
+          contextHash: learningItem.contextHash,
+        });
+
+        adaptiveRows.push(
+          {
+            firebaseUserId: learningItem.userId,
+            accountId: learningItem.accountId,
+            symbol: learningItem.symbol,
+            timeframe: "M5",
+            patternType,
+            side: openOrder.side,
+            mode: learningItem.mode,
+            sessionName,
+            microTrend,
+            volumeProfile,
+            rangeState,
+            result: learningItem.result,
+            profit: t.profit,
+            closedAt: t.event_time,
+          });
+
+        await upsertFailedPattern(learningItem);
+        const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
+
+        if (!weightsBySymbol[targetSymbol]) {
+          weightsBySymbol[targetSymbol] = {};
+        }
+
+        if (patternType !== "NONE" && patternType !== "None") {
+          if (weightsBySymbol[targetSymbol][patternType] == null) {
+            const defaultWeight =
+              weightsBySymbol.DEFAULT?.[patternType] ??
+              initialDefaultWeights?.[patternType] ??
+              0;
+
+            weightsBySymbol[targetSymbol][patternType] = defaultWeight;
           }
-      } catch (err) {
-          console.error("[Daily Learner] Save weights to DB error:", err.message);
-      }
 
-        await insertManyMappedTradeAnalysis(mappedResults);
-        await updateAdaptiveScoreStats(adaptiveRows);
-    } catch (err) {
-        console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
+          if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
+          else weightsBySymbol[targetSymbol][patternType] -= 0.08;
+
+          if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
+            weightsBySymbol[targetSymbol][patternType] = 2.0;
+          }
+
+          if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
+            weightsBySymbol[targetSymbol][patternType] = -2.0;
+          }
+        }
+      }
+      openOrder = null;
     }
 
-    console.log(`[Daily Learner] Mapped ${mappedResults.length} completed trades.`);
-    // console.log(`[Daily Learner] Wegiht ${JSON.stringify(weightsBySymbol, null, 2)} completed trades.`);
-    console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
+    try {
+      const symbolEntries = Object.entries(weightsBySymbol);
+
+      if (symbolEntries.length > 0) {
+        let savedCount = 0;
+
+        for (const [symbol, patternMap] of symbolEntries) {
+          const patternEntries = Object.entries(patternMap || {});
+
+          for (const [patternName, newWeight] of patternEntries) {
+            await upsertStrategyWeightBySymbol(symbol, patternName, newWeight);
+            savedCount++;
+          }
+        }
+
+        console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
+      }
+    } catch (err) {
+      console.error("[Daily Learner] Save weights to DB error:", err.message);
+    }
+
+    await updateAdaptiveScoreStats(adaptiveRows);
+    await insertManyMappedTradeAnalysis(mappedResults);
+    
+  } catch (err) {
+    console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
+  }
+
+  console.log(`[Daily Learner] Mapped ${JSON.stringify(mappedResults)} completed trades.`);
+  // console.log(`[Daily Learner] Wegiht ${JSON.stringify(weightsBySymbol, null, 2)} completed trades.`);
+  console.log("[Daily Learner] Contextual learning updated failed_patterns in MySQL.");
 }
 
 async function upsertStrategyWeightBySymbol(symbol, patternName, weightScore) {
@@ -766,9 +768,9 @@ async function updateAdaptiveScoreStats(rows = []) {
 }
 
 if (require.main === module) {
-    runDailyLearning().catch((err) => {
-        console.error("[Daily Learner] Fatal error:", err.message);
-    });
+  runDailyLearning().catch((err) => {
+    console.error("[Daily Learner] Fatal error:", err.message);
+  });
 }
 
 module.exports = { runDailyLearning };

@@ -11,6 +11,11 @@
  * - ใช้ mode / tpPoints / slPoints ช่วยตัดสินใจ
  */
 
+function isGoldSymbol(symbol = "") {
+  const s = String(symbol || "").toUpperCase();
+  return s === "XAUUSD" || s === "XAUUSDM" || s === "XAUUSDm";
+}
+
 function toNumber(v, d = 0) {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
@@ -281,6 +286,40 @@ function detectReversalScore(candles, side, mode = "NORMAL") {
   return Math.max(0, Number(score.toFixed(2)));
 }
 
+function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
+  const upperMode = String(mode || "NORMAL").toUpperCase();
+
+  if (isGoldSymbol(symbol)) {
+    return upperMode === "SCALP" ? 15 : 35;
+  }
+
+  if (String(symbol || "").toUpperCase().includes("BTC")) {
+    return upperMode === "SCALP" ? 10 : 30;
+  }
+
+  return upperMode === "SCALP" ? 10 : 30;
+}
+
+function shouldTakeProfitOnLowVolume({
+  symbol = "",
+  mode = "NORMAL",
+  historicalVolumeSignal = null,
+  holdingMinutes = 0,
+  currentProfit = 0,
+}) {
+  if (String(historicalVolumeSignal || "").toUpperCase() !== "LOW_VOLUME") {
+    return false;
+  }
+
+  if (toNumberSafe(currentProfit, 0) <= 0) {
+    return false;
+  }
+
+  const minHoldMinutes = getLowVolumeProfitHoldLimitMinutes({ mode, symbol });
+
+  return toNumber(holdingMinutes, 0) >= minHoldMinutes;
+}
+
 function analyzeEarlyExit({
   firebaseUserId,
   openPosition,
@@ -290,6 +329,8 @@ function analyzeEarlyExit({
   mode = "NORMAL",
   tpPoints = 0,
   slPoints = 0,
+  historicalVolume = null,
+  holdingMinutes = 0,
 }) {
   if (!openPosition || !openPosition.side) {
     return {
@@ -309,6 +350,7 @@ function analyzeEarlyExit({
     };
   }
 
+  const historicalVolumeSignal = historicalVolume?.signal || null;
   const side = String(openPosition.side || "").toUpperCase();
   const normalizedMode = normalizeMode(mode || openPosition.mode || "NORMAL");
   const profile = getExitProfile(normalizedMode);
@@ -402,6 +444,23 @@ function analyzeEarlyExit({
         score: adjustedScore
       };
     }
+  }
+
+  if (
+    shouldTakeProfitOnLowVolume({
+      symbol,
+      mode,
+      historicalVolumeSignal,
+      holdingMinutes,
+      currentProfit,
+    })
+  ) {
+    return {
+      action: "TAKE_SMALL_PROFIT",
+      reason: `LOW_VOLUME_HOLD_TOO_LONG (${holdingMinutes}m)`,
+      riskLevel,
+      score: adjustedScore,
+    };
   }
 
   // 3) TAKE SMALL PROFIT
