@@ -459,7 +459,7 @@ async function analyzeEarlyExit({
 
   let result = {};
   // 1) CUT LOSS NOW
-  // if (profit < 0) {
+  if (profit < 0) {
     if (riskLevel === "CRITICAL" && adjustedScore >= 2.2) {
       return {
         action: "CUT_LOSS_NOW",
@@ -486,10 +486,10 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  // }
+  }
 
   // 2) MOVE TO BE ก่อน
-  // if (profit > 0) {
+  if (profit > 0) {
     const moveToBe = shouldMoveToBreakeven(
       openPosition,
       profit,
@@ -507,7 +507,7 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  // }
+  }
 
   if (
     shouldTakeProfitOnLowVolume({
@@ -527,7 +527,7 @@ async function analyzeEarlyExit({
   }
 
   // 3) TAKE SMALL PROFIT
-  // if (profit > 0) {
+  if (profit > 0) {
     const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
 
     // CRITICAL: ยอมออกได้เร็วกว่า
@@ -583,10 +583,10 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  // }
+  }
 
   // 4) WAIT FOR SMALL BOUNCE
-  // if (profit <= 0) {
+  if (profit <= 0) {
     if (
       riskLevel === "HIGH" ||
       (riskLevel === "MEDIUM" && adjustedScore >= profile.mediumBounceThreshold)
@@ -598,7 +598,7 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
-  // }
+  }
 
   return {
     action: "HOLD",
