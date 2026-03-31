@@ -271,6 +271,101 @@ function mapMicroScoreToMainScore(microScore, side) {
   return String(side || "").toUpperCase() === "SELL" ? -rounded : rounded;
 }
 
+function toNum(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function getLastCandle(candles = [], indexFromEnd = 1) {
+  if (!Array.isArray(candles) || candles.length < indexFromEnd) return null;
+  return candles[candles.length - indexFromEnd] || null;
+}
+
+function getBodySize(candle = {}) {
+  return Math.abs(toNum(candle.close) - toNum(candle.open));
+}
+
+function isBullish(candle = {}) {
+  return toNum(candle.close) > toNum(candle.open);
+}
+
+function isBearish(candle = {}) {
+  return toNum(candle.close) < toNum(candle.open);
+}
+
+function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
+  const c1 = getLastCandle(candles, 1);
+  const c2 = getLastCandle(candles, 2);
+  const c3 = getLastCandle(candles, 3);
+
+  if (!c1 || !c2 || !c3) {
+    return {
+      profile: "DEFAULT",
+      retraceMultiplier: mode === "SCALP" ? 0.55 : 0.80
+    };
+  }
+
+  const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
+
+  // continuation: แท่งก่อนหน้าเป็น pullback เล็ก แล้วแท่งล่าสุดไปต่อ
+  const sellContinuation =
+    isBullish(c2) &&
+    getBodySize(c2) < getBodySize(c3) * 0.8 &&
+    isBearish(c1) &&
+    toNum(c1.low) < toNum(c2.low);
+
+  const buyContinuation =
+    isBearish(c2) &&
+    getBodySize(c2) < getBodySize(c3) * 0.8 &&
+    isBullish(c1) &&
+    toNum(c1.high) > toNum(c2.high);
+
+  // reversal: ยังไม่ใช่ continuation ชัด แต่เพิ่งเริ่มกลับตัว
+  const sellReversal =
+    isBearish(c1) &&
+    toNum(c1.close) < toNum(c2.close) &&
+    !sellContinuation;
+
+  const buyReversal =
+    isBullish(c1) &&
+    toNum(c1.close) > toNum(c2.close) &&
+    !buyContinuation;
+
+  // trend continuation ควรรอย่อตื้นกว่า reversal
+  if (side === "SELL" && sellContinuation) {
+    return {
+      profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
+      retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
+    };
+  }
+
+  if (side === "BUY" && buyContinuation) {
+    return {
+      profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
+      retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
+    };
+  }
+
+  if (side === "SELL" && sellReversal) {
+    return {
+      profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
+      retraceMultiplier: scalpMode ? 0.38 : 0.48
+    };
+  }
+
+  if (side === "BUY" && buyReversal) {
+    return {
+      profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
+      retraceMultiplier: scalpMode ? 0.38 : 0.48
+    };
+  }
+
+  return {
+    profile: "DEFAULT",
+    retraceMultiplier: scalpMode ? 0.50 : 0.72
+  };
+}
+
 function buildTradeSetupFromPattern({
   side,
   price,
@@ -331,33 +426,80 @@ function buildTradeSetupFromPattern({
   }
 
   // Calculate Retracement
-  retracePoints = Math.round(avgRange * 0.85);
+  // retracePoints = Math.round(avgRange * 0.85);
 
-  if (signalStrength >= 6) {
-    retracePoints = Math.round(retracePoints * 0.35);
-  } else if (signalStrength >= 4) {
-    retracePoints = Math.round(retracePoints * 0.60);
-  } else if (signalStrength >= 2) {
-    retracePoints = Math.round(retracePoints * 0.90);
-  } else {
-    retracePoints = Math.round(retracePoints * 1.20);
-  }
+  // if (signalStrength >= 6) {
+  //   retracePoints = Math.round(retracePoints * 0.35);
+  // } else if (signalStrength >= 4) {
+  //   retracePoints = Math.round(retracePoints * 0.60);
+  // } else if (signalStrength >= 2) {
+  //   retracePoints = Math.round(retracePoints * 0.90);
+  // } else {
+  //   retracePoints = Math.round(retracePoints * 1.20);
+  // }
 
-  if (pattern?.isVolumeClimax) {
-    retracePoints = Math.round(retracePoints * 0.80);
-  }
+  // if (pattern?.isVolumeClimax) {
+  //   retracePoints = Math.round(retracePoints * 0.80);
+  // }
 
-  if (pattern?.isVolumeDrying) {
-    retracePoints = Math.round(retracePoints * 1.15);
-  }
+  // if (pattern?.isVolumeDrying) {
+  //   retracePoints = Math.round(retracePoints * 1.15);
+  // }
 
-  const maxRetraceBySL = Math.round(slPoints * 0.4);
-  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+  // const maxRetraceBySL = Math.round(slPoints * 0.4);
+  // if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
 
-  const minR = 20 * (mult / 100);
-  const maxR = 200 * (mult / 100);
-  if (retracePoints < minR) retracePoints = minR;
-  if (retracePoints > maxR) retracePoints = maxR;
+  // const minR = 20 * (mult / 100);
+  // const maxR = 200 * (mult / 100);
+  // if (retracePoints < minR) retracePoints = minR;
+  // if (retracePoints > maxR) retracePoints = maxR;
+
+    // Calculate Retracement (context-aware)
+    const detectedMode =
+      String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
+      (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
+
+    const retraceProfile = detectRetracementProfile({
+      side,
+      candles,
+      signalStrength,
+      mode: detectedMode
+    });
+
+    retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+
+    // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
+    if (pattern?.isVolumeClimax) {
+      retracePoints = Math.round(retracePoints * 0.85);
+    }
+
+    // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
+    if (pattern?.isVolumeDrying) {
+      retracePoints = Math.round(retracePoints * 1.08);
+    }
+
+    // defensive warning = รอย่อลึกขึ้นเล็กน้อย
+    if (defensiveFlags?.warningMatched) {
+      retracePoints = Math.round(retracePoints * 1.08);
+    }
+
+    // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
+    const maxRetraceBySL = Math.round(slPoints * 0.33);
+    if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+    // minimum / maximum ตาม mode
+    const minR =
+      detectedMode === "SCALP"
+        ? Math.round(12 * (mult / 100))
+        : Math.round(20 * (mult / 100));
+
+    const maxR =
+      detectedMode === "SCALP"
+        ? Math.round(120 * (mult / 100))
+        : Math.round(200 * (mult / 100));
+
+    if (retracePoints < minR) retracePoints = minR;
+    if (retracePoints > maxR) retracePoints = maxR;
 
   if (balance && balance > 0) {
     const riskPercent = calculateDynamicRisk(
