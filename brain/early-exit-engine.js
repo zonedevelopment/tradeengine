@@ -527,63 +527,63 @@ async function analyzeEarlyExit({
   }
 
   // 3) TAKE SMALL PROFIT
-  if (profit > 0) {
-    const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
+  // if (profit > 0) {
+  //   const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
 
-    // CRITICAL: ยอมออกได้เร็วกว่า
-    if (
-      riskLevel === "CRITICAL" &&
-      profit >= profile.minProfitToProtect
-    ) {
-      return {
-        action: "TAKE_SMALL_PROFIT",
-        reason: "Critical risk but position is profitable",
-        riskLevel,
-        score: adjustedScore
-      };
-    }
+  //   // CRITICAL: ยอมออกได้เร็วกว่า
+  //   if (
+  //     riskLevel === "CRITICAL" &&
+  //     profit >= profile.minProfitToProtect
+  //   ) {
+  //     return {
+  //       action: "TAKE_SMALL_PROFIT",
+  //       reason: "Critical risk but position is profitable",
+  //       riskLevel,
+  //       score: adjustedScore
+  //     };
+  //   }
 
-    // HIGH: ต้องได้กำไรมากขึ้นก่อน
-    if (
-      riskLevel === "HIGH" &&
-      profit >= profile.minProfitForHighRiskExit &&
-      adjustedScore >= 2.8
-    ) {
-      return {
-        action: "TAKE_SMALL_PROFIT",
-        reason: "High risk, secure small profit",
-        riskLevel,
-        score: adjustedScore
-      };
-    }
+  //   // HIGH: ต้องได้กำไรมากขึ้นก่อน
+  //   if (
+  //     riskLevel === "HIGH" &&
+  //     profit >= profile.minProfitForHighRiskExit &&
+  //     adjustedScore >= 2.8
+  //   ) {
+  //     return {
+  //       action: "TAKE_SMALL_PROFIT",
+  //       reason: "High risk, secure small profit",
+  //       riskLevel,
+  //       score: adjustedScore
+  //     };
+  //   }
 
-    // Reversal ชัดจริง + กำไรถึงขั้นต่ำ
-    if (
-      adjustedScore >= profile.strongReversalThresholdProfit &&
-      profit >= profile.minProfitForStrongReversalExit
-    ) {
-      return {
-        action: "TAKE_SMALL_PROFIT",
-        reason: "Strong reversal detected with enough profit",
-        riskLevel,
-        score: adjustedScore
-      };
-    }
+  //   // Reversal ชัดจริง + กำไรถึงขั้นต่ำ
+  //   if (
+  //     adjustedScore >= profile.strongReversalThresholdProfit &&
+  //     profit >= profile.minProfitForStrongReversalExit
+  //   ) {
+  //     return {
+  //       action: "TAKE_SMALL_PROFIT",
+  //       reason: "Strong reversal detected with enough profit",
+  //       riskLevel,
+  //       score: adjustedScore
+  //     };
+  //   }
 
-    // ถ้าไปได้ไกลจาก entry พอสมควรแล้วและเริ่มมี reversal ชัด
-    if (
-      progress.progressToTarget >= 0.55 &&
-      adjustedScore >= 3.2 &&
-      profit >= profile.minProfitToProtect
-    ) {
-      return {
-        action: "TAKE_SMALL_PROFIT",
-        reason: "Trade already progressed well, protect profit",
-        riskLevel,
-        score: adjustedScore
-      };
-    }
-  }
+  //   // ถ้าไปได้ไกลจาก entry พอสมควรแล้วและเริ่มมี reversal ชัด
+  //   if (
+  //     progress.progressToTarget >= 0.55 &&
+  //     adjustedScore >= 3.2 &&
+  //     profit >= profile.minProfitToProtect
+  //   ) {
+  //     return {
+  //       action: "TAKE_SMALL_PROFIT",
+  //       reason: "Trade already progressed well, protect profit",
+  //       riskLevel,
+  //       score: adjustedScore
+  //     };
+  //   }
+  // }
 
   // 4) WAIT FOR SMALL BOUNCE
   if (profit <= 0) {
