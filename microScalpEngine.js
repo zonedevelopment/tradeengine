@@ -321,10 +321,10 @@ function detectScalpContinuationSetup(candles = []) {
   const c2 = candles[candles.length - 2]; // pullback candle
   const c3 = candles[candles.length - 3]; // impulse candle
 
-  const c1Bull = toNum(c1.close) > toNum(c1.open);
-  const c1Bear = toNum(c1.close) < toNum(c1.open);
-  const c2Bull = toNum(c2.close) > toNum(c2.open);
-  const c2Bear = toNum(c2.close) < toNum(c2.open);
+  const c1Bull = toNumber(c1.close) > toNumber(c1.open);
+  const c1Bear = toNumber(c1.close) < toNumber(c1.open);
+  const c2Bull = toNumber(c2.close) > toNumber(c2.open);
+  const c2Bear = toNumber(c2.close) < toNumber(c2.open);
 
   const pullbackDepth = getPullbackDepthRatio(c3, c2);
 
@@ -337,7 +337,7 @@ function detectScalpContinuationSetup(candles = []) {
 
   // BUY continuation:
   // c3 แรงขึ้น -> c2 ย่อลง -> c1 กลับขึ้นและทะลุ high ของ c2
-  if (c2Bear && c1Bull && toNum(c1.high) > toNum(c2.high)) {
+  if (c2Bear && c1Bull && toNumber(c1.high) > toNumber(c2.high)) {
     if (shallowPullback) {
       buy = { valid: true, score: 18, reason: "BUY_CONTINUATION_SHALLOW_PULLBACK" };
     } else if (mediumPullback) {
@@ -349,7 +349,7 @@ function detectScalpContinuationSetup(candles = []) {
 
   // SELL continuation:
   // c3 แรงลง -> c2 ย่อขึ้น -> c1 กลับลงและทะลุ low ของ c2
-  if (c2Bull && c1Bear && toNum(c1.low) < toNum(c2.low)) {
+  if (c2Bull && c1Bear && toNumber(c1.low) < toNumber(c2.low)) {
     if (shallowPullback) {
       sell = { valid: true, score: 18, reason: "SELL_CONTINUATION_SHALLOW_PULLBACK" };
     } else if (mediumPullback) {
