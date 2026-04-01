@@ -72,7 +72,7 @@ function candleRange(c) {
 }
 
 function candleBody(c = {}) {
-  return Math.abs(toNum(c.close) - toNum(c.open));
+  return Math.abs(toNumber(c.close) - toNumber(c.open));
 }
 
 function upperWick(c) {
@@ -412,12 +412,12 @@ function calculateEntryTimingScore(candles = []) {
   }
 
   // breakout follow-through
-  if (toNum(c1.close) > toNum(c2.high) && toNum(c2.high) > toNum(c3.high)) {
+  if (toNumber(c1.close) > toNumber(c2.high) && toNumber(c2.high) > toNumber(c3.high)) {
     buy += 6;
     reasons.push("BUY_BREAKOUT_FOLLOW_THROUGH");
   }
 
-  if (toNum(c1.close) < toNum(c2.low) && toNum(c2.low) < toNum(c3.low)) {
+  if (toNumber(c1.close) < toNumber(c2.low) && toNumber(c2.low) < toNumber(c3.low)) {
     sell += 6;
     reasons.push("SELL_BREAKDOWN_FOLLOW_THROUGH");
   }
