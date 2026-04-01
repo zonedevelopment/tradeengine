@@ -8,6 +8,10 @@ const {
 
 const { findAdaptiveScoreRule } = require("../adaptiveScore.repo");
 
+const {
+  enforceDirectionBiasOnDecision,
+} = require("../tradingPreferences.service");
+
 function toNumber(value, fallback = 0) {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
@@ -865,7 +869,27 @@ function decision(evaluation, symbol) {
   return "NO_TRADE";
 }
 
+function resolveDecisionWithTradingPreferences(
+  evaluation,
+  symbol,
+  options = {}
+) {
+  const rawDecision = decision(evaluation, symbol);
+
+  const directionResult = enforceDirectionBiasOnDecision(
+    rawDecision,
+    options.tradingPreferences
+  );
+
+  return {
+    decision: directionResult.decision,
+    reason: directionResult.reason,
+    blocked: directionResult.blocked,
+  };
+}
+
 module.exports = {
   evaluateDecision,
   decision,
+  resolveDecisionWithTradingPreferences
 };

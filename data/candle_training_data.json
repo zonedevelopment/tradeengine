@@ -165484,5 +165484,3749 @@
         "tick_volume": 679
       }
     ]
+  },
+  {
+    "timestamp": "2026-04-01T17:18:35.141Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4782.979,
+    "candles": [
+      {
+        "open": 4779.93,
+        "close": 4776.641,
+        "high": 4779.994,
+        "low": 4774.603,
+        "tick_volume": 1010
+      },
+      {
+        "open": 4776.711,
+        "close": 4782.423,
+        "high": 4783.13,
+        "low": 4775.119,
+        "tick_volume": 1096
+      },
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:20:00.069Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4785.533,
+    "candles": [
+      {
+        "open": 4776.711,
+        "close": 4782.423,
+        "high": 4783.13,
+        "low": 4775.119,
+        "tick_volume": 1096
+      },
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:21:35.393Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4787.966,
+    "candles": [
+      {
+        "open": 4776.711,
+        "close": 4782.423,
+        "high": 4783.13,
+        "low": 4775.119,
+        "tick_volume": 1096
+      },
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:24:35.463Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4787.785,
+    "candles": [
+      {
+        "open": 4776.711,
+        "close": 4782.423,
+        "high": 4783.13,
+        "low": 4775.119,
+        "tick_volume": 1096
+      },
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:25:00.174Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4787.315,
+    "candles": [
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:27:35.095Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4785.662,
+    "candles": [
+      {
+        "open": 4782.202,
+        "close": 4780.868,
+        "high": 4784.898,
+        "low": 4780.674,
+        "tick_volume": 884
+      },
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:30:00.079Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4784.987,
+    "candles": [
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:30:35.093Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4785.407,
+    "candles": [
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:33:35.150Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4784.372,
+    "candles": [
+      {
+        "open": 4780.851,
+        "close": 4784.366,
+        "high": 4784.366,
+        "low": 4780.623,
+        "tick_volume": 772
+      },
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:35:00.179Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4779.743,
+    "candles": [
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:36:35.164Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4780.064,
+    "candles": [
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:39:35.301Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4781.52,
+    "candles": [
+      {
+        "open": 4784.033,
+        "close": 4783.723,
+        "high": 4785.045,
+        "low": 4783.049,
+        "tick_volume": 603
+      },
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:40:00.224Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4782.345,
+    "candles": [
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:42:35.346Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4783.221,
+    "candles": [
+      {
+        "open": 4783.919,
+        "close": 4783.525,
+        "high": 4784.885,
+        "low": 4781.64,
+        "tick_volume": 622
+      },
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:45:00.239Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4781.87,
+    "candles": [
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:45:35.382Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4782.552,
+    "candles": [
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:48:35.582Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4780.32,
+    "candles": [
+      {
+        "open": 4783.361,
+        "close": 4787.104,
+        "high": 4788.404,
+        "low": 4782.798,
+        "tick_volume": 702
+      },
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:50:00.114Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4780.153,
+    "candles": [
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:51:35.322Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4781.053,
+    "candles": [
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:54:35.863Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4779.821,
+    "candles": [
+      {
+        "open": 4787.252,
+        "close": 4788.875,
+        "high": 4791.994,
+        "low": 4786.374,
+        "tick_volume": 1008
+      },
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:55:01.064Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4779.614,
+    "candles": [
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T17:57:35.115Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4775.63,
+    "candles": [
+      {
+        "open": 4788.817,
+        "close": 4790.964,
+        "high": 4792.885,
+        "low": 4788.386,
+        "tick_volume": 826
+      },
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:00:00.228Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4774.39,
+    "candles": [
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:00:35.607Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4772.129,
+    "candles": [
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:03:33.870Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4766.105,
+    "candles": [
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:03:35.121Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4766.43,
+    "candles": [
+      {
+        "open": 4790.636,
+        "close": 4788.499,
+        "high": 4791.433,
+        "low": 4787.966,
+        "tick_volume": 716
+      },
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:05:01.444Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4764.089,
+    "candles": [
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:06:34.645Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4772.504,
+    "candles": [
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:06:35.226Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4772.427,
+    "candles": [
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:09:35.142Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4766.623,
+    "candles": [
+      {
+        "open": 4788.627,
+        "close": 4785.497,
+        "high": 4789.169,
+        "low": 4782.312,
+        "tick_volume": 967
+      },
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:10:01.074Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4767.041,
+    "candles": [
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:12:35.210Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4770.419,
+    "candles": [
+      {
+        "open": 4785.533,
+        "close": 4787.435,
+        "high": 4788.156,
+        "low": 4784.04,
+        "tick_volume": 912
+      },
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:15:00.258Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4771.161,
+    "candles": [
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:15:35.069Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4768.882,
+    "candles": [
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:18:35.521Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4763.14,
+    "candles": [
+      {
+        "open": 4787.315,
+        "close": 4785.089,
+        "high": 4790.493,
+        "low": 4784.135,
+        "tick_volume": 1407
+      },
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:20:00.459Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4762.353,
+    "candles": [
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:21:35.077Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4756.587,
+    "candles": [
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:24:35.075Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4754.914,
+    "candles": [
+      {
+        "open": 4784.987,
+        "close": 4779.609,
+        "high": 4785.985,
+        "low": 4779.029,
+        "tick_volume": 1150
+      },
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:25:00.173Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4755.792,
+    "candles": [
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:27:35.334Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4759.563,
+    "candles": [
+      {
+        "open": 4779.743,
+        "close": 4782.258,
+        "high": 4782.773,
+        "low": 4775.774,
+        "tick_volume": 1281
+      },
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:30:00.168Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4754.172,
+    "candles": [
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:30:35.360Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4757.811,
+    "candles": [
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:33:35.603Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4757.998,
+    "candles": [
+      {
+        "open": 4782.345,
+        "close": 4781.899,
+        "high": 4784.744,
+        "low": 4781.345,
+        "tick_volume": 793
+      },
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:35:00.131Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4755.908,
+    "candles": [
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      },
+      {
+        "open": 4754.172,
+        "close": 4755.74,
+        "high": 4761.121,
+        "low": 4754.172,
+        "tick_volume": 1630
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:36:35.063Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4748.598,
+    "candles": [
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      },
+      {
+        "open": 4754.172,
+        "close": 4755.74,
+        "high": 4761.121,
+        "low": 4754.172,
+        "tick_volume": 1630
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:39:35.267Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4745.133,
+    "candles": [
+      {
+        "open": 4781.87,
+        "close": 4780.227,
+        "high": 4783.285,
+        "low": 4779.011,
+        "tick_volume": 769
+      },
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      },
+      {
+        "open": 4754.172,
+        "close": 4755.74,
+        "high": 4761.121,
+        "low": 4754.172,
+        "tick_volume": 1630
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:40:00.103Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4748.843,
+    "candles": [
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      },
+      {
+        "open": 4754.172,
+        "close": 4755.74,
+        "high": 4761.121,
+        "low": 4754.172,
+        "tick_volume": 1630
+      },
+      {
+        "open": 4755.908,
+        "close": 4748.925,
+        "high": 4756.202,
+        "low": 4741.975,
+        "tick_volume": 2997
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-04-01T18:41:12.585Z",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "price": 4758.404,
+    "candles": [
+      {
+        "open": 4780.153,
+        "close": 4779.609,
+        "high": 4781.577,
+        "low": 4778.012,
+        "tick_volume": 932
+      },
+      {
+        "open": 4779.668,
+        "close": 4774.416,
+        "high": 4780.131,
+        "low": 4773.501,
+        "tick_volume": 1102
+      },
+      {
+        "open": 4774.39,
+        "close": 4764.105,
+        "high": 4775.203,
+        "low": 4759.253,
+        "tick_volume": 2700
+      },
+      {
+        "open": 4764.226,
+        "close": 4767.147,
+        "high": 4774.442,
+        "low": 4763.602,
+        "tick_volume": 1890
+      },
+      {
+        "open": 4767.145,
+        "close": 4771.222,
+        "high": 4772.87,
+        "low": 4767.041,
+        "tick_volume": 1210
+      },
+      {
+        "open": 4771.161,
+        "close": 4762.38,
+        "high": 4771.781,
+        "low": 4759.526,
+        "tick_volume": 1594
+      },
+      {
+        "open": 4762.353,
+        "close": 4755.718,
+        "high": 4764.583,
+        "low": 4753.036,
+        "tick_volume": 2266
+      },
+      {
+        "open": 4755.792,
+        "close": 4754.113,
+        "high": 4759.71,
+        "low": 4753.572,
+        "tick_volume": 2111
+      },
+      {
+        "open": 4754.172,
+        "close": 4755.74,
+        "high": 4761.121,
+        "low": 4754.172,
+        "tick_volume": 1630
+      },
+      {
+        "open": 4755.908,
+        "close": 4748.925,
+        "high": 4756.202,
+        "low": 4741.975,
+        "tick_volume": 2997
+      }
+    ]
   }
 ]

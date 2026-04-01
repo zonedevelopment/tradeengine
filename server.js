@@ -13,7 +13,11 @@ const { sendTelegram } = require("./telegram");
 const { analyzePerformance } = require("./performance/performance-analyzer");
 const { runDailyLearning } = require("./performance/daily-learner");
 const { analyzeEarlyExit } = require("./brain/early-exit-engine");
-const { evaluateDecision, decision } = require("./brain/decision-engine");
+const {
+  evaluateDecision,
+  decision,
+  resolveDecisionWithTradingPreferences,
+} = require("./brain/decision-engine");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
@@ -64,6 +68,7 @@ const {
 const {
   syncActivePositionsToMongo,
   getActivePositionsByUserAndSymbol,
+  countOpenPositionsByUserAccountAndSymbol
 } = require("./activePosition.mongo.repo");
 
 const {
@@ -75,9 +80,15 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 
-const { trace } = require("console");
-
 const microScalpEngine = require("./microScalpEngine");
+
+const { getUserTradingPreferences } = require("./userTradingPreferences.repo");
+const {
+  normalizeTradingPreferences,
+  enforceDirectionBiasOnDecision,
+  isMaxOpenPositionsReached,
+  isOpenDecision,
+} = require("./tradingPreferences.service");
 
 const MICRO_SCALP_CONFIG = {
   enabled: true,
@@ -376,6 +387,7 @@ function buildTradeSetupFromPattern({
   activeCfg,
   score,
   defensiveFlags,
+  userMaxLotCap
 }) {
   let slPoints = 500;
   let tpPoints = 800;
@@ -425,81 +437,52 @@ function buildTradeSetupFromPattern({
     }
   }
 
-  // Calculate Retracement
-  // retracePoints = Math.round(avgRange * 0.85);
+  // Calculate Retracement (context-aware)
+  const detectedMode =
+    String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
+    (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
 
-  // if (signalStrength >= 6) {
-  //   retracePoints = Math.round(retracePoints * 0.35);
-  // } else if (signalStrength >= 4) {
-  //   retracePoints = Math.round(retracePoints * 0.60);
-  // } else if (signalStrength >= 2) {
-  //   retracePoints = Math.round(retracePoints * 0.90);
-  // } else {
-  //   retracePoints = Math.round(retracePoints * 1.20);
-  // }
+  const retraceProfile = detectRetracementProfile({
+    side,
+    candles,
+    signalStrength,
+    mode: detectedMode
+  });
 
-  // if (pattern?.isVolumeClimax) {
-  //   retracePoints = Math.round(retracePoints * 0.80);
-  // }
+  retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
 
-  // if (pattern?.isVolumeDrying) {
-  //   retracePoints = Math.round(retracePoints * 1.15);
-  // }
+  // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
+  if (pattern?.isVolumeClimax) {
+    retracePoints = Math.round(retracePoints * 0.85);
+  }
 
-  // const maxRetraceBySL = Math.round(slPoints * 0.4);
-  // if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+  // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
+  if (pattern?.isVolumeDrying) {
+    retracePoints = Math.round(retracePoints * 1.08);
+  }
 
-  // const minR = 20 * (mult / 100);
-  // const maxR = 200 * (mult / 100);
-  // if (retracePoints < minR) retracePoints = minR;
-  // if (retracePoints > maxR) retracePoints = maxR;
+  // defensive warning = รอย่อลึกขึ้นเล็กน้อย
+  if (defensiveFlags?.warningMatched) {
+    retracePoints = Math.round(retracePoints * 1.08);
+  }
 
-    // Calculate Retracement (context-aware)
-    const detectedMode =
-      String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
-      (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
+  // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
+  const maxRetraceBySL = Math.round(slPoints * 0.33);
+  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
 
-    const retraceProfile = detectRetracementProfile({
-      side,
-      candles,
-      signalStrength,
-      mode: detectedMode
-    });
+  // minimum / maximum ตาม mode
+  const minR =
+    detectedMode === "SCALP"
+      ? Math.round(12 * (mult / 100))
+      : Math.round(20 * (mult / 100));
 
-    retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+  const maxR =
+    detectedMode === "SCALP"
+      ? Math.round(120 * (mult / 100))
+      : Math.round(200 * (mult / 100));
 
-    // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
-    if (pattern?.isVolumeClimax) {
-      retracePoints = Math.round(retracePoints * 0.85);
-    }
-
-    // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
-    if (pattern?.isVolumeDrying) {
-      retracePoints = Math.round(retracePoints * 1.08);
-    }
-
-    // defensive warning = รอย่อลึกขึ้นเล็กน้อย
-    if (defensiveFlags?.warningMatched) {
-      retracePoints = Math.round(retracePoints * 1.08);
-    }
-
-    // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
-    const maxRetraceBySL = Math.round(slPoints * 0.33);
-    if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
-
-    // minimum / maximum ตาม mode
-    const minR =
-      detectedMode === "SCALP"
-        ? Math.round(12 * (mult / 100))
-        : Math.round(20 * (mult / 100));
-
-    const maxR =
-      detectedMode === "SCALP"
-        ? Math.round(120 * (mult / 100))
-        : Math.round(200 * (mult / 100));
-
-    if (retracePoints < minR) retracePoints = minR;
-    if (retracePoints > maxR) retracePoints = maxR;
+  if (retracePoints < minR) retracePoints = minR;
+  if (retracePoints > maxR) retracePoints = maxR;
 
   if (balance && balance > 0) {
     const riskPercent = calculateDynamicRisk(
@@ -544,6 +527,16 @@ function buildTradeSetupFromPattern({
   if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
   if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
 
+  const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+
+  if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
+    lotSize = Number(safeUserMaxLotCap.toFixed(2));
+
+    if (lotSize < 0.01) {
+      lotSize = 0.01;
+    }
+  }
+
   return {
     recommended_lot: lotSize,
     sl_points: slPoints,
@@ -559,6 +552,7 @@ function buildMicroFallbackResponse({
   pattern,
   historicalVolume,
   activeCfg,
+  tradingPreferences
 }) {
   const side = String(reqBody.side || "").toUpperCase();
   const microSignal = String(microResult.signal || "").toUpperCase();
@@ -588,6 +582,7 @@ function buildMicroFallbackResponse({
     activeCfg,
     score,
     defensiveFlags,
+    userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0)
   });
 
   return {
@@ -603,6 +598,33 @@ function buildMicroFallbackResponse({
     historicalVolume,
     defensiveFlags,
     trade_setup,
+  };
+}
+
+function buildBlockedSignalResponse({
+  reason,
+  score = 0,
+  firebaseUserId = null,
+  mode = "NORMAL",
+  trend = "NEUTRAL",
+  pattern = null,
+  historicalVolume = null,
+  defensiveFlags = null,
+  trade_setup = null,
+  currentOpenPositionsCount = 0,
+}) {
+  return {
+    decision: "NO_TRADE",
+    reason,
+    score,
+    firebaseUserId,
+    mode,
+    trend,
+    pattern,
+    historicalVolume,
+    defensiveFlags,
+    trade_setup,
+    currentOpenPositionsCount,
   };
 }
 
@@ -623,7 +645,19 @@ app.post("/signal", async (req, res) => {
   const resolvedUserId = firebaseUserId || null;
   const spreadPoints = req.body.spreadPoints || 0;
 
-  console.log(candles)
+  let tradingPreferences = normalizeTradingPreferences(null);
+  try {
+    if (resolvedUserId) {
+      const rawTradingPreferences = await getUserTradingPreferences(
+        resolvedUserId,
+        accountId ?? null
+      );
+
+      tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
+    }
+  } catch (prefError) {
+    console.error("Load trading preferences error:", prefError.message);
+  }
 
   try {
     try {
@@ -692,8 +726,18 @@ app.post("/signal", async (req, res) => {
       }
     });
 
+    // const score = evaluateResult.score || 0;
+    // const finalDecision = decision(evaluateResult, symbol);
+
     const score = evaluateResult.score || 0;
-    const finalDecision = decision(evaluateResult, symbol);
+    const finalDecisionResult = resolveDecisionWithTradingPreferences(
+      evaluateResult,
+      symbol,
+      { tradingPreferences }
+    );
+
+    const finalDecision = finalDecisionResult.decision;
+    const finalDecisionReason = finalDecisionResult.reason || null;
 
     try {
       if (Array.isArray(candles) && candles.length > 0) {
@@ -735,19 +779,41 @@ app.post("/signal", async (req, res) => {
     // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
     // console.log(`--------------------------------------\n`);
 
-    console.log("[DECISION_BREAKDOWN]", {
-      symbol,
-      mode: evaluateResult.mode,
-      trend: evaluateResult.trend,
-      score: evaluateResult.score,
-      adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
-      historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
-      thresholdContext: evaluateResult.thresholdContext,
-      finalDecision
-    });
+    // console.log("[DECISION_BREAKDOWN]", {
+    //   symbol,
+    //   mode: evaluateResult.mode,
+    //   trend: evaluateResult.trend,
+    //   score: evaluateResult.score,
+    //   adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+    //   historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+    //   thresholdContext: evaluateResult.thresholdContext,
+    //   finalDecision
+    // });
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
+
+    if (finalDecision === "NO_TRADE" && finalDecisionReason) {
+      return res.json(
+        buildBlockedSignalResponse({
+          reason: finalDecisionReason,
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: evaluateResult.mode || "NORMAL",
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags: evaluateResult.defensiveFlags || {
+            warningMatched: false,
+            lotMultiplier: 1,
+            tpMultiplier: 1,
+            reason: null,
+          },
+          trade_setup: null,
+          currentOpenPositionsCount: 0,
+        })
+      );
+    }
 
     // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
@@ -766,9 +832,60 @@ app.post("/signal", async (req, res) => {
           pattern,
           historicalVolume,
           activeCfg,
+          tradingPreferences
         });
 
         if (microResponse) {
+          const microDirectionResult = enforceDirectionBiasOnDecision(
+            microResponse.decision,
+            tradingPreferences
+          );
+
+          if (microDirectionResult.blocked) {
+            return res.json(
+              buildBlockedSignalResponse({
+                reason: microDirectionResult.reason,
+                score: microResponse.score || 0,
+                firebaseUserId: resolvedUserId,
+                mode: microResponse.mode || "MICRO_SCALP",
+                trend: microResponse.trend || "NEUTRAL",
+                pattern: microResponse.pattern || null,
+                historicalVolume: microResponse.historicalVolume || null,
+                defensiveFlags: microResponse.defensiveFlags || null,
+                trade_setup: null,
+                currentOpenPositionsCount: 0,
+              })
+            );
+          }
+
+          const currentOpenPositionsCount =
+            await countOpenPositionsByUserAccountAndSymbol({
+              firebaseUserId: resolvedUserId,
+              accountId,
+              symbol,
+            });
+
+          if (
+            isMaxOpenPositionsReached(
+              currentOpenPositionsCount,
+              tradingPreferences.max_open_positions
+            )
+          ) {
+            return res.json(
+              buildBlockedSignalResponse({
+                reason: "MAX_OPEN_POSITIONS_REACHED",
+                score: microResponse.score || 0,
+                firebaseUserId: resolvedUserId,
+                mode: microResponse.mode || "MICRO_SCALP",
+                trend: microResponse.trend || "NEUTRAL",
+                pattern: microResponse.pattern || null,
+                historicalVolume: microResponse.historicalVolume || null,
+                defensiveFlags: microResponse.defensiveFlags || null,
+                trade_setup: null,
+                currentOpenPositionsCount,
+              })
+            );
+          }
           console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
 
           return res.json(microResponse);
@@ -793,7 +910,51 @@ app.post("/signal", async (req, res) => {
       activeCfg,
       score,
       defensiveFlags,
+      userMaxLotCap: Number(tradingPreferences.base_lot_size || 0),
     });
+
+    let signalResponse = {
+      decision: finalDecision,
+      score: score,
+      firebaseUserId: resolvedUserId,
+      mode: evaluateResult.mode || "NORMAL",
+      trend: evaluateResult.trend || "NEUTRAL",
+      pattern: pattern,
+      historicalVolume: historicalVolume,
+      defensiveFlags: defensiveFlags,
+      trade_setup,
+    };
+
+    if (isOpenDecision(finalDecision)) {
+      const currentOpenPositionsCount =
+        await countOpenPositionsByUserAccountAndSymbol({
+          firebaseUserId: resolvedUserId,
+          accountId,
+          symbol,
+        });
+
+      if (
+        isMaxOpenPositionsReached(
+          currentOpenPositionsCount,
+          tradingPreferences.max_open_positions
+        )
+      ) {
+        return res.json(
+          buildBlockedSignalResponse({
+            reason: "MAX_OPEN_POSITIONS_REACHED",
+            score,
+            firebaseUserId: resolvedUserId,
+            mode: evaluateResult.mode || "NORMAL",
+            trend: evaluateResult.trend || "NEUTRAL",
+            pattern,
+            historicalVolume,
+            defensiveFlags,
+            trade_setup: null,
+            currentOpenPositionsCount,
+          })
+        );
+      }
+    }
 
     return res.json({
       decision: finalDecision,
@@ -806,6 +967,18 @@ app.post("/signal", async (req, res) => {
       defensiveFlags: defensiveFlags,
       trade_setup,
     });
+
+    // return res.json({
+    //   decision: finalDecision,
+    //   score: score,
+    //   firebaseUserId: resolvedUserId,
+    //   mode: evaluateResult.mode || "NORMAL",
+    //   trend: evaluateResult.trend || "NEUTRAL",
+    //   pattern: pattern,
+    //   historicalVolume: historicalVolume,
+    //   defensiveFlags: defensiveFlags,
+    //   trade_setup,
+    // });
   } catch (error) {
     console.error("Signal processing error:", error);
     return res.status(500).json({
