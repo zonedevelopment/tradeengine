@@ -305,6 +305,26 @@ function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
   return upperMode === "SCALP" ? 10 : 30;
 }
 
+// function shouldTakeProfitOnLowVolume({
+//   symbol = "",
+//   mode = "NORMAL",
+//   historicalVolumeSignal = null,
+//   holdingMinutes = 0,
+//   currentProfit = 0,
+// }) {
+//   if (String(historicalVolumeSignal || "").toUpperCase() !== "LOW_VOLUME") {
+//     return false;
+//   }
+
+//   if (toNumber(currentProfit, 0) <= 0) {
+//     return false;
+//   }
+
+//   const minHoldMinutes = getLowVolumeProfitHoldLimitMinutes({ mode, symbol });
+
+//   return toNumber(holdingMinutes, 0) >= minHoldMinutes;
+// }
+
 function shouldTakeProfitOnLowVolume({
   symbol = "",
   mode = "NORMAL",
@@ -312,16 +332,11 @@ function shouldTakeProfitOnLowVolume({
   holdingMinutes = 0,
   currentProfit = 0,
 }) {
-  if (String(historicalVolumeSignal || "").toUpperCase() !== "LOW_VOLUME") {
-    return false;
-  }
-
   if (toNumber(currentProfit, 0) <= 0) {
     return false;
   }
 
   const minHoldMinutes = getLowVolumeProfitHoldLimitMinutes({ mode, symbol });
-
   return toNumber(holdingMinutes, 0) >= minHoldMinutes;
 }
 
@@ -452,7 +467,7 @@ async function analyzeEarlyExit({
       adjustedScore += 0.5;
     }
 
-    console.log("Early exit check failed: riskLevel" + JSON.stringify(riskLevel) + ", adjustedScore: "  + JSON.stringify(adjustedScore) + ", profit: "  + JSON.stringify(profit));
+    console.log("Early exit check failed: riskLevel" + JSON.stringify(riskLevel) + ", adjustedScore: " + JSON.stringify(adjustedScore) + ", profit: " + JSON.stringify(profit));
   }
 
   adjustedScore = Number(adjustedScore.toFixed(2));
