@@ -325,6 +325,74 @@ function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
 //   return toNumber(holdingMinutes, 0) >= minHoldMinutes;
 // }
 
+function shouldExitScalpTimeout({
+  mode = "NORMAL",
+  currentProfit = 0,
+  holdingMinutes = 0,
+  historicalVolumeSignal = null,
+  openPosition = {},
+  tpPoints = 0,
+  slPoints = 0,
+}) {
+  const normalizedMode = String(mode || "NORMAL").toUpperCase();
+  if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
+
+  const profit = toNumber(currentProfit, 0);
+  const mins = toNumber(holdingMinutes, 0);
+
+  const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
+
+  // ตลาดแผ่ว + ถือเกิน + กำไรน้อยหรือยังไม่คืบ
+  if (
+    String(historicalVolumeSignal || "").toUpperCase() === "LOW_VOLUME" &&
+    mins >= 10 &&
+    profit > 0 &&
+    progress.progressToTarget < 0.45
+  ) {
+    return { action: "TAKE_SMALL_PROFIT", reason: "SCALP_TIMEOUT_LOW_VOLUME" };
+  }
+
+  // ถือเกินนาน แต่ยังติดลบและไม่ไปไหน
+  if (mins >= 12 && profit < 0 && progress.progressToTarget < 0.20) {
+    return { action: "CUT_LOSS_NOW", reason: "SCALP_TIMEOUT_NO_PROGRESS" };
+  }
+
+  return null;
+}
+
+function shouldCutWeakScalpTrade({
+  mode = "NORMAL",
+  currentProfit = 0,
+  holdingMinutes = 0,
+  reversalScore = 0,
+  candles = [],
+  side = "",
+}) {
+  const normalizedMode = String(mode || "NORMAL").toUpperCase();
+  if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
+
+  const profit = toNumber(currentProfit, 0);
+  if (profit > -0.20) return false; // ยังไม่ต้องรีบตัดถ้ายังแทบไม่ติดลบ
+  if (toNumber(holdingMinutes, 0) < 6) return false; // ให้เวลาไม้ทำงานก่อน
+
+  const last = candles[candles.length - 1] || {};
+  const prev = candles[candles.length - 2] || {};
+
+  const lastBody = candleBody(last);
+  const prevBody = candleBody(prev);
+  const avgB = avgBody(candles, 5) || 1;
+
+  const weakMomentum =
+    lastBody < avgB * 0.75 &&
+    prevBody < avgB * 0.9;
+
+  if (weakMomentum && reversalScore >= 1.2) {
+    return true;
+  }
+
+  return false;
+}
+
 function shouldTakeProfitOnLowVolume({
   symbol = "",
   mode = "NORMAL",
@@ -472,6 +540,24 @@ async function analyzeEarlyExit({
 
   adjustedScore = Number(adjustedScore.toFixed(2));
 
+  if (
+    shouldCutWeakScalpTrade({
+      mode: normalizedMode,
+      currentProfit: profit,
+      holdingMinutes,
+      reversalScore: adjustedScore,
+      candles,
+      side,
+    })
+  ) {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: `WEAK_SCALP_TRADE_TIMEOUT (${holdingMinutes}m)`,
+      riskLevel,
+      score: adjustedScore,
+    };
+  }
+
   let result = {};
   // 1) CUT LOSS NOW
   if (profit < 0) {
@@ -522,6 +608,25 @@ async function analyzeEarlyExit({
         score: adjustedScore
       };
     }
+  }
+
+  const scalpTimeoutDecision = shouldExitScalpTimeout({
+    mode: normalizedMode,
+    currentProfit: profit,
+    holdingMinutes,
+    historicalVolumeSignal,
+    openPosition,
+    tpPoints,
+    slPoints,
+  });
+
+  if (scalpTimeoutDecision) {
+    return {
+      action: scalpTimeoutDecision.action,
+      reason: scalpTimeoutDecision.reason,
+      riskLevel,
+      score: adjustedScore,
+    };
   }
 
   if (

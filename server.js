@@ -107,7 +107,7 @@ const symbolConfig = {
   NORMAL: {
     "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 800, maxSL: 1500, minTP: 950, maxTP: 2500 },
     "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1250, maxSL: 5500, minTP: 1700, maxTP: 5500 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 650, maxSL: 1000, minTP: 850, maxTP: 1200 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 1500 },
     "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 1000, maxSL: 2000, minTP: 1200, maxTP: 3000 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
@@ -1343,86 +1343,8 @@ app.get("/active-positions/:firebaseUserId", async (req, res) => {
   }
 });
 
-// app.post("/account-snapshot", async (req, res) => {
-//   const {
-//     firebaseUserId,
-//     accountId,
-//     balance,
-//     equity,
-//     margin,
-//     freeMargin,
-//     floatingProfit,
-//     dailyProfit,
-//     dailyLoss,
-//     dailyNetProfit,
-//     todayWinTrades,
-//     todayLossTrades,
-//     todayClosedTrades,
-//     openPositionsCount,
-//     maxPositions,
-//     eventTime
-//   } = req.body;
-
-//   if (!firebaseUserId) {
-//     return res.status(400).json({
-//       success: false,
-//       error: "firebaseUserId is required"
-//     });
-//   }
-
-//   try {
-//     console.log("[account-snapshot] incoming:", {
-//       firebaseUserId,
-//       accountId,
-//       balance,
-//       equity,
-//       dailyProfit,
-//       dailyLoss,
-//       dailyNetProfit,
-//       floatingProfit,
-//       openPositionsCount,
-//       eventTime
-//     });
-
-//     await upsertDailyAccountSnapshot({
-//       firebaseUserId,
-//       accountId,
-//       balance,
-//       equity,
-//       margin,
-//       freeMargin,
-//       floatingProfit,
-//       dailyProfit,
-//       dailyLoss,
-//       dailyNetProfit,
-//       todayWinTrades,
-//       todayLossTrades,
-//       todayClosedTrades,
-//       openPositionsCount,
-//       maxPositions,
-//       eventTime
-//     });
-
-//     return res.json({
-//       success: true,
-//       message: "Daily account snapshot saved successfully"
-//     });
-//   } catch (error) {
-//     console.error("account-snapshot error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message || "Internal server error"
-//     });
-//   }
-// });
-
 app.post("/account-snapshot", async (req, res) => {
   try {
-    // const {
-    //   firebaseUserId,
-    //   accountId = "",
-    //   eventTime = null
-    // } = req.body || {};
     const body = req.body || {};
     const firebaseUserId = String(body.firebaseUserId || "").trim();
 
@@ -1439,7 +1361,6 @@ app.post("/account-snapshot", async (req, res) => {
       body.eventTime
     );
 
-    // console.log(tradeStats)
 
     const payloadToSave = {
       firebaseUserId,
@@ -1466,18 +1387,6 @@ app.post("/account-snapshot", async (req, res) => {
 
     const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
     broadcastAccountSnapshot(firebaseUserId, data);
-
-    // live snapshot ล่าสุดต่อ account
-    // await upsertLiveAccountSnapshot(body);
-
-    // daily snapshot history
-    // await upsertDailyAccountSnapshot(body);
-
-    // aggregate ทั้ง user
-    // const data = await getAggregatedLiveAccountSnapshotByUser(firebaseUserId);
-
-    // broadcast stream
-    // broadcastAccountSnapshot(firebaseUserId, data);
 
     return res.json({
       success: true,
