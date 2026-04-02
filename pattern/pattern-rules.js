@@ -2,359 +2,474 @@ const { detectDescendingTriangle } = require("./descending-triangle-patterns");
 const { detectAscendingTriangle } = require("./ascending-triangle-patterns");
 
 function detectMarketStructure(candles) {
-    if (!candles || candles.length < 5) return { isFailToLL: false, isFailToHH: false, swings: [] };
+  if (!candles || candles.length < 5) return { isFailToLL: false, isFailToHH: false, swings: [] };
 
-    let swings = [];
-    
-    // หา Swing High (จุดสูงสุดชั่วคราว) และ Swing Low (จุดต่ำสุดชั่วคราว)
-    // ใช้หน้า 2 หลัง 2 เป็นเกณฑ์
-    for (let i = 2; i < candles.length - 2; i++) {
-        const c = candles[i];
-        const prev1 = candles[i-1];
-        const prev2 = candles[i-2];
-        const next1 = candles[i+1];
-        const next2 = candles[i+2];
+  let swings = [];
 
-        // Is Swing High?
-        if (c.high > prev1.high && c.high > prev2.high && c.high > next1.high && c.high > next2.high) {
-            swings.push({ type: 'SH', price: c.high, index: i });
-        }
-        
-        // Is Swing Low?
-        if (c.low < prev1.low && c.low < prev2.low && c.low < next1.low && c.low < next2.low) {
-            swings.push({ type: 'SL', price: c.low, index: i });
-        }
+  // หา Swing High (จุดสูงสุดชั่วคราว) และ Swing Low (จุดต่ำสุดชั่วคราว)
+  // ใช้หน้า 2 หลัง 2 เป็นเกณฑ์
+  for (let i = 2; i < candles.length - 2; i++) {
+    const c = candles[i];
+    const prev1 = candles[i - 1];
+    const prev2 = candles[i - 2];
+    const next1 = candles[i + 1];
+    const next2 = candles[i + 2];
+
+    // Is Swing High?
+    if (c.high > prev1.high && c.high > prev2.high && c.high > next1.high && c.high > next2.high) {
+      swings.push({ type: 'SH', price: c.high, index: i });
     }
 
-    // กรองและเรียงตามลำดับเวลา
-    swings.sort((a, b) => a.index - b.index);
+    // Is Swing Low?
+    if (c.low < prev1.low && c.low < prev2.low && c.low < next1.low && c.low < next2.low) {
+      swings.push({ type: 'SL', price: c.low, index: i });
+    }
+  }
 
-    let isFailToLL = false; // เกิด Higher Low ในเทรนด์ขาลง (ไม่ทำนิวโลว์)
-    let isFailToHH = false; // เกิด Lower High ในเทรนด์ขาขึ้น (ไม่ทำนิวไฮ)
+  // กรองและเรียงตามลำดับเวลา
+  swings.sort((a, b) => a.index - b.index);
 
-    // หา Swing Low 2 จุดล่าสุดเทียบกัน
-    const sls = swings.filter(s => s.type === 'SL');
-    if (sls.length >= 2) {
-        const lastSL = sls[sls.length - 1];
-        const prevSL = sls[sls.length - 2];
-        
-        // ถ้าราคาโลว์ล่าสุด สูงกว่า โลว์ก่อนหน้า = ไม่ทำ Lower Low
-        if (lastSL.price > prevSL.price) {
-            isFailToLL = true;
-        }
+  let isFailToLL = false; // เกิด Higher Low ในเทรนด์ขาลง (ไม่ทำนิวโลว์)
+  let isFailToHH = false; // เกิด Lower High ในเทรนด์ขาขึ้น (ไม่ทำนิวไฮ)
+
+  // หา Swing Low 2 จุดล่าสุดเทียบกัน
+  const sls = swings.filter(s => s.type === 'SL');
+  if (sls.length >= 2) {
+    const lastSL = sls[sls.length - 1];
+    const prevSL = sls[sls.length - 2];
+
+    // ถ้าราคาโลว์ล่าสุด สูงกว่า โลว์ก่อนหน้า = ไม่ทำ Lower Low
+    if (lastSL.price > prevSL.price) {
+      isFailToLL = true;
+    }
+  }
+
+  // หา Swing High 2 จุดล่าสุดเทียบกัน
+  const shs = swings.filter(s => s.type === 'SH');
+  if (shs.length >= 2) {
+    const lastSH = shs[shs.length - 1];
+    const prevSH = shs[shs.length - 2];
+
+    // ถ้าราคาไฮล่าสุด ต่ำกว่า ไฮก่อนหน้า = ไม่ทำ Higher High
+    if (lastSH.price < prevSH.price) {
+      isFailToHH = true;
+    }
+  }
+
+  // [NEW] Breakout & Retest Detection
+  let isRetestingSupport = false;
+  let isRetestingResistance = false;
+
+  if (candles.length > 0) {
+    const currentClose = candles[candles.length - 1].close;
+    const currentLow = candles[candles.length - 1].low;
+    const currentHigh = candles[candles.length - 1].high;
+
+    // Retesting Broken Resistance (now Support)
+    if (shs.length > 0) {
+      const lastSH = shs[shs.length - 1].price;
+      // ถ้ากราฟเคยทะลุ High ไปแล้ว และกำลังย่อลงมาแตะ High เดิม (ระยะ 2.0 ดอลลาร์)
+      if (currentClose > lastSH && Math.abs(currentLow - lastSH) <= 2.0) {
+        isRetestingSupport = true;
+      }
     }
 
-    // หา Swing High 2 จุดล่าสุดเทียบกัน
-    const shs = swings.filter(s => s.type === 'SH');
-    if (shs.length >= 2) {
-        const lastSH = shs[shs.length - 1];
-        const prevSH = shs[shs.length - 2];
-        
-        // ถ้าราคาไฮล่าสุด ต่ำกว่า ไฮก่อนหน้า = ไม่ทำ Higher High
-        if (lastSH.price < prevSH.price) {
-            isFailToHH = true;
-        }
+    // Retesting Broken Support (now Resistance)
+    if (sls.length > 0) {
+      const lastSL = sls[sls.length - 1].price;
+      // ถ้ากราฟเคยหลุด Low ไปแล้ว และกำลังเด้งขึ้นมาแตะ Low เดิม
+      if (currentClose < lastSL && Math.abs(currentHigh - lastSL) <= 2.0) {
+        isRetestingResistance = true;
+      }
     }
+  }
 
-    // [NEW] Breakout & Retest Detection
-    let isRetestingSupport = false;
-    let isRetestingResistance = false;
-    
-    if (candles.length > 0) {
-        const currentClose = candles[candles.length - 1].close;
-        const currentLow = candles[candles.length - 1].low;
-        const currentHigh = candles[candles.length - 1].high;
-        
-        // Retesting Broken Resistance (now Support)
-        if (shs.length > 0) {
-            const lastSH = shs[shs.length - 1].price;
-            // ถ้ากราฟเคยทะลุ High ไปแล้ว และกำลังย่อลงมาแตะ High เดิม (ระยะ 2.0 ดอลลาร์)
-            if (currentClose > lastSH && Math.abs(currentLow - lastSH) <= 2.0) {
-                isRetestingSupport = true;
-            }
-        }
-        
-        // Retesting Broken Support (now Resistance)
-        if (sls.length > 0) {
-            const lastSL = sls[sls.length - 1].price;
-            // ถ้ากราฟเคยหลุด Low ไปแล้ว และกำลังเด้งขึ้นมาแตะ Low เดิม
-            if (currentClose < lastSL && Math.abs(currentHigh - lastSL) <= 2.0) {
-                isRetestingResistance = true;
-            }
-        }
+  // [NEW] Micro-Trend Analysis (M5 Momentum)
+  let microTrend = "NEUTRAL";
+  if (sls.length >= 2 && shs.length >= 2) {
+    const lastSL = sls[sls.length - 1];
+    const prevSL = sls[sls.length - 2];
+    const lastSH = shs[shs.length - 1];
+    const prevSH = shs[shs.length - 2];
+
+    // โครงสร้างขาขึ้น (Higher Highs & Higher Lows)
+    if (lastSH.price > prevSH.price && lastSL.price > prevSL.price) {
+      microTrend = "BULLISH";
     }
-
-    // [NEW] Micro-Trend Analysis (M5 Momentum)
-    let microTrend = "NEUTRAL";
-    if (sls.length >= 2 && shs.length >= 2) {
-        const lastSL = sls[sls.length - 1];
-        const prevSL = sls[sls.length - 2];
-        const lastSH = shs[shs.length - 1];
-        const prevSH = shs[shs.length - 2];
-
-        // โครงสร้างขาขึ้น (Higher Highs & Higher Lows)
-        if (lastSH.price > prevSH.price && lastSL.price > prevSL.price) {
-            microTrend = "BULLISH";
-        } 
-        // โครงสร้างขาลง (Lower Highs & Lower Lows)
-        else if (lastSH.price < prevSH.price && lastSL.price < prevSL.price) {
-            microTrend = "BEARISH";
-        } 
-        // กำลังกลับตัวขึ้น
-        else if (isFailToLL && !isFailToHH) {
-            microTrend = "BULLISH_REVERSAL";
-        } 
-        // กำลังกลับตัวลง
-        else if (isFailToHH && !isFailToLL) {
-            microTrend = "BEARISH_REVERSAL";
-        }
-    } else if (candles.length >= 10) {
-        // Fallback หาแรงส่ง (Momentum) 10 แท่งล่าสุดถ้า Swing ยังไม่พอ
-        const currentClose = candles[candles.length - 1].close;
-        const pastClose = candles[candles.length - 10].close;
-        if (currentClose > pastClose) microTrend = "BULLISH";
-        else if (currentClose < pastClose) microTrend = "BEARISH";
+    // โครงสร้างขาลง (Lower Highs & Lower Lows)
+    else if (lastSH.price < prevSH.price && lastSL.price < prevSL.price) {
+      microTrend = "BEARISH";
     }
+    // กำลังกลับตัวขึ้น
+    else if (isFailToLL && !isFailToHH) {
+      microTrend = "BULLISH_REVERSAL";
+    }
+    // กำลังกลับตัวลง
+    else if (isFailToHH && !isFailToLL) {
+      microTrend = "BEARISH_REVERSAL";
+    }
+  } else if (candles.length >= 10) {
+    // Fallback หาแรงส่ง (Momentum) 10 แท่งล่าสุดถ้า Swing ยังไม่พอ
+    const currentClose = candles[candles.length - 1].close;
+    const pastClose = candles[candles.length - 10].close;
+    if (currentClose > pastClose) microTrend = "BULLISH";
+    else if (currentClose < pastClose) microTrend = "BEARISH";
+  }
 
-    return { isFailToLL, isFailToHH, isRetestingSupport, isRetestingResistance, swings, microTrend };
+  return { isFailToLL, isFailToHH, isRetestingSupport, isRetestingResistance, swings, microTrend };
 }
 
 function detectMotherFishPattern(data) {
-    const { candles } = data;
+  const { candles } = data;
 
-    if (!candles || candles.length < 1) {
-        return { pattern: "NONE" };
+  if (!candles || candles.length < 1) {
+    return { pattern: "NONE" };
+  }
+
+  const len = candles.length;
+  const currentCandle = candles[len - 1];
+  const prevCandle = len >= 2 ? candles[len - 2] : null;
+  const prePrevCandle = len >= 3 ? candles[len - 3] : null;
+
+  // Helper to get candle properties
+  const getProps = (c) => {
+    if (!c) return null;
+    const body = Math.abs(c.close - c.open);
+    const upperWick = c.high - Math.max(c.open, c.close);
+    const lowerWick = Math.min(c.open, c.close) - c.low;
+    const totalSize = c.high - c.low;
+    const isBull = c.close > c.open;
+    const isBear = c.close < c.open;
+    return { body, upperWick, lowerWick, totalSize, isBull, isBear };
+  };
+
+  const avgBody = (...items) => {
+    const valid = items.filter(Boolean).map((x) => Number(x.body || 0)).filter((x) => x > 0);
+    if (!valid.length) return 0;
+    return valid.reduce((sum, n) => sum + n, 0) / valid.length;
+  };
+
+  const safeTickVolume = (c) => Number(c?.tick_volume || 0);
+
+  const minBreakDistance = 0.15; // กันหลุด low/high แบบจิ๊ดเดียว
+
+  const cProps = getProps(currentCandle);
+  const pProps = getProps(prevCandle);
+  const ppProps = getProps(prePrevCandle);
+
+  let patternResult = { pattern: "NONE", strength: 0, type: "Unknown", slPrice: null, tpPrice: null };
+
+  // 1. PIN BAR / HAMMER / SHOOTING STAR (1 Candle Pattern)
+  if (cProps && cProps.totalSize > 0) {
+    if (cProps.lowerWick > cProps.body * 2 && cProps.upperWick < cProps.body) {
+      patternResult = {
+        pattern: "CLAW_BUY",
+        strength: cProps.body + cProps.lowerWick,
+        type: "Pin_Bar_Hammer",
+        slPrice: currentCandle.low - 1.5 // SL ใต้หางเผื่อระยะ Spread
+      };
+    }
+    else if (cProps.upperWick > cProps.body * 2 && cProps.lowerWick < cProps.body) {
+      patternResult = {
+        pattern: "CLAW_SELL",
+        strength: cProps.body + cProps.upperWick,
+        type: "Pin_Bar_Shooting_Star",
+        slPrice: currentCandle.high + 1.5 // SL เหนือหางเผื่อระยะ Spread
+      };
+    }
+  }
+
+  // 2. ENGULFING / PIERCING / DARK CLOUD (2 Candle Patterns)
+  if (patternResult.pattern === "NONE" && pProps) {
+    if (pProps.isBear && cProps.isBull && currentCandle.close >= (prevCandle.close + pProps.body * 0.5)) {
+      const isEngulfing = currentCandle.close > prevCandle.open && currentCandle.open < prevCandle.close;
+      patternResult = {
+        pattern: "CLAW_BUY",
+        strength: cProps.body,
+        type: isEngulfing ? "Bullish_Engulfing" : "Piercing_Pattern",
+        slPrice: Math.min(currentCandle.low, prevCandle.low) - 1.5
+      };
+    }
+    else if (pProps.isBull && cProps.isBear && currentCandle.close <= (prevCandle.close - pProps.body * 0.5)) {
+      const isEngulfing = currentCandle.close < prevCandle.open && currentCandle.open > prevCandle.close;
+      patternResult = {
+        pattern: "CLAW_SELL",
+        strength: cProps.body,
+        type: isEngulfing ? "Bearish_Engulfing" : "Dark_Cloud_Cover",
+        slPrice: Math.max(currentCandle.high, prevCandle.high) + 1.5
+      };
+    }
+  }
+
+  // 3. MORNING STAR / EVENING STAR / BASE BREAK (3 Candle Patterns)
+  if (patternResult.pattern === "NONE" && ppProps) {
+    if (ppProps.isBear && pProps.body < ppProps.body * 0.5 && cProps.isBull && currentCandle.close > prevCandle.high) {
+      patternResult = {
+        pattern: "CLAW_BUY",
+        strength: cProps.body,
+        type: "Morning_Star_Base_Break",
+        slPrice: prevCandle.low - 1.5 // ใต้ Base
+      };
+    }
+    else if (ppProps.isBull && pProps.body < ppProps.body * 0.5 && cProps.isBear && currentCandle.close < prevCandle.low) {
+      patternResult = {
+        pattern: "CLAW_SELL",
+        strength: cProps.body,
+        type: "Evening_Star_Base_Break",
+        slPrice: prevCandle.high + 1.5 // เหนือ Base
+      };
+    }
+  }
+
+  // 4.
+  //FIRST LEG BREAKDOWN / FIRST LEG BREAKOUT
+  // [NEW] ดัก "แท่งทุบแรก" หรือ "แท่งพุ่งแรก" ที่หลุดโครงสร้างทันที
+  // ไม่ต้องรอ 3 แท่ง continuation ก่อนค่อยเข้า
+  if (patternResult.pattern === "NONE" && pProps) {
+    const recentAvgBody = avgBody(pProps, ppProps);
+    const prevLow = Number(prevCandle?.low || 0);
+    const prevHigh = Number(prevCandle?.high || 0);
+    const currentLow = Number(currentCandle?.low || 0);
+    const currentHigh = Number(currentCandle?.high || 0);
+    const currentClose = Number(currentCandle?.close || 0);
+    const currentOpen = Number(currentCandle?.open || 0);
+
+    const isBigBearBody =
+      cProps.isBear &&
+      cProps.body >= Math.max(recentAvgBody * 1.6, 0.8);
+
+    const isBigBullBody =
+      cProps.isBull &&
+      cProps.body >= Math.max(recentAvgBody * 1.6, 0.8);
+
+    const breakPrevLowHard =
+      currentLow < (prevLow - minBreakDistance) &&
+      currentClose < (prevLow - minBreakDistance * 0.5);
+
+    const breakPrevHighHard =
+      currentHigh > (prevHigh + minBreakDistance) &&
+      currentClose > (prevHigh + minBreakDistance * 0.5);
+
+    const closeNearLow =
+      cProps.totalSize > 0 &&
+      (currentClose - currentLow) <= cProps.totalSize * 0.25;
+
+    const closeNearHigh =
+      cProps.totalSize > 0 &&
+      (currentHigh - currentClose) <= cProps.totalSize * 0.25;
+
+    const weakOppositePullbackBeforeSell =
+      ppProps &&
+      ppProps.isBull &&
+      pProps.isBull &&
+      pProps.body < ppProps.body * 0.85;
+
+    const weakOppositePullbackBeforeBuy =
+      ppProps &&
+      ppProps.isBear &&
+      pProps.isBear &&
+      pProps.body < ppProps.body * 0.85;
+
+    const volumeConfirmSell =
+      safeTickVolume(currentCandle) >= safeTickVolume(prevCandle) * 0.9 ||
+      safeTickVolume(currentCandle) >= safeTickVolume(prePrevCandle) * 0.9;
+
+    const volumeConfirmBuy =
+      safeTickVolume(currentCandle) >= safeTickVolume(prevCandle) * 0.9 ||
+      safeTickVolume(currentCandle) >= safeTickVolume(prePrevCandle) * 0.9;
+
+    // First Leg Breakdown
+    if (
+      isBigBearBody &&
+      breakPrevLowHard &&
+      closeNearLow &&
+      volumeConfirmSell &&
+      (
+        weakOppositePullbackBeforeSell ||
+        (pProps.isBull && cProps.body > pProps.body * 1.4) ||
+        (pProps.isBear && currentClose < prevCandle.close)
+      )
+    ) {
+      patternResult = {
+        pattern: "CLAW_SELL",
+        strength:
+          cProps.body +
+          Math.max(0, recentAvgBody * 0.5) +
+          Math.max(0, safeTickVolume(currentCandle) / 1000),
+        type: "First_Leg_Breakdown",
+        slPrice: Math.max(currentCandle.high, prevCandle.high) + 1.2,
+        tpPrice: currentCandle.close - Math.max(cProps.body * 1.2, 1.0),
+      };
     }
 
-    const len = candles.length;
-    const currentCandle = candles[len - 1];
-    const prevCandle = len >= 2 ? candles[len - 2] : null;
-    const prePrevCandle = len >= 3 ? candles[len - 3] : null;
-
-    // Helper to get candle properties
-    const getProps = (c) => {
-        if (!c) return null;
-        const body = Math.abs(c.close - c.open);
-        const upperWick = c.high - Math.max(c.open, c.close);
-        const lowerWick = Math.min(c.open, c.close) - c.low;
-        const totalSize = c.high - c.low;
-        const isBull = c.close > c.open;
-        const isBear = c.close < c.open;
-        return { body, upperWick, lowerWick, totalSize, isBull, isBear };
-    };
-
-    const cProps = getProps(currentCandle);
-    const pProps = getProps(prevCandle);
-    const ppProps = getProps(prePrevCandle);
-
-    let patternResult = { pattern: "NONE", strength: 0, type: "Unknown", slPrice: null, tpPrice: null };
-
-    // 1. PIN BAR / HAMMER / SHOOTING STAR (1 Candle Pattern)
-    if (cProps && cProps.totalSize > 0) {
-        if (cProps.lowerWick > cProps.body * 2 && cProps.upperWick < cProps.body) {
-            patternResult = {
-                pattern: "CLAW_BUY",
-                strength: cProps.body + cProps.lowerWick,
-                type: "Pin_Bar_Hammer",
-                slPrice: currentCandle.low - 1.5 // SL ใต้หางเผื่อระยะ Spread
-            };
-        }
-        else if (cProps.upperWick > cProps.body * 2 && cProps.lowerWick < cProps.body) {
-            patternResult = {
-                pattern: "CLAW_SELL",
-                strength: cProps.body + cProps.upperWick,
-                type: "Pin_Bar_Shooting_Star",
-                slPrice: currentCandle.high + 1.5 // SL เหนือหางเผื่อระยะ Spread
-            };
-        }
+    // First Leg Breakout
+    if (
+      patternResult.pattern === "NONE" &&
+      isBigBullBody &&
+      breakPrevHighHard &&
+      closeNearHigh &&
+      volumeConfirmBuy &&
+      (
+        weakOppositePullbackBeforeBuy ||
+        (pProps.isBear && cProps.body > pProps.body * 1.4) ||
+        (pProps.isBull && currentClose > prevCandle.close)
+      )
+    ) {
+      patternResult = {
+        pattern: "CLAW_BUY",
+        strength:
+          cProps.body +
+          Math.max(0, recentAvgBody * 0.5) +
+          Math.max(0, safeTickVolume(currentCandle) / 1000),
+        type: "First_Leg_Breakout",
+        slPrice: Math.min(currentCandle.low, prevCandle.low) - 1.2,
+        tpPrice: currentCandle.close + Math.max(cProps.body * 1.2, 1.0),
+      };
     }
+  }
 
-    // 2. ENGULFING / PIERCING / DARK CLOUD (2 Candle Patterns)
-    if (patternResult.pattern === "NONE" && pProps) {
-        if (pProps.isBear && cProps.isBull && currentCandle.close >= (prevCandle.close + pProps.body * 0.5)) {
-            const isEngulfing = currentCandle.close > prevCandle.open && currentCandle.open < prevCandle.close;
-            patternResult = {
-                pattern: "CLAW_BUY",
-                strength: cProps.body,
-                type: isEngulfing ? "Bullish_Engulfing" : "Piercing_Pattern",
-                slPrice: Math.min(currentCandle.low, prevCandle.low) - 1.5
-            };
-        }
-        else if (pProps.isBull && cProps.isBear && currentCandle.close <= (prevCandle.close - pProps.body * 0.5)) {
-            const isEngulfing = currentCandle.close < prevCandle.open && currentCandle.open > prevCandle.close;
-            patternResult = {
-                pattern: "CLAW_SELL",
-                strength: cProps.body,
-                type: isEngulfing ? "Bearish_Engulfing" : "Dark_Cloud_Cover",
-                slPrice: Math.max(currentCandle.high, prevCandle.high) + 1.5
-            };
-        }
-    }
+  // 5. TREND CONTINUATION / WATERFALL DROP (3 Candle Momentum Patterns)
+  // [NEW] เพื่อให้ระบบกระโดดเกาะรถไฟที่กำลังวิ่งแรงๆ ได้ โดยไม่ต้องรอการพักตัว (Pullback)
+  if (patternResult.pattern === "NONE" && ppProps) {
 
-    // 3. MORNING STAR / EVENING STAR / BASE BREAK (3 Candle Patterns)
-    if (patternResult.pattern === "NONE" && ppProps) {
-        if (ppProps.isBear && pProps.body < ppProps.body * 0.5 && cProps.isBull && currentCandle.close > prevCandle.high) {
-            patternResult = {
-                pattern: "CLAW_BUY",
-                strength: cProps.body,
-                type: "Morning_Star_Base_Break",
-                slPrice: prevCandle.low - 1.5 // ใต้ Base
-            };
-        }
-        else if (ppProps.isBull && pProps.body < ppProps.body * 0.5 && cProps.isBear && currentCandle.close < prevCandle.low) {
-            patternResult = {
-                pattern: "CLAW_SELL",
-                strength: cProps.body,
-                type: "Evening_Star_Base_Break",
-                slPrice: prevCandle.high + 1.5 // เหนือ Base
-            };
-        }
-    }
-
-    // 4. TREND CONTINUATION / WATERFALL DROP (3 Candle Momentum Patterns)
-    // [NEW] เพื่อให้ระบบกระโดดเกาะรถไฟที่กำลังวิ่งแรงๆ ได้ โดยไม่ต้องรอการพักตัว (Pullback)
-    if (patternResult.pattern === "NONE" && ppProps) {
-        
-        // กฎ 3 ทหารเสือฝั่งลง (Three Black Crows / Waterfall)
-        // แท่งแดง 3 แท่งติด, ปิดต่ำลงเรื่อยๆ, และมีขนาดแท่งที่ใหญ่พอสมควร (เนื้อเทียน > 50 จุด)
-        if (ppProps.isBear && pProps.isBear && cProps.isBear &&
-            prevCandle.close < prePrevCandle.close && currentCandle.close < prevCandle.close &&
-            cProps.body > 0.5 && pProps.body > 0.5 && ppProps.body > 0.5) 
-        {
-            // เช็ก Volume: ถ้ายิ่งทุบยิ่ง Volume พุ่ง (Confirm Momentum)
-            if (currentCandle.tick_volume > prePrevCandle.tick_volume || prevCandle.tick_volume > prePrevCandle.tick_volume) {
-                patternResult = {
-                    pattern: "CLAW_SELL",
-                    strength: cProps.body + pProps.body + ppProps.body,
-                    type: "Waterfall_Drop_Continuation",
-                    slPrice: prePrevCandle.high + 1.5 // SL วางไว้บนยอดของแท่งแรกในชุด 3 แท่ง
-                };
-            }
-        }
-
-        // กฎ 3 ทหารเสือฝั่งขึ้น (Three White Soldiers / Rocket)
-        // แท่งเขียว 3 แท่งติด, ปิดสูงขึ้นเรื่อยๆ, และมีขนาดแท่งที่ใหญ่พอสมควร
-        if (ppProps.isBull && pProps.isBull && cProps.isBull &&
-            prevCandle.close > prePrevCandle.close && currentCandle.close > prevCandle.close &&
-            cProps.body > 0.5 && pProps.body > 0.5 && ppProps.body > 0.5) 
-        {
-            if (currentCandle.tick_volume > prePrevCandle.tick_volume || prevCandle.tick_volume > prePrevCandle.tick_volume) {
-                patternResult = {
-                    pattern: "CLAW_BUY",
-                    strength: cProps.body + pProps.body + ppProps.body,
-                    type: "Rocket_Surge_Continuation",
-                    slPrice: prePrevCandle.low - 1.5 // SL วางไว้ใต้ฐานของแท่งแรกในชุด 3 แท่ง
-                };
-            }
-        }
-    }
-
-    // 5. WEAK PULLBACK CONTINUATION (เทรดตามน้ำตอนที่กราฟย่อตัวอ่อนแรง)
-    // [NEW] ดักจับกรณีที่กราฟทุบลงมาแรงมาก แล้วมีการเด้งสีเขียวอ่อนๆ (ห้าม Buy สวน แต่ให้เตรียม Sell ตามน้ำ)
-    if (patternResult.pattern === "NONE" && ppProps) {
-        // Sell Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งแดงใหญ่ทะลวงทุบลงมา (Body > 2.0 ดอลลาร์) 
-        // ตามด้วยแท่งพักตัวสีเขียวเล็กๆ หรือ Doji (Body < 40% ของแท่งแดงใหญ่) 
-        if (ppProps.isBear && ppProps.body > 2.0 && pProps.isBull && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
-            if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งทุบวอลุ่มต้องสูงกว่าแท่งเด้งเยอะๆ (เด้งหลอก)
-                patternResult = {
-                    pattern: "CLAW_SELL",
-                    strength: ppProps.body,
-                    type: "Weak_Pullback_Continuation",
-                    slPrice: prePrevCandle.high + 1.0, // SL อยู่บนยอดของแท่งที่ทุบลงมา
-                    tpPrice: prePrevCandle.low - 0.5   // TP เอาแค่ Low เดิมที่เพิ่งทำไว้ (TP สั้นมากๆ ชัวร์ๆ)
-                };
-            }
-        }
-        
-        // Buy Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งเขียวใหญ่พุ่งทะยาน (Body > 2.0 ดอลลาร์)
-        // ตามด้วยแท่งพักตัวสีแดงเล็กๆ (Body < 40% ของแท่งเขียวใหญ่)
-        if (ppProps.isBull && ppProps.body > 2.0 && pProps.isBear && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
-            if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งพุ่งวอลุ่มต้องสูงกว่าแท่งพักตัว
-                patternResult = {
-                    pattern: "CLAW_BUY",
-                    strength: ppProps.body,
-                    type: "Weak_Pullback_Continuation",
-                    slPrice: prePrevCandle.low - 1.0, // SL อยู่ใต้ฐานของแท่งที่พุ่งขึ้นไป
-                    tpPrice: prePrevCandle.high + 0.5 // TP เอาแค่ High เดิมที่เพิ่งทำไว้
-                };
-            }
-        }
-    }
-
-      // 6. DESCENDING TRIANGLE BREAKDOWN
-      if (patternResult.pattern === "NONE" && candles.length >= 20) {
-        const triangle = detectDescendingTriangle(candles, {
-          lookback: 20,
-          minTouchesHigh: 3,
-          minTouchesLow: 2,
-          lowTolerancePercent: 0.0025,
-          minSlopeHigh: -0.05,
-          breakoutCloseFactor: 0.15,
-          minBodyFactor: 0.8,
-          useVolume: true,
-          volumeFactor: 1.05,
-        });
-    
-        if (triangle.detected) {
-          patternResult = {
-            pattern: triangle.pattern,
-            strength: triangle.strength,
-            type: triangle.type,
-            slPrice: triangle.slPrice,
-            tpPrice: triangle.tpPrice,
-            meta: triangle.meta,
-          };
-        }
-      }
-
-    // 7. ASCENDING TRIANGLE BREAKOUT
-    if (patternResult.pattern === "NONE" && candles.length >= 20) {
-      const triangle = detectAscendingTriangle(candles, {
-        lookback: 20,
-        minTouchesHigh: 2,
-        minTouchesLow: 3,
-        highTolerancePercent: 0.0025,
-        minSlopeLow: 0.05,
-        breakoutCloseFactor: 0.15,
-        minBodyFactor: 0.8,
-        useVolume: true,
-        volumeFactor: 1.05,
-        slBuffer: 1.5,
-      });
-    
-      if (triangle.detected) {
+    // กฎ 3 ทหารเสือฝั่งลง (Three Black Crows / Waterfall)
+    // แท่งแดง 3 แท่งติด, ปิดต่ำลงเรื่อยๆ, และมีขนาดแท่งที่ใหญ่พอสมควร (เนื้อเทียน > 50 จุด)
+    if (ppProps.isBear && pProps.isBear && cProps.isBear &&
+      prevCandle.close < prePrevCandle.close && currentCandle.close < prevCandle.close &&
+      cProps.body > 0.5 && pProps.body > 0.5 && ppProps.body > 0.5) {
+      // เช็ก Volume: ถ้ายิ่งทุบยิ่ง Volume พุ่ง (Confirm Momentum)
+      if (currentCandle.tick_volume > prePrevCandle.tick_volume || prevCandle.tick_volume > prePrevCandle.tick_volume) {
         patternResult = {
-          pattern: triangle.pattern,
-          strength: triangle.strength,
-          type: triangle.type,
-          slPrice: triangle.slPrice,
-          tpPrice: triangle.tpPrice,
-          meta: triangle.meta,
+          pattern: "CLAW_SELL",
+          strength: cProps.body + pProps.body + ppProps.body,
+          type: "Waterfall_Drop_Continuation",
+          slPrice: prePrevCandle.high + 1.5 // SL วางไว้บนยอดของแท่งแรกในชุด 3 แท่ง
         };
       }
     }
 
-    // เพิ่ม Market Structure Analysis
-    const structure = detectMarketStructure(candles);
-    
-    // คำนวณ TP จาก Swing 
-    if (patternResult.pattern === "CLAW_BUY") {
-        const shs = structure.swings.filter(s => s.type === 'SH');
-        if (shs.length > 0) {
-            patternResult.tpPrice = shs[shs.length - 1].price; // TP ที่ต้าน (Swing High ล่าสุด)
-        }
-    } else if (patternResult.pattern === "CLAW_SELL") {
-        const sls = structure.swings.filter(s => s.type === 'SL');
-        if (sls.length > 0) {
-            patternResult.tpPrice = sls[sls.length - 1].price; // TP ที่รับ (Swing Low ล่าสุด)
-        }
+    // กฎ 3 ทหารเสือฝั่งขึ้น (Three White Soldiers / Rocket)
+    // แท่งเขียว 3 แท่งติด, ปิดสูงขึ้นเรื่อยๆ, และมีขนาดแท่งที่ใหญ่พอสมควร
+    if (ppProps.isBull && pProps.isBull && cProps.isBull &&
+      prevCandle.close > prePrevCandle.close && currentCandle.close > prevCandle.close &&
+      cProps.body > 0.5 && pProps.body > 0.5 && ppProps.body > 0.5) {
+      if (currentCandle.tick_volume > prePrevCandle.tick_volume || prevCandle.tick_volume > prePrevCandle.tick_volume) {
+        patternResult = {
+          pattern: "CLAW_BUY",
+          strength: cProps.body + pProps.body + ppProps.body,
+          type: "Rocket_Surge_Continuation",
+          slPrice: prePrevCandle.low - 1.5 // SL วางไว้ใต้ฐานของแท่งแรกในชุด 3 แท่ง
+        };
+      }
+    }
+  }
+
+  // 6. WEAK PULLBACK CONTINUATION (เทรดตามน้ำตอนที่กราฟย่อตัวอ่อนแรง)
+  // [NEW] ดักจับกรณีที่กราฟทุบลงมาแรงมาก แล้วมีการเด้งสีเขียวอ่อนๆ (ห้าม Buy สวน แต่ให้เตรียม Sell ตามน้ำ)
+  if (patternResult.pattern === "NONE" && ppProps) {
+    // Sell Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งแดงใหญ่ทะลวงทุบลงมา (Body > 2.0 ดอลลาร์) 
+    // ตามด้วยแท่งพักตัวสีเขียวเล็กๆ หรือ Doji (Body < 40% ของแท่งแดงใหญ่) 
+    if (ppProps.isBear && ppProps.body > 2.0 && pProps.isBull && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
+      if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งทุบวอลุ่มต้องสูงกว่าแท่งเด้งเยอะๆ (เด้งหลอก)
+        patternResult = {
+          pattern: "CLAW_SELL",
+          strength: ppProps.body,
+          type: "Weak_Pullback_Continuation",
+          slPrice: prePrevCandle.high + 1.0, // SL อยู่บนยอดของแท่งที่ทุบลงมา
+          tpPrice: prePrevCandle.low - 0.5   // TP เอาแค่ Low เดิมที่เพิ่งทำไว้ (TP สั้นมากๆ ชัวร์ๆ)
+        };
+      }
     }
 
-    // แนบโครงสร้างย่อยส่งกลับไปให้ decision engine ตัดสินใจเรื่อง SCALP Mode
-    patternResult.structure = structure;
-    
+    // Buy Pullback: แท่งก่อนหน้านู้น (ppProps) เป็นแท่งเขียวใหญ่พุ่งทะยาน (Body > 2.0 ดอลลาร์)
+    // ตามด้วยแท่งพักตัวสีแดงเล็กๆ (Body < 40% ของแท่งเขียวใหญ่)
+    if (ppProps.isBull && ppProps.body > 2.0 && pProps.isBear && pProps.body < ppProps.body * 0.3 && cProps.body < ppProps.body * 0.3) {
+      if (prePrevCandle.tick_volume > prevCandle.tick_volume * 1.5) { // แท่งพุ่งวอลุ่มต้องสูงกว่าแท่งพักตัว
+        patternResult = {
+          pattern: "CLAW_BUY",
+          strength: ppProps.body,
+          type: "Weak_Pullback_Continuation",
+          slPrice: prePrevCandle.low - 1.0, // SL อยู่ใต้ฐานของแท่งที่พุ่งขึ้นไป
+          tpPrice: prePrevCandle.high + 0.5 // TP เอาแค่ High เดิมที่เพิ่งทำไว้
+        };
+      }
+    }
+  }
 
-    return patternResult;
+  // 7. DESCENDING TRIANGLE BREAKDOWN
+  if (patternResult.pattern === "NONE" && candles.length >= 20) {
+    const triangle = detectDescendingTriangle(candles, {
+      lookback: 20,
+      minTouchesHigh: 3,
+      minTouchesLow: 2,
+      lowTolerancePercent: 0.0025,
+      minSlopeHigh: -0.05,
+      breakoutCloseFactor: 0.15,
+      minBodyFactor: 0.8,
+      useVolume: true,
+      volumeFactor: 1.05,
+    });
+
+    if (triangle.detected) {
+      patternResult = {
+        pattern: triangle.pattern,
+        strength: triangle.strength,
+        type: triangle.type,
+        slPrice: triangle.slPrice,
+        tpPrice: triangle.tpPrice,
+        meta: triangle.meta,
+      };
+    }
+  }
+
+  // 8. ASCENDING TRIANGLE BREAKOUT
+  if (patternResult.pattern === "NONE" && candles.length >= 20) {
+    const triangle = detectAscendingTriangle(candles, {
+      lookback: 20,
+      minTouchesHigh: 2,
+      minTouchesLow: 3,
+      highTolerancePercent: 0.0025,
+      minSlopeLow: 0.05,
+      breakoutCloseFactor: 0.15,
+      minBodyFactor: 0.8,
+      useVolume: true,
+      volumeFactor: 1.05,
+      slBuffer: 1.5,
+    });
+
+    if (triangle.detected) {
+      patternResult = {
+        pattern: triangle.pattern,
+        strength: triangle.strength,
+        type: triangle.type,
+        slPrice: triangle.slPrice,
+        tpPrice: triangle.tpPrice,
+        meta: triangle.meta,
+      };
+    }
+  }
+
+  // เพิ่ม Market Structure Analysis
+  const structure = detectMarketStructure(candles);
+
+  // คำนวณ TP จาก Swing 
+  if (patternResult.pattern === "CLAW_BUY") {
+    const shs = structure.swings.filter(s => s.type === 'SH');
+    if (shs.length > 0) {
+      patternResult.tpPrice = shs[shs.length - 1].price; // TP ที่ต้าน (Swing High ล่าสุด)
+    }
+  } else if (patternResult.pattern === "CLAW_SELL") {
+    const sls = structure.swings.filter(s => s.type === 'SL');
+    if (sls.length > 0) {
+      patternResult.tpPrice = sls[sls.length - 1].price; // TP ที่รับ (Swing Low ล่าสุด)
+    }
+  }
+
+  // แนบโครงสร้างย่อยส่งกลับไปให้ decision engine ตัดสินใจเรื่อง SCALP Mode
+  patternResult.structure = structure;
+
+
+  return patternResult;
 }
 
 function avg(arr) {
@@ -513,12 +628,12 @@ function detectTrendAndRange(candlesH1, candlesH4) {
 
   const rangeWidthH1 = Array.isArray(candlesH1) && candlesH1.length > 0
     ? (Math.max(...candlesH1.map(c => Number(c.high || 0))) -
-       Math.min(...candlesH1.map(c => Number(c.low || 0)))) * 10
+      Math.min(...candlesH1.map(c => Number(c.low || 0)))) * 10
     : 0;
 
   const rangeWidthH4 = Array.isArray(candlesH4) && candlesH4.length > 0
     ? (Math.max(...candlesH4.map(c => Number(c.high || 0))) -
-       Math.min(...candlesH4.map(c => Number(c.low || 0)))) * 10
+      Math.min(...candlesH4.map(c => Number(c.low || 0)))) * 10
     : 0;
 
   const volumeConfirmed = Boolean(h1.volumeConfirmed || h4.volumeConfirmed);

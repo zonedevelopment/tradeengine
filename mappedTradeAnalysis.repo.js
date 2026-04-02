@@ -25,6 +25,7 @@ async function insertMappedTradeAnalysis(data) {
         console.warn("[mappedTradeAnalysis] Skip invalid item:", data);
         return;
     }
+
     const sql = `
     INSERT INTO mapped_trade_analysis (
       firebase_user_id,
@@ -111,9 +112,7 @@ async function insertMappedTradeAnalysis(data) {
         dbNull(row.contextHash),
     ]);
 
-    if (values.firebaseUserId) {
-        return await query(sql, values);
-    }
+    return await query(sql, values);
 }
 
 async function insertManyMappedTradeAnalysis(items = []) {
