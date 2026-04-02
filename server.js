@@ -385,79 +385,6 @@ function isBearish(candle = {}) {
   return toNum(candle.close) < toNum(candle.open);
 }
 
-// function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
-//   const c1 = getLastCandle(candles, 1);
-//   const c2 = getLastCandle(candles, 2);
-//   const c3 = getLastCandle(candles, 3);
-
-//   if (!c1 || !c2 || !c3) {
-//     return {
-//       profile: "DEFAULT",
-//       retraceMultiplier: mode === "SCALP" ? 0.55 : 0.80
-//     };
-//   }
-
-//   const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
-
-//   // continuation: แท่งก่อนหน้าเป็น pullback เล็ก แล้วแท่งล่าสุดไปต่อ
-//   const sellContinuation =
-//     isBullish(c2) &&
-//     getBodySize(c2) < getBodySize(c3) * 0.8 &&
-//     isBearish(c1) &&
-//     toNum(c1.low) < toNum(c2.low);
-
-//   const buyContinuation =
-//     isBearish(c2) &&
-//     getBodySize(c2) < getBodySize(c3) * 0.8 &&
-//     isBullish(c1) &&
-//     toNum(c1.high) > toNum(c2.high);
-
-//   // reversal: ยังไม่ใช่ continuation ชัด แต่เพิ่งเริ่มกลับตัว
-//   const sellReversal =
-//     isBearish(c1) &&
-//     toNum(c1.close) < toNum(c2.close) &&
-//     !sellContinuation;
-
-//   const buyReversal =
-//     isBullish(c1) &&
-//     toNum(c1.close) > toNum(c2.close) &&
-//     !buyContinuation;
-
-//   // trend continuation ควรรอย่อตื้นกว่า reversal
-//   if (side === "SELL" && sellContinuation) {
-//     return {
-//       profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
-//       retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
-//     };
-//   }
-
-//   if (side === "BUY" && buyContinuation) {
-//     return {
-//       profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
-//       retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
-//     };
-//   }
-
-//   if (side === "SELL" && sellReversal) {
-//     return {
-//       profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
-//       retraceMultiplier: scalpMode ? 0.38 : 0.48
-//     };
-//   }
-
-//   if (side === "BUY" && buyReversal) {
-//     return {
-//       profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
-//       retraceMultiplier: scalpMode ? 0.38 : 0.48
-//     };
-//   }
-
-//   return {
-//     profile: "DEFAULT",
-//     retraceMultiplier: scalpMode ? 0.50 : 0.72
-//   };
-// }
-
 function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
   const c1 = getLastCandle(candles, 1);
   const c2 = getLastCandle(candles, 2);
@@ -661,173 +588,128 @@ function calculateAdaptiveRetracementPoints({
   };
 }
 
-// function buildTradeSetupFromPattern({
-//   side,
-//   price,
-//   pattern,
-//   candles,
-//   balance,
-//   spreadPoints,
-//   activeCfg,
-//   score,
-//   defensiveFlags,
-//   userMaxLotCap
-// }) {
-//   let slPoints = 500;
-//   let tpPoints = 800;
-//   let lotSize = 0.01;
-//   let retracePoints = 0;
-//   let signalStrength = 0;
+function clampNumber(value, min, max) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return Number(min || 0);
+  return Math.max(Number(min || 0), Math.min(num, Number(max || num)));
+}
 
-//   if (side === "BUY") signalStrength = score;
-//   else if (side === "SELL") signalStrength = -score;
+function buildColdStartProfile({
+  closedTradesCount = 0,
+  mode = "NORMAL",
+} = {}) {
+  const closedTrades = Math.max(0, parseInt(closedTradesCount ?? 0, 10) || 0);
+  const normalizedMode = String(mode || "NORMAL").trim().toUpperCase();
 
-//   const mult = activeCfg.pipMultiplier;
-//   const avgRange = calculateAvgRange(candles, 3, mult);
+  const isMicro = normalizedMode === "MICRO_SCALP";
+  const isScalp = normalizedMode === "SCALP" || isMicro;
 
-//   if (side === "BUY") {
-//     if (pattern.slPrice < price) {
-//       slPoints = Math.round((price - pattern.slPrice) * mult);
-//     } else {
-//       slPoints = Math.round(avgRange * 1.4);
-//     }
+  let profile = {
+    enabled: false,
+    stage: "MATURE",
+    closedTradesCount: closedTrades,
+    minRequiredStrength: 0,
+    lotMultiplier: 1,
+    slMultiplier: 1,
+    tpMultiplier: 1,
+    retraceMultiplier: 1,
+    blockWeakSignals: false,
+  };
 
-//     if (pattern.tpPrice > price) {
-//       tpPoints = Math.round((pattern.tpPrice - price) * mult);
-//     } else {
-//       tpPoints = Math.round(avgRange * 2.2);
-//     }
+  if (closedTrades < 12) {
+    profile = {
+      enabled: true,
+      stage: "BOOTSTRAP",
+      closedTradesCount: closedTrades,
+      minRequiredStrength: isMicro ? 2.15 : isScalp ? 2.45 : 2.75,
+      lotMultiplier: 0.50,
+      slMultiplier: 1.05,
+      tpMultiplier: 0.84,
+      retraceMultiplier: 1.18,
+      blockWeakSignals: true,
+    };
+  } else if (closedTrades < 40) {
+    profile = {
+      enabled: true,
+      stage: "EARLY",
+      closedTradesCount: closedTrades,
+      minRequiredStrength: isMicro ? 2.00 : isScalp ? 2.30 : 2.55,
+      lotMultiplier: 0.68,
+      slMultiplier: 1.03,
+      tpMultiplier: 0.90,
+      retraceMultiplier: 1.10,
+      blockWeakSignals: true,
+    };
+  } else if (closedTrades < 100) {
+    profile = {
+      enabled: true,
+      stage: "WARM",
+      closedTradesCount: closedTrades,
+      minRequiredStrength: isMicro ? 1.90 : isScalp ? 2.15 : 2.35,
+      lotMultiplier: 0.85,
+      slMultiplier: 1.01,
+      tpMultiplier: 0.96,
+      retraceMultiplier: 1.04,
+      blockWeakSignals: false,
+    };
+  }
 
-//     if (spreadPoints > 0) {
-//       slPoints += Math.round(spreadPoints * 1.75);
-//       tpPoints += Math.round(spreadPoints * 1.75);
-//     }
-//   } else if (side === "SELL") {
-//     if (pattern.slPrice > price) {
-//       slPoints = Math.round((pattern.slPrice - price) * mult);
-//     } else {
-//       slPoints = Math.round(avgRange * 1.4);
-//     }
+  return profile;
+}
 
-//     if (pattern.tpPrice < price) {
-//       tpPoints = Math.round((price - pattern.tpPrice) * mult);
-//     } else {
-//       tpPoints = Math.round(avgRange * 2.2);
-//     }
+function applyColdStartProfileToTradeSetup({
+  tradeSetup,
+  coldStartProfile,
+  activeCfg,
+}) {
+  if (!tradeSetup || !coldStartProfile?.enabled) {
+    return tradeSetup;
+  }
 
-//     if (spreadPoints > 0) {
-//       slPoints += Math.round(spreadPoints * 1.75);
-//       tpPoints += Math.round(spreadPoints * 1.75);
-//     }
-//   }
+  let slPoints = Math.round(
+    Number(tradeSetup.sl_points || 0) * Number(coldStartProfile.slMultiplier || 1)
+  );
+  let tpPoints = Math.round(
+    Number(tradeSetup.tp_points || 0) * Number(coldStartProfile.tpMultiplier || 1)
+  );
+  let retracePoints = Math.round(
+    Number(tradeSetup.retrace_points || 0) *
+    Number(coldStartProfile.retraceMultiplier || 1)
+  );
 
-//   // Calculate Retracement (context-aware)
-//   const detectedMode =
-//     String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
-//     (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
+  let recommendedLot = Number(
+    (
+      Number(tradeSetup.recommended_lot || 0.01) *
+      Number(coldStartProfile.lotMultiplier || 1)
+    ).toFixed(2)
+  );
 
-//   const retraceProfile = detectRetracementProfile({
-//     side,
-//     candles,
-//     signalStrength,
-//     mode: detectedMode
-//   });
+  const minSL = Number(activeCfg?.minSL || slPoints || 1);
+  const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
+  const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+  const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
 
-//   retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+  slPoints = clampNumber(slPoints, minSL, maxSL);
+  tpPoints = clampNumber(tpPoints, minTP, maxTP);
 
-//   // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
-//   if (pattern?.isVolumeClimax) {
-//     retracePoints = Math.round(retracePoints * 0.85);
-//   }
+  if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+    retracePoints = Math.max(1, Math.round(minSL * 0.2));
+  }
 
-//   // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
-//   if (pattern?.isVolumeDrying) {
-//     retracePoints = Math.round(retracePoints * 1.08);
-//   }
+  if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
+    recommendedLot = 0.01;
+  }
 
-//   // defensive warning = รอย่อลึกขึ้นเล็กน้อย
-//   if (defensiveFlags?.warningMatched) {
-//     retracePoints = Math.round(retracePoints * 1.08);
-//   }
+  if (recommendedLot < 0.01) recommendedLot = 0.01;
 
-//   // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
-//   const maxRetraceBySL = Math.round(slPoints * 0.33);
-//   if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
-
-//   // minimum / maximum ตาม mode
-//   const minR =
-//     detectedMode === "SCALP"
-//       ? Math.round(12 * (mult / 100))
-//       : Math.round(20 * (mult / 100));
-
-//   const maxR =
-//     detectedMode === "SCALP"
-//       ? Math.round(120 * (mult / 100))
-//       : Math.round(200 * (mult / 100));
-
-//   if (retracePoints < minR) retracePoints = minR;
-//   if (retracePoints > maxR) retracePoints = maxR;
-
-//   if (balance && balance > 0) {
-//     const riskPercent = calculateDynamicRisk(
-//       score,
-//       pattern.type,
-//       "SCALP",
-//       2.0
-//     );
-
-//     const riskAmount = balance * (riskPercent / 100);
-//     let calculatedLot = riskAmount / slPoints;
-
-//     if (signalStrength >= 6) {
-//       calculatedLot *= 1.1;
-//     } else if (signalStrength < 3) {
-//       calculatedLot *= 0.75;
-//     }
-
-//     lotSize = Number(calculatedLot.toFixed(2));
-//     if (lotSize < 0.01) lotSize = 0.01;
-//     if (lotSize > 5.0) lotSize = 5.0;
-//   }
-
-//   if (signalStrength < 3.0) {
-//     tpPoints = Math.round(tpPoints * 0.6);
-//     slPoints = Math.round(slPoints * 0.85);
-//   } else if (signalStrength < 5.5) {
-//     tpPoints = Math.round(tpPoints * 0.9);
-//     slPoints = Math.round(slPoints * 0.95);
-//   } else if (signalStrength >= 6.0) {
-//     tpPoints = Math.round(tpPoints * 1.15);
-//   }
-
-//   if (defensiveFlags?.warningMatched) {
-//     lotSize = Number((lotSize * defensiveFlags.lotMultiplier).toFixed(2));
-//     if (lotSize < 0.01) lotSize = 0.01;
-//     tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
-//   }
-
-//   if (tpPoints < activeCfg.minTP) tpPoints = activeCfg.minTP;
-//   if (slPoints < activeCfg.minSL) slPoints = activeCfg.minSL;
-//   if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
-//   if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
-
-//   const safeUserMaxLotCap = Number(userMaxLotCap || 0);
-
-//   if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
-//     lotSize = Number(safeUserMaxLotCap.toFixed(2));
-
-//     if (lotSize < 0.01) {
-//       lotSize = 0.01;
-//     }
-//   }
-
-//   return {
-//     recommended_lot: lotSize,
-//     sl_points: slPoints,
-//     tp_points: tpPoints,
-//     retrace_points: retracePoints,
-//   };
-// }
+  return {
+    ...tradeSetup,
+    recommended_lot: recommendedLot,
+    sl_points: slPoints,
+    tp_points: tpPoints,
+    retrace_points: retracePoints,
+  };
+}
 
 function buildTradeSetupFromPattern({
   side,
@@ -839,7 +721,8 @@ function buildTradeSetupFromPattern({
   activeCfg,
   score,
   defensiveFlags,
-  userMaxLotCap
+  userMaxLotCap,
+  coldStartProfile = null
 }) {
   let slPoints = 500;
   let tpPoints = 800;
@@ -935,43 +818,7 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
   // -----------------------------
-  // const retraceProfile = detectRetracementProfile({
-  //   side,
-  //   candles,
-  //   signalStrength,
-  //   mode: detectedMode
-  // });
 
-  // retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
-
-  // if (pattern?.isVolumeClimax) {
-  //   retracePoints = Math.round(retracePoints * 0.65);
-  // }
-
-  // if (pattern?.isVolumeDrying) {
-  //   retracePoints = Math.round(retracePoints * .98);
-  // }
-
-  // if (defensiveFlags?.warningMatched) {
-  //   retracePoints = Math.round(retracePoints * 1.18);
-  // }
-
-  // const minR =
-  //   detectedMode === "SCALP"
-  //     ? Math.round(12 * (mult / 100))
-  //     : Math.round(20 * (mult / 100));
-
-  // const maxR =
-  //   detectedMode === "SCALP"
-  //     ? Math.round(120 * (mult / 100))
-  //     : Math.round(200 * (mult / 100));
-
-  // // ใช้ SL สุดท้ายที่ clamp แล้ว
-  // const maxRetraceBySL = Math.max(1, Math.round(slPoints * 0.33));
-
-  // if (retracePoints < minR) retracePoints = minR;
-  // if (retracePoints > maxR) retracePoints = maxR;
-  // if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
   const retraceResult = calculateAdaptiveRetracementPoints({
     side,
     candles,
@@ -1021,20 +868,100 @@ function buildTradeSetupFromPattern({
     if (lotSize > 5.0) lotSize = 5.0;
   }
 
-  const safeUserMaxLotCap = Number(userMaxLotCap || 0);
-  if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
-    lotSize = Number(safeUserMaxLotCap.toFixed(2));
-    if (lotSize < 0.01) lotSize = 0.01;
-  }
-
-  return {
+  let tradeSetup = {
     recommended_lot: lotSize,
     sl_points: slPoints,
     tp_points: tpPoints,
     retrace_points: retracePoints
   };
+
+  tradeSetup = applyColdStartProfileToTradeSetup({
+    tradeSetup,
+    coldStartProfile,
+    activeCfg,
+  });
+
+  const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+  if (
+    safeUserMaxLotCap > 0 &&
+    Number(tradeSetup.recommended_lot || 0) > safeUserMaxLotCap
+  ) {
+    tradeSetup.recommended_lot = Number(safeUserMaxLotCap.toFixed(2));
+    if (tradeSetup.recommended_lot < 0.01) {
+      tradeSetup.recommended_lot = 0.01;
+    }
+  }
+
+  return tradeSetup;
+  // const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+  // if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
+  //   lotSize = Number(safeUserMaxLotCap.toFixed(2));
+  //   if (lotSize < 0.01) lotSize = 0.01;
+  // }
+
+  // return {
+  //   recommended_lot: lotSize,
+  //   sl_points: slPoints,
+  //   tp_points: tpPoints,
+  //   retrace_points: retracePoints
+  // };
 }
 
+// function buildMicroFallbackResponse({
+//   microResult,
+//   reqBody,
+//   resolvedUserId,
+//   pattern,
+//   historicalVolume,
+//   activeCfg,
+//   tradingPreferences
+// }) {
+//   const side = String(reqBody.side || "").toUpperCase();
+//   const microSignal = String(microResult.signal || "").toUpperCase();
+
+//   if (microSignal !== side) {
+//     return null;
+//   }
+
+//   const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
+//   const decision =
+//     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
+
+//   const defensiveFlags = {
+//     warningMatched: false,
+//     lotMultiplier: 1,
+//     tpMultiplier: 1,
+//     reason: "MICRO_SCALP_FALLBACK",
+//   };
+
+//   const trade_setup = buildTradeSetupFromPattern({
+//     side,
+//     price: Number(reqBody.price || 0),
+//     pattern,
+//     candles: Array.isArray(reqBody.candles) ? reqBody.candles : [],
+//     balance: Number(reqBody.balance || 0),
+//     spreadPoints: Number(reqBody.spreadPoints || 0),
+//     activeCfg,
+//     score,
+//     defensiveFlags,
+//     userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0)
+//   });
+
+//   return {
+//     decision,
+//     score,
+//     firebaseUserId: resolvedUserId,
+//     mode: "MICRO_SCALP",
+//     trend:
+//       microSignal === "BUY" ? "BULLISH" :
+//         microSignal === "SELL" ? "BEARISH" :
+//           "NEUTRAL",
+//     pattern,
+//     historicalVolume,
+//     defensiveFlags,
+//     trade_setup,
+//   };
+// }
 function buildMicroFallbackResponse({
   microResult,
   reqBody,
@@ -1042,7 +969,8 @@ function buildMicroFallbackResponse({
   pattern,
   historicalVolume,
   activeCfg,
-  tradingPreferences
+  tradingPreferences,
+  totalClosedTrades = 0,
 }) {
   const side = String(reqBody.side || "").toUpperCase();
   const microSignal = String(microResult.signal || "").toUpperCase();
@@ -1054,6 +982,40 @@ function buildMicroFallbackResponse({
   const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
   const decision =
     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
+
+  const coldStartProfile = buildColdStartProfile({
+    closedTradesCount: totalClosedTrades,
+    mode: "MICRO_SCALP",
+  });
+
+  if (
+    coldStartProfile.enabled &&
+    coldStartProfile.blockWeakSignals &&
+    Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
+  ) {
+    return {
+      decision: "NO_TRADE",
+      reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
+      score,
+      firebaseUserId: resolvedUserId,
+      mode: "MICRO_SCALP",
+      trend:
+        microSignal === "BUY" ? "BULLISH" :
+          microSignal === "SELL" ? "BEARISH" :
+            "NEUTRAL",
+      pattern,
+      historicalVolume,
+      defensiveFlags: {
+        warningMatched: false,
+        lotMultiplier: 1,
+        tpMultiplier: 1,
+        reason: "MICRO_SCALP_FALLBACK_COLD_START_BLOCK",
+      },
+      trade_setup: null,
+      cold_start_profile: coldStartProfile,
+      totalClosedTrades,
+    };
+  }
 
   const defensiveFlags = {
     warningMatched: false,
@@ -1072,7 +1034,8 @@ function buildMicroFallbackResponse({
     activeCfg,
     score,
     defensiveFlags,
-    userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0)
+    userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0),
+    coldStartProfile,
   });
 
   return {
@@ -1088,6 +1051,8 @@ function buildMicroFallbackResponse({
     historicalVolume,
     defensiveFlags,
     trade_setup,
+    cold_start_profile: coldStartProfile,
+    totalClosedTrades,
   };
 }
 
@@ -1147,6 +1112,16 @@ app.post("/signal", async (req, res) => {
     }
   } catch (prefError) {
     console.error("Load trading preferences error:", prefError.message);
+  }
+
+  let totalClosedTrades = 0;
+
+  try {
+    if (resolvedUserId) {
+      totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
+    }
+  } catch (tradeCountError) {
+    console.error("Load trade count error:", tradeCountError.message);
   }
 
   try {
@@ -1283,6 +1258,35 @@ app.post("/signal", async (req, res) => {
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
 
+    const coldStartProfile = buildColdStartProfile({
+      closedTradesCount: totalClosedTrades,
+      mode: evaluateResult.mode || "NORMAL",
+    });
+
+    if (
+      isOpenDecision(finalDecision) &&
+      coldStartProfile.enabled &&
+      coldStartProfile.blockWeakSignals &&
+      Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
+    ) {
+      return res.json({
+        ...buildBlockedSignalResponse({
+          reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: evaluateResult.mode || "NORMAL",
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags: evaluateResult.defensiveFlags || null,
+          trade_setup: null,
+          currentOpenPositionsCount: 0,
+        }),
+        cold_start_profile: coldStartProfile,
+        totalClosedTrades,
+      });
+    }
+
     if (finalDecision === "NO_TRADE" && finalDecisionReason) {
       return res.json(
         buildBlockedSignalResponse({
@@ -1315,6 +1319,15 @@ app.post("/signal", async (req, res) => {
       });
 
       if (microResult.allowOpen) {
+        // const microResponse = buildMicroFallbackResponse({
+        //   microResult,
+        //   reqBody: req.body,
+        //   resolvedUserId,
+        //   pattern,
+        //   historicalVolume,
+        //   activeCfg,
+        //   tradingPreferences
+        // });
         const microResponse = buildMicroFallbackResponse({
           microResult,
           reqBody: req.body,
@@ -1322,10 +1335,15 @@ app.post("/signal", async (req, res) => {
           pattern,
           historicalVolume,
           activeCfg,
-          tradingPreferences
+          tradingPreferences,
+          totalClosedTrades,
         });
 
         if (microResponse) {
+          if (microResponse.decision === "NO_TRADE") {
+            return res.json(microResponse);
+          }
+
           const microDirectionResult = enforceDirectionBiasOnDecision(
             microResponse.decision,
             tradingPreferences
@@ -1401,6 +1419,7 @@ app.post("/signal", async (req, res) => {
       score,
       defensiveFlags,
       userMaxLotCap: Number(tradingPreferences.base_lot_size || 0),
+      coldStartProfile
     });
 
     let signalResponse = {
