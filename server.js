@@ -124,9 +124,9 @@ const symbolConfig = {
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 1500 },
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 2000, minTP: 1000, maxTP: 2500 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 1500 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
     "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 400, maxSL: 600, minTP: 500, maxTP: 1000 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }
@@ -153,6 +153,86 @@ function getActiveSymbolConfig(symbol, mode = "NORMAL") {
   const safeMode = String(mode || "NORMAL").toUpperCase();
   const configByMode = symbolConfig[safeMode] || symbolConfig.NORMAL;
   return configByMode[symbol] || configByMode.DEFAULT;
+}
+
+function getCandleRange(candle = {}) {
+  return Math.abs(toNum(candle.high) - toNum(candle.low));
+}
+
+function getUpperWick(candle = {}) {
+  return Math.max(
+    0,
+    toNum(candle.high) - Math.max(toNum(candle.open), toNum(candle.close))
+  );
+}
+
+function getLowerWick(candle = {}) {
+  return Math.max(
+    0,
+    Math.min(toNum(candle.open), toNum(candle.close)) - toNum(candle.low)
+  );
+}
+
+function getBodyRatio(candle = {}) {
+  const range = getCandleRange(candle);
+  if (range <= 0) return 0;
+  return getBodySize(candle) / range;
+}
+
+function average(arr = []) {
+  if (!Array.isArray(arr) || arr.length === 0) return 0;
+  return arr.reduce((sum, v) => sum + Number(v || 0), 0) / arr.length;
+}
+
+function overlapRatio(a = {}, b = {}) {
+  const aLow = toNum(a.low);
+  const aHigh = toNum(a.high);
+  const bLow = toNum(b.low);
+  const bHigh = toNum(b.high);
+
+  const overlap = Math.max(0, Math.min(aHigh, bHigh) - Math.max(aLow, bLow));
+  const base = Math.max(0.0000001, Math.min(aHigh - aLow, bHigh - bLow));
+
+  return overlap / base;
+}
+
+function countDirectionalImpulse({ side, candles = [], lookback = 3 }) {
+  const recent = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  if (recent.length === 0) return 0;
+
+  let count = 0;
+
+  for (let i = 0; i < recent.length; i++) {
+    const c = recent[i] || {};
+    const prev = i > 0 ? recent[i - 1] : null;
+    const bodyRatio = getBodyRatio(c);
+
+    const directional = side === "BUY" ? isBullish(c) : isBearish(c);
+    if (!directional || bodyRatio < 0.55) continue;
+
+    if (prev) {
+      if (side === "BUY" && toNum(c.high) < toNum(prev.high)) continue;
+      if (side === "SELL" && toNum(c.low) > toNum(prev.low)) continue;
+    }
+
+    count += 1;
+  }
+
+  return count;
+}
+
+function countCongestionBars(candles = [], lookback = 4) {
+  const recent = Array.isArray(candles) ? candles.slice(-(lookback + 1)) : [];
+  if (recent.length < 2) return 0;
+
+  let count = 0;
+  for (let i = 1; i < recent.length; i++) {
+    if (overlapRatio(recent[i], recent[i - 1]) >= 0.55) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 function ensureDataDir() {
@@ -305,76 +385,279 @@ function isBearish(candle = {}) {
   return toNum(candle.close) < toNum(candle.open);
 }
 
+// function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
+//   const c1 = getLastCandle(candles, 1);
+//   const c2 = getLastCandle(candles, 2);
+//   const c3 = getLastCandle(candles, 3);
+
+//   if (!c1 || !c2 || !c3) {
+//     return {
+//       profile: "DEFAULT",
+//       retraceMultiplier: mode === "SCALP" ? 0.55 : 0.80
+//     };
+//   }
+
+//   const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
+
+//   // continuation: แท่งก่อนหน้าเป็น pullback เล็ก แล้วแท่งล่าสุดไปต่อ
+//   const sellContinuation =
+//     isBullish(c2) &&
+//     getBodySize(c2) < getBodySize(c3) * 0.8 &&
+//     isBearish(c1) &&
+//     toNum(c1.low) < toNum(c2.low);
+
+//   const buyContinuation =
+//     isBearish(c2) &&
+//     getBodySize(c2) < getBodySize(c3) * 0.8 &&
+//     isBullish(c1) &&
+//     toNum(c1.high) > toNum(c2.high);
+
+//   // reversal: ยังไม่ใช่ continuation ชัด แต่เพิ่งเริ่มกลับตัว
+//   const sellReversal =
+//     isBearish(c1) &&
+//     toNum(c1.close) < toNum(c2.close) &&
+//     !sellContinuation;
+
+//   const buyReversal =
+//     isBullish(c1) &&
+//     toNum(c1.close) > toNum(c2.close) &&
+//     !buyContinuation;
+
+//   // trend continuation ควรรอย่อตื้นกว่า reversal
+//   if (side === "SELL" && sellContinuation) {
+//     return {
+//       profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
+//       retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
+//     };
+//   }
+
+//   if (side === "BUY" && buyContinuation) {
+//     return {
+//       profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
+//       retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
+//     };
+//   }
+
+//   if (side === "SELL" && sellReversal) {
+//     return {
+//       profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
+//       retraceMultiplier: scalpMode ? 0.38 : 0.48
+//     };
+//   }
+
+//   if (side === "BUY" && buyReversal) {
+//     return {
+//       profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
+//       retraceMultiplier: scalpMode ? 0.38 : 0.48
+//     };
+//   }
+
+//   return {
+//     profile: "DEFAULT",
+//     retraceMultiplier: scalpMode ? 0.50 : 0.72
+//   };
+// }
+
 function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
   const c1 = getLastCandle(candles, 1);
   const c2 = getLastCandle(candles, 2);
   const c3 = getLastCandle(candles, 3);
+  const c4 = getLastCandle(candles, 4);
+
+  const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
 
   if (!c1 || !c2 || !c3) {
     return {
       profile: "DEFAULT",
-      retraceMultiplier: mode === "SCALP" ? 0.55 : 0.80
+      retraceMultiplier: scalpMode ? 0.48 : 0.68,
+      impulseCount: 0,
+      congestionCount: 0,
+      bodyRatio: 0,
+      againstWickRatio: 0,
+      slCapRatio: scalpMode ? 0.30 : 0.36,
     };
   }
 
-  const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
+  const recent = [c1, c2, c3, c4].filter(Boolean);
+  const recentRanges = recent.map(getCandleRange);
+  const recentBodies = recent.map(getBodySize);
 
-  // continuation: แท่งก่อนหน้าเป็น pullback เล็ก แล้วแท่งล่าสุดไปต่อ
-  const sellContinuation =
-    isBullish(c2) &&
-    getBodySize(c2) < getBodySize(c3) * 0.8 &&
-    isBearish(c1) &&
-    toNum(c1.low) < toNum(c2.low);
+  const recentRangeAvg = average(recentRanges);
+  const recentBodyAvg = average(recentBodies);
+  const bodyRatio = getBodyRatio(c1);
 
-  const buyContinuation =
-    isBearish(c2) &&
-    getBodySize(c2) < getBodySize(c3) * 0.8 &&
-    isBullish(c1) &&
-    toNum(c1.high) > toNum(c2.high);
+  const againstWick = side === "BUY" ? getUpperWick(c1) : getLowerWick(c1);
+  const withWick = side === "BUY" ? getLowerWick(c1) : getUpperWick(c1);
 
-  // reversal: ยังไม่ใช่ continuation ชัด แต่เพิ่งเริ่มกลับตัว
-  const sellReversal =
-    isBearish(c1) &&
-    toNum(c1.close) < toNum(c2.close) &&
-    !sellContinuation;
+  const againstWickRatio =
+    getBodySize(c1) > 0 ? againstWick / Math.max(getBodySize(c1), 0.0000001) : 0;
+  const withWickRatio =
+    getBodySize(c1) > 0 ? withWick / Math.max(getBodySize(c1), 0.0000001) : 0;
+
+  const impulseCount = countDirectionalImpulse({ side, candles, lookback: 3 });
+  const congestionCount = countCongestionBars(candles, 4);
+
+  const latestIsImpulse =
+    getCandleRange(c1) >= recentRangeAvg * 1.15 &&
+    bodyRatio >= 0.60;
+
+  const strongContinuation =
+    impulseCount >= 2 &&
+    latestIsImpulse &&
+    againstWickRatio <= 0.35;
+
+  const climacticContinuation =
+    impulseCount >= 2 &&
+    getCandleRange(c1) >= recentRangeAvg * 1.35 &&
+    bodyRatio >= 0.68 &&
+    againstWickRatio <= 0.25;
+
+  const congested =
+    congestionCount >= 2 ||
+    (recentRangeAvg > 0 && recentBodyAvg / recentRangeAvg < 0.38);
 
   const buyReversal =
+    side === "BUY" &&
     isBullish(c1) &&
     toNum(c1.close) > toNum(c2.close) &&
-    !buyContinuation;
+    (withWickRatio >= 0.35 || bodyRatio < 0.58) &&
+    !strongContinuation;
 
-  // trend continuation ควรรอย่อตื้นกว่า reversal
-  if (side === "SELL" && sellContinuation) {
+  const sellReversal =
+    side === "SELL" &&
+    isBearish(c1) &&
+    toNum(c1.close) < toNum(c2.close) &&
+    (withWickRatio >= 0.35 || bodyRatio < 0.58) &&
+    !strongContinuation;
+
+  if (climacticContinuation) {
+    return {
+      profile: scalpMode ? "SCALP_CLIMAX_CONTINUATION" : "NORMAL_CLIMAX_CONTINUATION",
+      retraceMultiplier: signalStrength >= 6 ? 0.16 : signalStrength >= 4 ? 0.20 : 0.24,
+      impulseCount,
+      congestionCount,
+      bodyRatio,
+      againstWickRatio,
+      slCapRatio: scalpMode ? 0.20 : 0.24,
+    };
+  }
+
+  if (strongContinuation) {
     return {
       profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
-      retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
+      retraceMultiplier: signalStrength >= 6 ? 0.20 : signalStrength >= 4 ? 0.25 : 0.30,
+      impulseCount,
+      congestionCount,
+      bodyRatio,
+      againstWickRatio,
+      slCapRatio: scalpMode ? 0.24 : 0.30,
     };
   }
 
-  if (side === "BUY" && buyContinuation) {
-    return {
-      profile: scalpMode ? "SCALP_CONTINUATION" : "NORMAL_CONTINUATION",
-      retraceMultiplier: signalStrength >= 6 ? 0.22 : signalStrength >= 4 ? 0.28 : 0.34
-    };
-  }
-
-  if (side === "SELL" && sellReversal) {
+  if (buyReversal || sellReversal) {
     return {
       profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
-      retraceMultiplier: scalpMode ? 0.38 : 0.48
+      retraceMultiplier: scalpMode ? 0.40 : 0.52,
+      impulseCount,
+      congestionCount,
+      bodyRatio,
+      againstWickRatio,
+      slCapRatio: scalpMode ? 0.34 : 0.42,
     };
   }
 
-  if (side === "BUY" && buyReversal) {
+  if (congested) {
     return {
-      profile: scalpMode ? "SCALP_REVERSAL" : "NORMAL_REVERSAL",
-      retraceMultiplier: scalpMode ? 0.38 : 0.48
+      profile: scalpMode ? "SCALP_CONGESTION" : "NORMAL_CONGESTION",
+      retraceMultiplier: scalpMode ? 0.52 : 0.74,
+      impulseCount,
+      congestionCount,
+      bodyRatio,
+      againstWickRatio,
+      slCapRatio: scalpMode ? 0.40 : 0.48,
     };
   }
 
   return {
     profile: "DEFAULT",
-    retraceMultiplier: scalpMode ? 0.50 : 0.72
+    retraceMultiplier: scalpMode ? 0.46 : 0.64,
+    impulseCount,
+    congestionCount,
+    bodyRatio,
+    againstWickRatio,
+    slCapRatio: scalpMode ? 0.30 : 0.36,
+  };
+}
+
+function calculateAdaptiveRetracementPoints({
+  side,
+  candles = [],
+  signalStrength = 0,
+  mode = "NORMAL",
+  avgRange = 0,
+  slPoints = 0,
+  pattern = {},
+  defensiveFlags = {},
+  pipMultiplier = 100,
+}) {
+  const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
+  const profile = detectRetracementProfile({ side, candles, signalStrength, mode });
+
+  let retracePoints = Math.round(Number(avgRange || 0) * Number(profile.retraceMultiplier || 0));
+
+  // impulse แรง -> ย่อตื้นลง
+  if (profile.impulseCount >= 3) {
+    retracePoints = Math.round(retracePoints * 0.90);
+  } else if (profile.impulseCount === 0) {
+    retracePoints = Math.round(retracePoints * 1.08);
+  }
+
+  // congestion มาก -> ย่อลึกขึ้น
+  if (profile.congestionCount >= 3) {
+    retracePoints = Math.round(retracePoints * 1.15);
+  } else if (profile.congestionCount >= 2) {
+    retracePoints = Math.round(retracePoints * 1.08);
+  }
+
+  // wick สวนทางเยอะ -> ต้องเผื่อย่อมากขึ้น
+  if (profile.againstWickRatio >= 0.55) {
+    retracePoints = Math.round(retracePoints * 1.10);
+  }
+
+  if (pattern?.isVolumeClimax) {
+    retracePoints = Math.round(retracePoints * 0.82);
+  }
+
+  if (pattern?.isVolumeDrying) {
+    retracePoints = Math.round(retracePoints * 1.10);
+  }
+
+  if (defensiveFlags?.warningMatched) {
+    retracePoints = Math.round(retracePoints * 1.12);
+  }
+
+  const minR = scalpMode
+    ? Math.round(10 * (pipMultiplier / 100))
+    : Math.round(18 * (pipMultiplier / 100));
+
+  const maxR = scalpMode
+    ? Math.round(110 * (pipMultiplier / 100))
+    : Math.round(190 * (pipMultiplier / 100));
+
+  const slCapRatio = Number(profile.slCapRatio || (scalpMode ? 0.30 : 0.36));
+  const maxRetraceBySL = Math.max(1, Math.round(Number(slPoints || 0) * slCapRatio));
+
+  if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+    retracePoints = minR;
+  }
+
+  if (retracePoints < minR) retracePoints = minR;
+  if (retracePoints > maxR) retracePoints = maxR;
+  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+  return {
+    retracePoints,
+    retraceProfile: profile.profile,
   };
 }
 
@@ -652,43 +935,56 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
   // -----------------------------
-  const retraceProfile = detectRetracementProfile({
+  // const retraceProfile = detectRetracementProfile({
+  //   side,
+  //   candles,
+  //   signalStrength,
+  //   mode: detectedMode
+  // });
+
+  // retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+
+  // if (pattern?.isVolumeClimax) {
+  //   retracePoints = Math.round(retracePoints * 0.65);
+  // }
+
+  // if (pattern?.isVolumeDrying) {
+  //   retracePoints = Math.round(retracePoints * .98);
+  // }
+
+  // if (defensiveFlags?.warningMatched) {
+  //   retracePoints = Math.round(retracePoints * 1.18);
+  // }
+
+  // const minR =
+  //   detectedMode === "SCALP"
+  //     ? Math.round(12 * (mult / 100))
+  //     : Math.round(20 * (mult / 100));
+
+  // const maxR =
+  //   detectedMode === "SCALP"
+  //     ? Math.round(120 * (mult / 100))
+  //     : Math.round(200 * (mult / 100));
+
+  // // ใช้ SL สุดท้ายที่ clamp แล้ว
+  // const maxRetraceBySL = Math.max(1, Math.round(slPoints * 0.33));
+
+  // if (retracePoints < minR) retracePoints = minR;
+  // if (retracePoints > maxR) retracePoints = maxR;
+  // if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+  const retraceResult = calculateAdaptiveRetracementPoints({
     side,
     candles,
     signalStrength,
-    mode: detectedMode
+    mode: detectedMode,
+    avgRange,
+    slPoints,
+    pattern,
+    defensiveFlags,
+    pipMultiplier: mult,
   });
 
-  retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
-
-  if (pattern?.isVolumeClimax) {
-    retracePoints = Math.round(retracePoints * 0.65);
-  }
-
-  if (pattern?.isVolumeDrying) {
-    retracePoints = Math.round(retracePoints * .98);
-  }
-
-  if (defensiveFlags?.warningMatched) {
-    retracePoints = Math.round(retracePoints * 1.18);
-  }
-
-  const minR =
-    detectedMode === "SCALP"
-      ? Math.round(12 * (mult / 100))
-      : Math.round(20 * (mult / 100));
-
-  const maxR =
-    detectedMode === "SCALP"
-      ? Math.round(120 * (mult / 100))
-      : Math.round(200 * (mult / 100));
-
-  // ใช้ SL สุดท้ายที่ clamp แล้ว
-  const maxRetraceBySL = Math.max(1, Math.round(slPoints * 0.33));
-
-  if (retracePoints < minR) retracePoints = minR;
-  if (retracePoints > maxR) retracePoints = maxR;
-  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+  retracePoints = retraceResult.retracePoints;
 
   // -----------------------------
   // 4) คำนวณ lot จาก SL สุดท้าย
