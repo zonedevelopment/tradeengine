@@ -10,6 +10,32 @@ const { upsertAdaptiveScoreStat } = require("../adaptiveScore.repo");
 
 const CandleTrainingData = require("../models/CandleTrainingData");
 
+const {
+  getUserStrategyWeightsByScopes,
+  upsertUserStrategyWeight,
+} = require("../userStrategyWeights.repo");
+
+function normalizeScopeValue(value, fallback = "") {
+  if (value === undefined || value === null) return fallback;
+  const s = String(value).trim();
+  return s === "" ? fallback : s;
+}
+
+function buildUserWeightScopeKey(firebaseUserId, accountId = "") {
+  return `${normalizeScopeValue(firebaseUserId)}||${normalizeScopeValue(accountId)}`;
+}
+
+function splitUserWeightScopeKey(scopeKey = "") {
+  const [firebaseUserId = "", accountId = ""] = String(scopeKey).split("||");
+  return { firebaseUserId, accountId };
+}
+
+function applyWeightDelta(currentWeight, isWin) {
+  const current = Number(currentWeight || 0);
+  const next = current + (isWin ? 0.08 : -0.08);
+  return clamp(next, -2.0, 2.0);
+}
+
 function clamp(num, min, max) {
   return Math.max(min, Math.min(max, Number(num || 0)));
 }
@@ -422,6 +448,61 @@ async function runDailyLearning() {
     console.log("[Daily Learner] Get initial weights error:", err.message);
   }
 
+  let userWeightsByScope = {};
+
+  try {
+    const scopes = Array.from(
+      new Map(
+        (trades || [])
+          .map((t) => ({
+            firebaseUserId: t.firebase_user_id || null,
+            accountId: t.account_id || "",
+          }))
+          .filter((item) => item.firebaseUserId)
+          .map((item) => [
+            buildUserWeightScopeKey(item.firebaseUserId, item.accountId),
+            {
+              firebaseUserId: normalizeScopeValue(item.firebaseUserId),
+              accountId: normalizeScopeValue(item.accountId),
+            },
+          ])
+      ).values()
+    );
+
+    if (scopes.length > 0) {
+      const userWeightRows = await getUserStrategyWeightsByScopes(scopes);
+
+      for (const row of userWeightRows) {
+        const scopeKey = buildUserWeightScopeKey(
+          row.firebase_user_id,
+          row.account_id
+        );
+        const symbol = String(row.symbol || "DEFAULT").toUpperCase();
+        const patternName = String(row.pattern_name || "").trim();
+
+        if (!patternName) continue;
+
+        if (!userWeightsByScope[scopeKey]) {
+          userWeightsByScope[scopeKey] = {};
+        }
+
+        if (!userWeightsByScope[scopeKey][symbol]) {
+          userWeightsByScope[scopeKey][symbol] = {};
+        }
+
+        userWeightsByScope[scopeKey][symbol][patternName] = Number(
+          row.weight_score || 0
+        );
+      }
+
+      console.log(
+        `[Daily Learner] User strategy weights loaded for ${scopes.length} scope(s).`
+      );
+    }
+  } catch (err) {
+    console.error("[Daily Learner] Load user strategy weights error:", err.message);
+  }
+
   let mappedResults = [];
   let adaptiveRows = [];
   let openOrder = null;
@@ -429,8 +510,6 @@ async function runDailyLearning() {
   try {
     for (let i = 0; i < trades.length; i++) {
       const t = trades[i];
-
-      console.log("[Daily Learner] Trade: " + JSON.stringify(t));
 
       if (t.event_type === "OPEN_ORDER") {
         openOrder = t;
@@ -452,8 +531,6 @@ async function runDailyLearning() {
           matchedCandleLog = cLog;
         }
       }
-
-      console.log("[Daily Learner] Match & Diff: " + matchedCandleLog + ": " + minDiff);
 
       if (matchedCandleLog && minDiff < 5.0) {
         const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
@@ -529,33 +606,35 @@ async function runDailyLearning() {
           minPriceDiff: minDiff,
         };
 
-        mappedResults.push({
-          firebaseUserId: learningItem.userId || null,
-          accountId: learningItem.accountId || null,
-          eventTime: matchedCandleLog.timestamp,
-          symbol: learningItem.symbol,
-          patternType,
-          triggerPattern,
-          mode: learningItem.mode,
-          tickVolume,
-          microTrend,
-          volumeProfile,
-          prePatternShape,
-          rangeState,
-          sessionName,
-          openPrice: openOrder.price,
-          closePrice: t.price,
-          slPrice: openOrder.sl,
-          tpPrice: openOrder.tp,
-          slPips,
-          tpPips,
-          rrRatio,
-          profit: t.profit,
-          result: learningItem.result,
-          side: openOrder.side,
-          postMortem,
-          contextHash: learningItem.contextHash,
-        });
+        if (learningItem.userId) {
+          mappedResults.push({
+            firebaseUserId: learningItem.userId || null,
+            accountId: learningItem.accountId || null,
+            eventTime: t.event_time,
+            symbol: learningItem.symbol,
+            patternType,
+            triggerPattern,
+            mode: learningItem.mode,
+            tickVolume,
+            microTrend,
+            volumeProfile,
+            prePatternShape,
+            rangeState,
+            sessionName,
+            openPrice: openOrder.price,
+            closePrice: t.price,
+            slPrice: openOrder.sl,
+            tpPrice: openOrder.tp,
+            slPips,
+            tpPips,
+            rrRatio,
+            profit: t.profit,
+            result: learningItem.result,
+            side: openOrder.side,
+            postMortem,
+            contextHash: learningItem.contextHash,
+          });
+        }
 
         adaptiveRows.push(
           {
@@ -575,8 +654,44 @@ async function runDailyLearning() {
             closedAt: t.event_time,
           });
 
-        await upsertFailedPattern(learningItem);
-        const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
+        logUndefinedFields("learningItem before failed pattern", learningItem);
+
+        const safeLearningItem = cleanLearningItem(learningItem);
+        await upsertFailedPattern(safeLearningItem);
+
+        // mappedResults.push(mappedResults);
+        // await upsertFailedPattern(learningItem);
+        // const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
+
+        // if (!weightsBySymbol[targetSymbol]) {
+        //   weightsBySymbol[targetSymbol] = {};
+        // }
+
+        // if (patternType !== "NONE" && patternType !== "None") {
+        //   if (weightsBySymbol[targetSymbol][patternType] == null) {
+        //     const defaultWeight =
+        //       weightsBySymbol.DEFAULT?.[patternType] ??
+        //       initialDefaultWeights?.[patternType] ??
+        //       0;
+
+        //     weightsBySymbol[targetSymbol][patternType] = defaultWeight;
+        //   }
+
+        //   if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
+        //   else weightsBySymbol[targetSymbol][patternType] -= 0.08;
+
+        //   if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
+        //     weightsBySymbol[targetSymbol][patternType] = 2.0;
+        //   }
+
+        //   if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
+        //     weightsBySymbol[targetSymbol][patternType] = -2.0;
+        //   }
+        // }
+
+        const targetSymbol = String(
+          t.symbol || learningItem.symbol || "DEFAULT"
+        ).toUpperCase();
 
         if (!weightsBySymbol[targetSymbol]) {
           weightsBySymbol[targetSymbol] = {};
@@ -592,15 +707,45 @@ async function runDailyLearning() {
             weightsBySymbol[targetSymbol][patternType] = defaultWeight;
           }
 
-          if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
-          else weightsBySymbol[targetSymbol][patternType] -= 0.08;
+          const seedGlobalWeight = Number(
+            weightsBySymbol[targetSymbol][patternType] || 0
+          );
 
-          if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
-            weightsBySymbol[targetSymbol][patternType] = 2.0;
-          }
+          weightsBySymbol[targetSymbol][patternType] = applyWeightDelta(
+            seedGlobalWeight,
+            isWin
+          );
 
-          if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
-            weightsBySymbol[targetSymbol][patternType] = -2.0;
+          if (learningItem.userId) {
+            const userScopeKey = buildUserWeightScopeKey(
+              learningItem.userId,
+              learningItem.accountId
+            );
+
+            if (!userWeightsByScope[userScopeKey]) {
+              userWeightsByScope[userScopeKey] = {};
+            }
+
+            if (!userWeightsByScope[userScopeKey][targetSymbol]) {
+              userWeightsByScope[userScopeKey][targetSymbol] = {};
+            }
+
+            if (userWeightsByScope[userScopeKey][targetSymbol][patternType] == null) {
+              const baseUserWeight =
+                userWeightsByScope[userScopeKey].DEFAULT?.[patternType] ??
+                seedGlobalWeight ??
+                weightsBySymbol.DEFAULT?.[patternType] ??
+                initialDefaultWeights?.[patternType] ??
+                0;
+
+              userWeightsByScope[userScopeKey][targetSymbol][patternType] = baseUserWeight;
+            }
+
+            userWeightsByScope[userScopeKey][targetSymbol][patternType] =
+              applyWeightDelta(
+                userWeightsByScope[userScopeKey][targetSymbol][patternType],
+                isWin
+              );
           }
         }
       }
@@ -628,9 +773,58 @@ async function runDailyLearning() {
       console.error("[Daily Learner] Save weights to DB error:", err.message);
     }
 
+    try {
+      const scopeEntries = Object.entries(userWeightsByScope);
+
+      if (scopeEntries.length > 0) {
+        let savedUserCount = 0;
+
+        for (const [scopeKey, symbolMap] of scopeEntries) {
+          const { firebaseUserId, accountId } = splitUserWeightScopeKey(scopeKey);
+
+          if (!firebaseUserId) continue;
+
+          for (const [symbol, patternMap] of Object.entries(symbolMap || {})) {
+            const patternEntries = Object.entries(patternMap || {});
+
+            for (const [patternName, newWeight] of patternEntries) {
+              await upsertUserStrategyWeight({
+                firebaseUserId,
+                accountId,
+                symbol,
+                patternName,
+                weightScore: newWeight,
+              });
+
+              savedUserCount++;
+            }
+          }
+        }
+
+        console.log(
+          `[Daily Learner] User strategy weights saved ${savedUserCount} row(s).`
+        );
+      }
+    } catch (err) {
+      console.error("[Daily Learner] Save user weights error:", err.message);
+    }
+
     await updateAdaptiveScoreStats(adaptiveRows);
-    await insertManyMappedTradeAnalysis(mappedResults);
-    
+
+    // for (let i = 0; i < mappedResults.length; i++) {
+    //   const item = mappedResults[i];
+    //   if (!item || typeof item !== "object" || Array.isArray(item)) {
+    //     console.warn(`[Daily Learner] mappedResults[${i}] invalid:`, item);
+    //   }
+
+    //   if (i < mappedResults.length && i < 51) {
+    //   console.warn(`[Daily Learner] mappedResults[${i}] invalid:`, item);
+    //   }
+    // }
+
+    // console.log(mappedResults)
+    const safeItem = normalizeMappedItem(mappedResults);
+    await insertManyMappedTradeAnalysis(safeItem);
   } catch (err) {
     console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
   }
@@ -771,6 +965,40 @@ if (require.main === module) {
   runDailyLearning().catch((err) => {
     console.error("[Daily Learner] Fatal error:", err.message);
   });
+}
+
+function cleanLearningItem(item = {}) {
+  const cleaned = {};
+
+  for (const [key, value] of Object.entries(item)) {
+    cleaned[key] = value === undefined ? null : value;
+  }
+
+  return cleaned;
+}
+
+function logUndefinedFields(label, obj = {}) {
+  const undefinedKeys = Object.entries(obj)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key);
+
+  if (undefinedKeys.length > 0) {
+    console.warn(`[Daily Learner] ${label} has undefined fields:`, undefinedKeys);
+  }
+}
+
+function normalizeMappedItem(item) {
+  if (!item) return null;
+
+  if (Array.isArray(item)) {
+    return item.length > 0 ? item[0] : null;
+  }
+
+  if (typeof item === "object" && item[0] && typeof item[0] === "object") {
+    return item[0];
+  }
+
+  return item;
 }
 
 module.exports = { runDailyLearning };

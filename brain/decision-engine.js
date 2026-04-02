@@ -412,7 +412,13 @@ async function evaluateDecision({
 
     let patternScore = pattern.score || 0;
 
-    const learnedWeight = await getPatternWeight(market?.symbol || "DEFAULT", pattern.type);
+    // const learnedWeight = await getPatternWeight(market?.symbol || "DEFAULT", pattern.type);
+    const learnedWeight = await getPatternWeight({
+      firebaseUserId: market?.userId || null,
+      accountId: market?.accountId || "",
+      symbol: market?.symbol || "DEFAULT",
+      patternName: pattern?.type || "",
+    });
     patternScore = applyLearnedPatternWeight(patternScore, learnedWeight);
 
     const strongPatterns = [

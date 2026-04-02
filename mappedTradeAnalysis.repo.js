@@ -1,6 +1,30 @@
 const { query } = require("./db");
 
+function dbNull(value, fallback = null) {
+    return value === undefined ? fallback : value;
+}
+
+function normalizeMappedItem(data) {
+    if (!data) return null;
+
+    if (Array.isArray(data)) {
+        return data.length > 0 ? data[0] : null;
+    }
+
+    if (typeof data === "object" && data[0] && typeof data[0] === "object") {
+        return data[0];
+    }
+
+    return data;
+}
+
 async function insertMappedTradeAnalysis(data) {
+    data = normalizeMappedItem(data);
+
+    if (!data || typeof data !== "object") {
+        console.warn("[mappedTradeAnalysis] Skip invalid item:", data);
+        return;
+    }
     const sql = `
     INSERT INTO mapped_trade_analysis (
       firebase_user_id,
@@ -59,7 +83,37 @@ async function insertMappedTradeAnalysis(data) {
         data.contextHash,
     ];
 
-    return await query(sql, params);
+    const values = params.map((row) => [
+        dbNull(row.firebaseUserId || null),
+        dbNull(row.accountId || null),
+        dbNull(row.eventTime),
+        dbNull(row.symbol),
+        dbNull(row.patternType),
+        dbNull(row.triggerPattern),
+        dbNull(row.mode),
+        dbNull(row.tickVolume || null),
+        dbNull(row.microTrend || "UNKNOWN"),
+        dbNull(row.volumeProfile || "UNKNOWN"),
+        dbNull(row.prePatternShape || ""),
+        dbNull(row.rangeState || "UNKNOWN"),
+        dbNull(row.sessionName || "UNKNOWN"),
+        Number(dbNull(row.openPrice || 0)),
+        Number(dbNull(row.closePrice || 0)),
+        Number(dbNull(row.slPrice || 0)),
+        Number(dbNull(row.tpPrice || 0)),
+        Number(dbNull(row.slPips || 0)),
+        Number(dbNull(row.tpPips || 0)),
+        Number(dbNull(row.rrRatio || 0)),
+        Number(dbNull(row.profit || 0)),
+        dbNull(row.result),
+        dbNull(row.side),
+        dbNull(row.postMortem || ""),
+        dbNull(row.contextHash),
+    ]);
+
+    if (values.firebaseUserId) {
+        return await query(sql, values);
+    }
 }
 
 async function insertManyMappedTradeAnalysis(items = []) {

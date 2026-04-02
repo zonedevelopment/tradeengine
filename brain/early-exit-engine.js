@@ -706,19 +706,19 @@ async function analyzeEarlyExit({
   // }
 
   // 4) WAIT FOR SMALL BOUNCE
-  if (profit <= 0) {
-    if (
-      riskLevel === "HIGH" ||
-      (riskLevel === "MEDIUM" && adjustedScore >= profile.mediumBounceThreshold)
-    ) {
-      return {
-        action: "WAIT_FOR_SMALL_BOUNCE",
-        reason: "Risk detected, wait for small recovery before exit",
-        riskLevel,
-        score: adjustedScore
-      };
-    }
-  }
+  // if (profit <= 0) {
+  //   if (
+  //     riskLevel === "HIGH" ||
+  //     (riskLevel === "MEDIUM" && adjustedScore >= profile.mediumBounceThreshold)
+  //   ) {
+  //     return {
+  //       action: "WAIT_FOR_SMALL_BOUNCE",
+  //       reason: "Risk detected, wait for small recovery before exit",
+  //       riskLevel,
+  //       score: adjustedScore
+  //     };
+  //   }
+  // }
 
   return {
     action: "HOLD",
