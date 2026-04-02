@@ -458,6 +458,137 @@ async function getTodayTradeStatsByUser(firebaseUserId, eventTime) {
   };
 }
 
+async function getRecentClosedTradePerformance({
+  firebaseUserId,
+  accountId = null,
+  symbol = null,
+  mode = null,
+  limit = 18,
+} = {}) {
+  const safeFirebaseUserId = normalizeString(firebaseUserId);
+  if (!safeFirebaseUserId) {
+    return {
+      sampleCount: 0,
+      wins: 0,
+      losses: 0,
+      winRate: 0,
+      netProfit: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      profitFactor: 0,
+      lossStreak: 0,
+      winStreak: 0,
+      mode: normalizeString(mode) || null,
+      symbol: normalizeString(symbol) || null,
+    };
+  }
+
+  const safeLimit = Math.max(6, Math.min(50, normalizeNumber(limit, 18)));
+  const conditions = [`firebase_user_id = ?`, `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`];
+  const params = [safeFirebaseUserId];
+
+  if (accountId !== undefined && accountId !== null && String(accountId).trim() !== "") {
+    conditions.push(`account_id = ?`);
+    params.push(Number(accountId));
+  }
+
+  const safeSymbol = normalizeString(symbol);
+  if (safeSymbol) {
+    conditions.push(`symbol = ?`);
+    params.push(safeSymbol);
+  }
+
+  const safeMode = normalizeString(mode);
+  if (safeMode) {
+    conditions.push(`mode = ?`);
+    params.push(safeMode);
+  }
+
+  const sql = `
+    SELECT
+      id,
+      profit,
+      symbol,
+      mode,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY COALESCE(event_time, created_at) DESC, id DESC
+    LIMIT ?
+  `;
+
+  params.push(safeLimit);
+
+  const rows = await query(sql, params);
+  const trades = Array.isArray(rows) ? rows : [];
+
+  if (trades.length === 0) {
+    return {
+      sampleCount: 0,
+      wins: 0,
+      losses: 0,
+      winRate: 0,
+      netProfit: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      profitFactor: 0,
+      lossStreak: 0,
+      winStreak: 0,
+      mode: safeMode || null,
+      symbol: safeSymbol || null,
+    };
+  }
+
+  let wins = 0;
+  let losses = 0;
+  let grossProfit = 0;
+  let grossLossAbs = 0;
+  let netProfit = 0;
+  let lossStreak = 0;
+  let winStreak = 0;
+
+  for (const row of trades) {
+    const profit = Number(row?.profit || 0);
+    netProfit += profit;
+
+    if (profit > 0) {
+      wins += 1;
+      grossProfit += profit;
+    } else if (profit < 0) {
+      losses += 1;
+      grossLossAbs += Math.abs(profit);
+    }
+  }
+
+  for (const row of trades) {
+    const profit = Number(row?.profit || 0);
+    if (profit < 0) lossStreak += 1;
+    else break;
+  }
+
+  for (const row of trades) {
+    const profit = Number(row?.profit || 0);
+    if (profit > 0) winStreak += 1;
+    else break;
+  }
+
+  return {
+    sampleCount: trades.length,
+    wins,
+    losses,
+    winRate: trades.length > 0 ? Number(((wins / trades.length) * 100).toFixed(2)) : 0,
+    netProfit: Number(netProfit.toFixed(2)),
+    avgWin: wins > 0 ? Number((grossProfit / wins).toFixed(2)) : 0,
+    avgLoss: losses > 0 ? Number((grossLossAbs / losses).toFixed(2)) : 0,
+    profitFactor: grossLossAbs > 0 ? Number((grossProfit / grossLossAbs).toFixed(2)) : (grossProfit > 0 ? 99 : 0),
+    lossStreak,
+    winStreak,
+    mode: safeMode || null,
+    symbol: safeSymbol || null,
+  };
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
@@ -467,5 +598,6 @@ module.exports = {
   getTradeEventsForLearning,
   getTodayTradeStatsByUserAndAccount,
   getTodayTradeStatsByUser,
-  getHistoryLearnWeight
+  getHistoryLearnWeight,
+  getRecentClosedTradePerformance
 };

@@ -28,10 +28,16 @@ const { findFailedPattern } = require("./failedPattern.repo");
 const { buildContextHash } = require("./utils/context-hash");
 const { buildContextFeatures, buildContextHashNew } = require("./utils/context-features");
 const { detectMotherFishPattern } = require("./pattern/pattern-rules");
-const { insertTradeHistory, countTradeHistoryByUser, getTradeHistoryByUser, getTradeHistoryDetailFromCommands, getTodayTradeStatsByUserAndAccount } = require("./tradeHistory.repo");
+const {
+  insertTradeHistory,
+  countTradeHistoryByUser,
+  getTradeHistoryByUser,
+  getTradeHistoryDetailFromCommands,
+  getTodayTradeStatsByUserAndAccount,
+  getRecentClosedTradePerformance,
+} = require("./tradeHistory.repo");
 
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
-const { exec } = require("child_process");
 
 const {
   broadcastActivePositionChange
@@ -383,6 +389,173 @@ function isBullish(candle = {}) {
 
 function isBearish(candle = {}) {
   return toNum(candle.close) < toNum(candle.open);
+}
+
+function normalizeAdaptiveMode(mode = "NORMAL") {
+  const raw = String(mode || "NORMAL").trim().toUpperCase();
+  if (raw === "MICRO_SCALP") return "SCALP";
+  return raw || "NORMAL";
+}
+
+function buildUserAdaptiveProfile({
+  recentPerformance = null,
+  mode = "NORMAL",
+} = {}) {
+  const normalizedMode = normalizeAdaptiveMode(mode);
+  const isScalp = normalizedMode === "SCALP";
+  const perf = recentPerformance && typeof recentPerformance === "object"
+    ? recentPerformance
+    : null;
+
+  const sampleCount = Number(perf?.sampleCount || 0);
+  const winRate = Number(perf?.winRate || 0);
+  const netProfit = Number(perf?.netProfit || 0);
+  const profitFactor = Number(perf?.profitFactor || 0);
+  const lossStreak = Number(perf?.lossStreak || 0);
+  const winStreak = Number(perf?.winStreak || 0);
+
+  const profile = {
+    enabled: false,
+    stage: "NO_DATA",
+    sampleCount,
+    minScoreBoost: 0,
+    lotMultiplier: 1,
+    slMultiplier: 1,
+    tpMultiplier: 1,
+    retraceMultiplier: 1,
+    reason: "NO_DATA",
+  };
+
+  if (sampleCount < 6) {
+    return profile;
+  }
+
+  profile.enabled = true;
+  profile.stage = "OBSERVE";
+  profile.reason = "OBSERVE";
+
+  // ฟอร์มแย่ -> ลด aggression แต่ยังไม่ hard stop
+  if (
+    lossStreak >= 4 ||
+    (sampleCount >= 8 && profitFactor > 0 && profitFactor < 0.85 && netProfit < 0) ||
+    (sampleCount >= 8 && winRate < 38 && netProfit < 0)
+  ) {
+    profile.stage = "DEFENSIVE";
+    profile.reason = "RECENT_PERFORMANCE_WEAK";
+    profile.minScoreBoost = isScalp ? 0.20 : 0.30;
+    profile.lotMultiplier = isScalp ? 0.72 : 0.65;
+    profile.slMultiplier = 1.03;
+    profile.tpMultiplier = isScalp ? 0.93 : 0.90;
+    profile.retraceMultiplier = isScalp ? 1.08 : 1.12;
+    return profile;
+  }
+
+  // ฟอร์มอ่อนแบบไม่หนักมาก
+  if (
+    lossStreak >= 2 ||
+    (sampleCount >= 8 && netProfit < 0) ||
+    (sampleCount >= 8 && profitFactor > 0 && profitFactor < 1.0)
+  ) {
+    profile.stage = "CAUTIOUS";
+    profile.reason = "RECENT_PERFORMANCE_SOFT";
+    profile.minScoreBoost = isScalp ? 0.08 : 0.12;
+    profile.lotMultiplier = isScalp ? 0.88 : 0.82;
+    profile.slMultiplier = 1.01;
+    profile.tpMultiplier = 0.97;
+    profile.retraceMultiplier = 1.04;
+    return profile;
+  }
+
+  // ฟอร์มดี -> เพิ่มได้แค่นิดเดียว เน้นรักษาพอร์ทก่อน
+  if (
+    sampleCount >= 8 &&
+    winRate >= 60 &&
+    netProfit > 0 &&
+    (profitFactor === 99 || profitFactor >= 1.25)
+  ) {
+    profile.stage = "POSITIVE";
+    profile.reason = "RECENT_PERFORMANCE_STRONG";
+    profile.minScoreBoost = 0;
+    profile.lotMultiplier = isScalp ? 1.05 : 1.08;
+    profile.slMultiplier = 1.0;
+    profile.tpMultiplier = isScalp ? 1.03 : 1.05;
+    profile.retraceMultiplier = isScalp ? 0.97 : 0.95;
+    return profile;
+  }
+
+  return profile;
+}
+
+function getAdaptiveMinRequiredScore({
+  baseScore = 0,
+  coldStartProfile = null,
+  userAdaptiveProfile = null,
+}) {
+  let required = Number(baseScore || 0);
+
+  if (coldStartProfile?.enabled) {
+    required = Math.max(required, Number(coldStartProfile.minRequiredStrength || 0));
+  }
+
+  if (userAdaptiveProfile?.enabled) {
+    required += Number(userAdaptiveProfile.minScoreBoost || 0);
+  }
+
+  return Number(required.toFixed(2));
+}
+
+function applyUserAdaptiveProfileToTradeSetup({
+  tradeSetup,
+  userAdaptiveProfile,
+  activeCfg,
+}) {
+  if (!tradeSetup || !userAdaptiveProfile?.enabled) {
+    return tradeSetup;
+  }
+
+  let slPoints = Math.round(
+    Number(tradeSetup.sl_points || 0) * Number(userAdaptiveProfile.slMultiplier || 1)
+  );
+  let tpPoints = Math.round(
+    Number(tradeSetup.tp_points || 0) * Number(userAdaptiveProfile.tpMultiplier || 1)
+  );
+  let retracePoints = Math.round(
+    Number(tradeSetup.retrace_points || 0) *
+    Number(userAdaptiveProfile.retraceMultiplier || 1)
+  );
+
+  let recommendedLot = Number(
+    (
+      Number(tradeSetup.recommended_lot || 0.01) *
+      Number(userAdaptiveProfile.lotMultiplier || 1)
+    ).toFixed(2)
+  );
+
+  const minSL = Number(activeCfg?.minSL || slPoints || 1);
+  const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
+  const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+  const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
+
+  slPoints = clampNumber(slPoints, minSL, maxSL);
+  tpPoints = clampNumber(tpPoints, minTP, maxTP);
+
+  if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+    retracePoints = Math.max(1, Math.round(minSL * 0.2));
+  }
+
+  if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
+    recommendedLot = 0.01;
+  }
+
+  if (recommendedLot < 0.01) recommendedLot = 0.01;
+
+  return {
+    ...tradeSetup,
+    recommended_lot: recommendedLot,
+    sl_points: slPoints,
+    tp_points: tpPoints,
+    retrace_points: retracePoints,
+  };
 }
 
 function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode = "NORMAL" }) {
@@ -971,6 +1144,7 @@ function buildMicroFallbackResponse({
   activeCfg,
   tradingPreferences,
   totalClosedTrades = 0,
+  userAdaptiveProfile = null,
 }) {
   const side = String(reqBody.side || "").toUpperCase();
   const microSignal = String(microResult.signal || "").toUpperCase();
@@ -988,14 +1162,16 @@ function buildMicroFallbackResponse({
     mode: "MICRO_SCALP",
   });
 
-  if (
-    coldStartProfile.enabled &&
-    coldStartProfile.blockWeakSignals &&
-    Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
-  ) {
+  const adaptiveMinScore = getAdaptiveMinRequiredScore({
+    baseScore: 0,
+    coldStartProfile,
+    userAdaptiveProfile,
+  });
+
+  if (Math.abs(Number(score || 0)) < adaptiveMinScore) {
     return {
       decision: "NO_TRADE",
-      reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
+      reason: "MICRO_SCALP_ADAPTIVE_MIN_SCORE",
       score,
       firebaseUserId: resolvedUserId,
       mode: "MICRO_SCALP",
@@ -1009,10 +1185,11 @@ function buildMicroFallbackResponse({
         warningMatched: false,
         lotMultiplier: 1,
         tpMultiplier: 1,
-        reason: "MICRO_SCALP_FALLBACK_COLD_START_BLOCK",
+        reason: "MICRO_SCALP_FALLBACK_ADAPTIVE_BLOCK",
       },
       trade_setup: null,
       cold_start_profile: coldStartProfile,
+      user_adaptive_profile: userAdaptiveProfile,
       totalClosedTrades,
     };
   }
@@ -1024,7 +1201,13 @@ function buildMicroFallbackResponse({
     reason: "MICRO_SCALP_FALLBACK",
   };
 
-  const trade_setup = buildTradeSetupFromPattern({
+  const rawLotCap = Number(
+    tradingPreferences?.base_log_size ??
+    tradingPreferences?.base_lot_size ??
+    0
+  );
+
+  let trade_setup = buildTradeSetupFromPattern({
     side,
     price: Number(reqBody.price || 0),
     pattern,
@@ -1034,9 +1217,22 @@ function buildMicroFallbackResponse({
     activeCfg,
     score,
     defensiveFlags,
-    userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0),
+    userMaxLotCap: rawLotCap,
     coldStartProfile,
   });
+
+  trade_setup = applyUserAdaptiveProfileToTradeSetup({
+    tradeSetup: trade_setup,
+    userAdaptiveProfile,
+    activeCfg,
+  });
+
+  if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
+    trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
+    if (trade_setup.recommended_lot < 0.01) {
+      trade_setup.recommended_lot = 0.01;
+    }
+  }
 
   return {
     decision,
@@ -1052,6 +1248,7 @@ function buildMicroFallbackResponse({
     defensiveFlags,
     trade_setup,
     cold_start_profile: coldStartProfile,
+    user_adaptive_profile: userAdaptiveProfile,
     totalClosedTrades,
   };
 }
@@ -1123,6 +1320,28 @@ app.post("/signal", async (req, res) => {
   } catch (tradeCountError) {
     console.error("Load trade count error:", tradeCountError.message);
   }
+
+  let mainUserRecentPerformance = null;
+  let mainUserAdaptiveProfile = null;
+
+  try {
+    if (resolvedUserId) {
+      mainUserRecentPerformance = await getRecentClosedTradePerformance({
+        firebaseUserId: resolvedUserId,
+        accountId,
+        symbol,
+        mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
+        limit: 18,
+      });
+    }
+  } catch (recentPerfError) {
+    console.error("Load recent performance error:", recentPerfError.message);
+  }
+
+  mainUserAdaptiveProfile = buildUserAdaptiveProfile({
+    recentPerformance: mainUserRecentPerformance,
+    mode: evaluateResult?.mode || "NORMAL",
+  });
 
   try {
     try {
@@ -1328,6 +1547,19 @@ app.post("/signal", async (req, res) => {
         //   activeCfg,
         //   tradingPreferences
         // });
+        const microUserRecentPerformance = await getRecentClosedTradePerformance({
+          firebaseUserId: resolvedUserId,
+          accountId,
+          symbol,
+          mode: "SCALP",
+          limit: 18,
+        });
+
+        const microUserAdaptiveProfile = buildUserAdaptiveProfile({
+          recentPerformance: microUserRecentPerformance,
+          mode: "MICRO_SCALP",
+        });
+
         const microResponse = buildMicroFallbackResponse({
           microResult,
           reqBody: req.body,
@@ -1337,6 +1569,7 @@ app.post("/signal", async (req, res) => {
           activeCfg,
           tradingPreferences,
           totalClosedTrades,
+          userAdaptiveProfile: microUserAdaptiveProfile,
         });
 
         if (microResponse) {
@@ -1408,7 +1641,13 @@ app.post("/signal", async (req, res) => {
       reason: null,
     };
 
-    const trade_setup = buildTradeSetupFromPattern({
+    const rawLotCap = Number(
+      tradingPreferences?.base_log_size ??
+      tradingPreferences?.base_lot_size ??
+      0
+    );
+
+    let trade_setup = buildTradeSetupFromPattern({
       side,
       price: Number(price || 0),
       pattern,
@@ -1418,51 +1657,63 @@ app.post("/signal", async (req, res) => {
       activeCfg,
       score,
       defensiveFlags,
-      userMaxLotCap: Number(tradingPreferences.base_lot_size || 0),
-      coldStartProfile
+      userMaxLotCap: rawLotCap,
+      coldStartProfile,
     });
 
-    let signalResponse = {
-      decision: finalDecision,
-      score: score,
-      firebaseUserId: resolvedUserId,
-      mode: evaluateResult.mode || "NORMAL",
-      trend: evaluateResult.trend || "NEUTRAL",
-      pattern: pattern,
-      historicalVolume: historicalVolume,
-      defensiveFlags: defensiveFlags,
-      trade_setup,
-    };
+    trade_setup = applyUserAdaptiveProfileToTradeSetup({
+      tradeSetup: trade_setup,
+      userAdaptiveProfile: mainUserAdaptiveProfile,
+      activeCfg,
+    });
 
-    if (isOpenDecision(finalDecision)) {
-      const currentOpenPositionsCount =
-        await countOpenPositionsByUserAccountAndSymbol({
-          firebaseUserId: resolvedUserId,
-          accountId,
-          symbol,
-        });
-
-      if (
-        isMaxOpenPositionsReached(
-          currentOpenPositionsCount,
-          tradingPreferences.max_open_positions
-        )
-      ) {
-        return res.json(
-          buildBlockedSignalResponse({
-            reason: "MAX_OPEN_POSITIONS_REACHED",
-            score,
-            firebaseUserId: resolvedUserId,
-            mode: evaluateResult.mode || "NORMAL",
-            trend: evaluateResult.trend || "NEUTRAL",
-            pattern,
-            historicalVolume,
-            defensiveFlags,
-            trade_setup: null,
-            currentOpenPositionsCount,
-          })
-        );
+    if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
+      trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
+      if (trade_setup.recommended_lot < 0.01) {
+        trade_setup.recommended_lot = 0.01;
       }
+    }
+
+    // let signalResponse = {
+    //   decision: finalDecision,
+    //   score: score,
+    //   firebaseUserId: resolvedUserId,
+    //   mode: evaluateResult.mode || "NORMAL",
+    //   trend: evaluateResult.trend || "NEUTRAL",
+    //   pattern: pattern,
+    //   historicalVolume: historicalVolume,
+    //   defensiveFlags: defensiveFlags,
+    //   trade_setup,
+    // };
+
+    const adaptiveMinScore = getAdaptiveMinRequiredScore({
+      baseScore: 0,
+      coldStartProfile,
+      userAdaptiveProfile: mainUserAdaptiveProfile,
+    });
+
+    if (
+      isOpenDecision(finalDecision) &&
+      Math.abs(Number(score || 0)) < adaptiveMinScore
+    ) {
+      return res.json({
+        ...buildBlockedSignalResponse({
+          reason: "USER_ADAPTIVE_MIN_SCORE",
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: evaluateResult.mode || "NORMAL",
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags: evaluateResult.defensiveFlags || null,
+          trade_setup: null,
+          currentOpenPositionsCount: 0,
+        }),
+        cold_start_profile: coldStartProfile,
+        user_adaptive_profile: mainUserAdaptiveProfile,
+        recent_performance: mainUserRecentPerformance,
+        totalClosedTrades,
+      });
     }
 
     return res.json({
@@ -1475,6 +1726,10 @@ app.post("/signal", async (req, res) => {
       historicalVolume: historicalVolume,
       defensiveFlags: defensiveFlags,
       trade_setup,
+      cold_start_profile: coldStartProfile,
+      user_adaptive_profile: mainUserAdaptiveProfile,
+      recent_performance: mainUserRecentPerformance,
+      totalClosedTrades,
     });
 
     // return res.json({
