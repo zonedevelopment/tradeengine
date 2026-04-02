@@ -1,40 +1,3 @@
-// const { query } = require("./db");
-// async function getPatternWeight(symbol = "DEFAULT", patternName) {
-//   try {
-//     const targetSymbol = String(symbol || "DEFAULT").toUpperCase();
-//     const targetPattern = String(patternName || "").trim();
-
-//     if (!targetPattern) return 0;
-
-//     const sql = `
-//       SELECT
-//         symbol,
-//         CASE
-//           WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-//           ELSE weight_score
-//         END AS weight_score
-//       FROM strategy_weights
-//       WHERE pattern_name = ? AND symbol = ?
-//       ORDER BY CASE WHEN symbol = ? THEN 0 ELSE 1 END
-//       LIMIT 1
-//     `;
-
-//     const result = await query(sql, [targetPattern, targetSymbol, targetSymbol]);
-//     const rows = Array.isArray(result?.[0]) ? result[0] : result;
-
-//     if (rows && rows.length > 0) {
-//       return Number(rows[0].weight_score || 0);
-//     }
-
-//     return 0;
-//   } catch (err) {
-//     console.error("[strategyWeights.repo] getPatternWeight error:", err.message);
-//     return 0;
-//   }
-// }
-
-// module.exports = { getPatternWeight };
-
 const { query } = require("./db");
 
 function normalizeString(value, fallback = "") {
@@ -89,81 +52,77 @@ async function getPatternWeight(inputOrSymbol = {}, patternNameArg) {
     // 1) user-specific exact symbol
     if (firebaseUserId) {
       sqlParts.push(`
-        SELECT
-          1 AS priority,
-          'USER_SYMBOL' AS source_level,
-          CASE
-            WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-            ELSE weight_score
-          END AS weight_score
-        FROM user_strategy_weights
-        WHERE firebase_user_id = ?
-          AND account_id = ?
-          AND pattern_name = ?
-          AND symbol = ?
-        LIMIT 1
-      `);
+    SELECT
+      1 AS priority,
+      'USER_SYMBOL' AS source_level,
+      CASE
+        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+        ELSE weight_score
+      END AS weight_score
+    FROM user_strategy_weights
+    WHERE firebase_user_id = ?
+      AND (account_id = ? OR account_id IS NULL)
+      AND pattern_name = ?
+      AND symbol = ?
+  `);
       params.push(firebaseUserId, accountId, patternName, symbol);
 
       // 2) user-specific DEFAULT
       sqlParts.push(`
-        SELECT
-          2 AS priority,
-          'USER_DEFAULT' AS source_level,
-          CASE
-            WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-            ELSE weight_score
-          END AS weight_score
-        FROM user_strategy_weights
-        WHERE firebase_user_id = ?
-          AND account_id = ?
-          AND pattern_name = ?
-          AND symbol = 'DEFAULT'
-        LIMIT 1
-      `);
+    SELECT
+      2 AS priority,
+      'USER_DEFAULT' AS source_level,
+      CASE
+        WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+        ELSE weight_score
+      END AS weight_score
+    FROM user_strategy_weights
+    WHERE firebase_user_id = ?
+      AND (account_id = ? OR account_id IS NULL)
+      AND pattern_name = ?
+      AND symbol = 'DEFAULT'
+  `);
       params.push(firebaseUserId, accountId, patternName);
     }
 
     // 3) global exact symbol
     sqlParts.push(`
-      SELECT
-        3 AS priority,
-        'GLOBAL_SYMBOL' AS source_level,
-        CASE
-          WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-          ELSE weight_score
-        END AS weight_score
-      FROM strategy_weights
-      WHERE pattern_name = ?
-        AND symbol = ?
-      LIMIT 1
-    `);
+  SELECT
+    3 AS priority,
+    'GLOBAL_SYMBOL' AS source_level,
+    CASE
+      WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+      ELSE weight_score
+    END AS weight_score
+  FROM strategy_weights
+  WHERE pattern_name = ?
+    AND symbol = ?
+`);
     params.push(patternName, symbol);
 
     // 4) global DEFAULT
     sqlParts.push(`
-      SELECT
-        4 AS priority,
-        'GLOBAL_DEFAULT' AS source_level,
-        CASE
-          WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
-          ELSE weight_score
-        END AS weight_score
-      FROM strategy_weights
-      WHERE pattern_name = ?
-        AND symbol = 'DEFAULT'
-      LIMIT 1
-    `);
+  SELECT
+    4 AS priority,
+    'GLOBAL_DEFAULT' AS source_level,
+    CASE
+      WHEN is_use_user_score = 1 AND user_score IS NOT NULL THEN user_score
+      ELSE weight_score
+    END AS weight_score
+  FROM strategy_weights
+  WHERE pattern_name = ?
+    AND symbol = 'DEFAULT'
+`);
     params.push(patternName);
 
     const sql = `
-      SELECT source_level, weight_score
-      FROM (
-        ${sqlParts.join("\nUNION ALL\n")}
-      ) AS candidate_weights
-      ORDER BY priority ASC
-      LIMIT 1
-    `;
+  SELECT source_level, weight_score
+  FROM (
+    ${sqlParts.join(" UNION ALL ")}
+  ) AS candidate_weights
+  ORDER BY priority ASC
+  LIMIT 1
+`;
 
     const result = await query(sql, params);
     const rows = Array.isArray(result?.[0]) ? result[0] : result;
