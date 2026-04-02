@@ -693,12 +693,13 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 4) คำนวณ lot จาก SL สุดท้าย
   // -----------------------------
+  const modeBaseRisk = detectedMode === "SCALP" ? 1.2 : 2.0;
   if (balance && Number(balance) > 0) {
     const riskPercent = calculateDynamicRisk(
       signalStrength,
       pattern?.type,
       detectedMode,
-      2.0
+      modeBaseRisk
     );
 
     const riskAmount = Number(balance) * (riskPercent / 100);
