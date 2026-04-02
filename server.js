@@ -1321,28 +1321,6 @@ app.post("/signal", async (req, res) => {
     console.error("Load trade count error:", tradeCountError.message);
   }
 
-  let mainUserRecentPerformance = null;
-  let mainUserAdaptiveProfile = null;
-
-  try {
-    if (resolvedUserId) {
-      mainUserRecentPerformance = await getRecentClosedTradePerformance({
-        firebaseUserId: resolvedUserId,
-        accountId,
-        symbol,
-        mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
-        limit: 18,
-      });
-    }
-  } catch (recentPerfError) {
-    console.error("Load recent performance error:", recentPerfError.message);
-  }
-
-  mainUserAdaptiveProfile = buildUserAdaptiveProfile({
-    recentPerformance: mainUserRecentPerformance,
-    mode: evaluateResult?.mode || "NORMAL",
-  });
-
   try {
     try {
       if (Array.isArray(candles) && candles.length > 0) {
@@ -1408,6 +1386,28 @@ app.post("/signal", async (req, res) => {
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
         sessionName: session.name,
       }
+    });
+
+    let mainUserRecentPerformance = null;
+    let mainUserAdaptiveProfile = null;
+
+    try {
+      if (resolvedUserId) {
+        mainUserRecentPerformance = await getRecentClosedTradePerformance({
+          firebaseUserId: resolvedUserId,
+          accountId,
+          symbol,
+          mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
+          limit: 18,
+        });
+      }
+    } catch (recentPerfError) {
+      console.error("Load recent performance error:", recentPerfError.message);
+    }
+
+    mainUserAdaptiveProfile = buildUserAdaptiveProfile({
+      recentPerformance: mainUserRecentPerformance,
+      mode: evaluateResult?.mode || "NORMAL",
     });
 
     // const score = evaluateResult.score || 0;
