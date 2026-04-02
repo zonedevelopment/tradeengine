@@ -387,6 +387,115 @@ async function upsertFailedPattern(item) {
   );
 }
 
+function toLearningNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function getLearningEventTs(row) {
+  const raw = row?.event_time || row?.created_at || null;
+  if (!raw) return 0;
+
+  const ts = new Date(raw).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function buildLearningBucketKey(row = {}) {
+  return [
+    String(row.firebase_user_id || "").trim(),
+    String(row.account_id ?? ""),
+    String(row.symbol || "").trim().toUpperCase(),
+    String(row.mode || "NORMAL").trim().toUpperCase(),
+  ].join("|");
+}
+
+function diffOrFallback(a, b, fallback = 999999) {
+  const na = Number(a);
+  const nb = Number(b);
+
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return fallback;
+  return Math.abs(na - nb);
+}
+
+function chooseBestOpenOrderCandidate(openOrders = [], closeRow = {}) {
+  if (!Array.isArray(openOrders) || openOrders.length === 0) return -1;
+
+  const closeTs = getLearningEventTs(closeRow);
+  let bestIndex = -1;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < openOrders.length; i++) {
+    const openRow = openOrders[i];
+    const openTs = getLearningEventTs(openRow);
+
+    if (!openTs || !closeTs) continue;
+    if (openTs > closeTs) continue;
+
+    const minutesGap = Math.max(0, (closeTs - openTs) / 60000);
+    if (minutesGap > 60 * 24 * 3) continue; // กันไม้ห่างกันเกิน 3 วัน
+
+    const sidePenalty =
+      String(openRow.side || "").toUpperCase() === String(closeRow.side || "").toUpperCase()
+        ? 0
+        : 500;
+
+    const slDiff = diffOrFallback(openRow.sl, closeRow.sl, 50);
+    const tpDiff = diffOrFallback(openRow.tp, closeRow.tp, 50);
+    const lotDiff = diffOrFallback(openRow.lot, closeRow.lot, 1);
+    const priceDiff = diffOrFallback(openRow.price, closeRow.price, 0);
+
+    // ให้ความสำคัญกับ sl/tp/lot และลำดับเวลา มากกว่าราคา close
+    const score =
+      sidePenalty +
+      slDiff * 6 +
+      tpDiff * 6 +
+      lotDiff * 200 +
+      priceDiff * 0.2 +
+      minutesGap * 0.1;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
+}
+
+function findBestCandleLogForOpen(openOrder = {}, candleLogs = []) {
+  if (!Array.isArray(candleLogs) || candleLogs.length === 0) return null;
+
+  const openPrice = toLearningNumber(openOrder.price, 0);
+  const openTs = getLearningEventTs(openOrder);
+  const openSymbol = String(openOrder.symbol || "").trim().toUpperCase();
+
+  let best = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const cLog of candleLogs) {
+    const candleSymbol = String(cLog.symbol || "").trim().toUpperCase();
+    if (openSymbol && candleSymbol && candleSymbol !== openSymbol) continue;
+
+    const candleTs = getLearningEventTs({
+      event_time: cLog.eventTime || cLog.timestamp || cLog.createdAt,
+      created_at: cLog.createdAt || cLog.timestamp || cLog.eventTime,
+    });
+
+    const priceDiff = Math.abs(toLearningNumber(cLog.price, 0) - openPrice);
+    const minutesGap =
+      openTs && candleTs ? Math.abs(openTs - candleTs) / 60000 : 9999;
+
+    const score = priceDiff + minutesGap * 0.08;
+
+    if (score < bestScore) {
+      bestScore = score;
+      best = cLog;
+    }
+  }
+
+  return best;
+}
+
 async function runDailyLearning() {
   console.log("[Daily Learner] Starting Contextual Learning...");
 
@@ -505,36 +614,63 @@ async function runDailyLearning() {
 
   let mappedResults = [];
   let adaptiveRows = [];
-  let openOrder = null;
-  let closeOrder = null;
+  const openOrdersByBucket = Object.create(null);
+
   try {
-    for (let i = 0; i < trades.length; i++) {
-      const t = trades[i];
+    const orderedTrades = Array.isArray(trades)
+      ? [...trades].sort((a, b) => {
+        const ta = getLearningEventTs(a);
+        const tb = getLearningEventTs(b);
+        if (ta !== tb) return ta - tb;
+        return toLearningNumber(a.id, 0) - toLearningNumber(b.id, 0);
+      })
+      : [];
+
+    for (let i = 0; i < orderedTrades.length; i++) {
+      const t = orderedTrades[i];
+      if (!t || !t.event_type) continue;
+
+      const bucketKey = buildLearningBucketKey(t);
 
       if (t.event_type === "OPEN_ORDER") {
-        openOrder = t;
-        continue;
-      }
-
-      if (t.event_type !== "CLOSE_ORDER" || !openOrder || t.side !== openOrder.side) {
-        closeOrder = t;
-        continue;
-      }
-
-      let matchedCandleLog = null;
-      let minDiff = 999999;
-
-      for (const cLog of candleLogs) {
-        const diff = Math.abs(Number(cLog.price || 0) - Number(openOrder.price || 0));
-        if (diff < minDiff) {
-          minDiff = diff;
-          matchedCandleLog = cLog;
+        if (!openOrdersByBucket[bucketKey]) {
+          openOrdersByBucket[bucketKey] = [];
         }
+
+        openOrdersByBucket[bucketKey].push(t);
+        continue;
       }
+
+      if (!["CLOSE_ORDER", "CLOSE_EMERGENCY"].includes(t.event_type)) {
+        continue;
+      }
+
+      const openBucket = openOrdersByBucket[bucketKey] || [];
+      const matchedOpenIndex = chooseBestOpenOrderCandidate(openBucket, t);
+
+      if (matchedOpenIndex < 0) {
+        continue;
+      }
+
+      const [openOrder] = openBucket.splice(matchedOpenIndex, 1);
+
+      if (!openOrder) {
+        continue;
+      }
+
+      if (openBucket.length === 0) {
+        delete openOrdersByBucket[bucketKey];
+      }
+
+      const matchedCandleLog = findBestCandleLogForOpen(openOrder, candleLogs || []);
+      const minDiff = matchedCandleLog
+        ? Math.abs(toLearningNumber(matchedCandleLog.price, 0) - toLearningNumber(openOrder.price, 0))
+        : 999999;
 
       if (matchedCandleLog && minDiff < 5.0) {
         const analysis = detectMotherFishPattern({ candles: matchedCandleLog.candles || [] });
         const patternType = analysis.type !== "Unknown" ? analysis.type : analysis.pattern;
+
         const triggerPattern = analysis.pattern || "NONE";
 
         const triggerCandle =
@@ -556,6 +692,7 @@ async function runDailyLearning() {
         const rrRatio = slPips > 0 ? Number((tpPips / slPips).toFixed(4)) : 0;
 
         let postMortem = isWin ? "TARGET_REACHED" : "STOPPED_OUT";
+
         if (!isWin) {
           if (slPips > 0 && slPips < 150) postMortem = "SL_TOO_TIGHT";
           else if (tpPips > 500) postMortem = "TP_TOO_FAR";
@@ -601,6 +738,7 @@ async function runDailyLearning() {
           triggerCandle,
           postMortem,
         };
+
         learningItem.notes = {
           postMortem,
           minPriceDiff: minDiff,
@@ -636,58 +774,27 @@ async function runDailyLearning() {
           });
         }
 
-        adaptiveRows.push(
-          {
-            firebaseUserId: learningItem.userId,
-            accountId: learningItem.accountId,
-            symbol: learningItem.symbol,
-            timeframe: "M5",
-            patternType,
-            side: openOrder.side,
-            mode: learningItem.mode,
-            sessionName,
-            microTrend,
-            volumeProfile,
-            rangeState,
-            result: learningItem.result,
-            profit: t.profit,
-            closedAt: t.event_time,
-          });
+        adaptiveRows.push({
+          firebaseUserId: learningItem.userId,
+          accountId: learningItem.accountId,
+          symbol: learningItem.symbol,
+          timeframe: "M5",
+          patternType,
+          side: openOrder.side,
+          mode: learningItem.mode,
+          sessionName,
+          microTrend,
+          volumeProfile,
+          rangeState,
+          result: learningItem.result,
+          profit: t.profit,
+          closedAt: t.event_time,
+        });
 
         logUndefinedFields("learningItem before failed pattern", learningItem);
-
         const safeLearningItem = cleanLearningItem(learningItem);
+
         await upsertFailedPattern(safeLearningItem);
-
-        // mappedResults.push(mappedResults);
-        // await upsertFailedPattern(learningItem);
-        // const targetSymbol = String(t.symbol || learningItem.symbol || "DEFAULT").toUpperCase();
-
-        // if (!weightsBySymbol[targetSymbol]) {
-        //   weightsBySymbol[targetSymbol] = {};
-        // }
-
-        // if (patternType !== "NONE" && patternType !== "None") {
-        //   if (weightsBySymbol[targetSymbol][patternType] == null) {
-        //     const defaultWeight =
-        //       weightsBySymbol.DEFAULT?.[patternType] ??
-        //       initialDefaultWeights?.[patternType] ??
-        //       0;
-
-        //     weightsBySymbol[targetSymbol][patternType] = defaultWeight;
-        //   }
-
-        //   if (isWin) weightsBySymbol[targetSymbol][patternType] += 0.08;
-        //   else weightsBySymbol[targetSymbol][patternType] -= 0.08;
-
-        //   if (weightsBySymbol[targetSymbol][patternType] > 2.0) {
-        //     weightsBySymbol[targetSymbol][patternType] = 2.0;
-        //   }
-
-        //   if (weightsBySymbol[targetSymbol][patternType] < -2.0) {
-        //     weightsBySymbol[targetSymbol][patternType] = -2.0;
-        //   }
-        // }
 
         const targetSymbol = String(
           t.symbol || learningItem.symbol || "DEFAULT"
@@ -707,122 +814,109 @@ async function runDailyLearning() {
             weightsBySymbol[targetSymbol][patternType] = defaultWeight;
           }
 
-          const seedGlobalWeight = Number(
-            weightsBySymbol[targetSymbol][patternType] || 0
-          );
-
-          weightsBySymbol[targetSymbol][patternType] = applyWeightDelta(
-            seedGlobalWeight,
-            isWin
-          );
-
-          if (learningItem.userId) {
-            const userScopeKey = buildUserWeightScopeKey(
-              learningItem.userId,
-              learningItem.accountId
+          weightsBySymbol[targetSymbol][patternType] =
+            applyWeightDelta(
+              weightsBySymbol[targetSymbol][patternType],
+              isWin
             );
 
-            if (!userWeightsByScope[userScopeKey]) {
-              userWeightsByScope[userScopeKey] = {};
-            }
+          const userScopeKey = buildUserWeightScopeKey(
+            learningItem.userId,
+            learningItem.accountId
+          );
 
-            if (!userWeightsByScope[userScopeKey][targetSymbol]) {
-              userWeightsByScope[userScopeKey][targetSymbol] = {};
-            }
+          const seedGlobalWeight =
+            weightsBySymbol[targetSymbol]?.[patternType] ??
+            weightsBySymbol.DEFAULT?.[patternType] ??
+            initialDefaultWeights?.[patternType] ??
+            0;
 
-            if (userWeightsByScope[userScopeKey][targetSymbol][patternType] == null) {
-              const baseUserWeight =
-                userWeightsByScope[userScopeKey].DEFAULT?.[patternType] ??
-                seedGlobalWeight ??
-                weightsBySymbol.DEFAULT?.[patternType] ??
-                initialDefaultWeights?.[patternType] ??
-                0;
-
-              userWeightsByScope[userScopeKey][targetSymbol][patternType] = baseUserWeight;
-            }
-
-            userWeightsByScope[userScopeKey][targetSymbol][patternType] =
-              applyWeightDelta(
-                userWeightsByScope[userScopeKey][targetSymbol][patternType],
-                isWin
-              );
+          if (!userWeightsByScope[userScopeKey]) {
+            userWeightsByScope[userScopeKey] = {};
           }
+
+          if (!userWeightsByScope[userScopeKey][targetSymbol]) {
+            userWeightsByScope[userScopeKey][targetSymbol] = {};
+          }
+
+          if (userWeightsByScope[userScopeKey][targetSymbol][patternType] == null) {
+            const baseUserWeight =
+              userWeightsByScope[userScopeKey].DEFAULT?.[patternType] ??
+              seedGlobalWeight ??
+              weightsBySymbol.DEFAULT?.[patternType] ??
+              initialDefaultWeights?.[patternType] ??
+              0;
+
+            userWeightsByScope[userScopeKey][targetSymbol][patternType] = baseUserWeight;
+          }
+
+          userWeightsByScope[userScopeKey][targetSymbol][patternType] =
+            applyWeightDelta(
+              userWeightsByScope[userScopeKey][targetSymbol][patternType],
+              isWin
+            );
         }
       }
-      openOrder = null;
     }
+  } catch (err) {
+    console.error("[Daily Learner] Pair learning trade error:", err.message);
+  }
 
-    try {
-      const symbolEntries = Object.entries(weightsBySymbol);
+  try {
+    const symbolEntries = Object.entries(weightsBySymbol);
 
-      if (symbolEntries.length > 0) {
-        let savedCount = 0;
+    if (symbolEntries.length > 0) {
+      let savedCount = 0;
 
-        for (const [symbol, patternMap] of symbolEntries) {
+      for (const [symbol, patternMap] of symbolEntries) {
+        const patternEntries = Object.entries(patternMap || {});
+
+        for (const [patternName, newWeight] of patternEntries) {
+          await upsertStrategyWeightBySymbol(symbol, patternName, newWeight);
+          savedCount++;
+        }
+      }
+
+      // console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
+    }
+  } catch (err) {
+    console.error("[Daily Learner] Save weights to DB error:", err.message);
+  }
+
+  try {
+    const scopeEntries = Object.entries(userWeightsByScope);
+
+    if (scopeEntries.length > 0) {
+      let savedUserCount = 0;
+
+      for (const [scopeKey, symbolMap] of scopeEntries) {
+        const { firebaseUserId, accountId } = splitUserWeightScopeKey(scopeKey);
+
+        if (!firebaseUserId) continue;
+
+        for (const [symbol, patternMap] of Object.entries(symbolMap || {})) {
           const patternEntries = Object.entries(patternMap || {});
 
           for (const [patternName, newWeight] of patternEntries) {
-            await upsertStrategyWeightBySymbol(symbol, patternName, newWeight);
-            savedCount++;
+            await upsertUserStrategyWeight({
+              firebaseUserId,
+              accountId,
+              symbol,
+              patternName,
+              weightScore: newWeight,
+            });
+
+            savedUserCount++;
           }
         }
-
-        // console.log(`[Daily Learner] Successfully saved ${savedCount} weights to DB.`);
       }
-    } catch (err) {
-      console.error("[Daily Learner] Save weights to DB error:", err.message);
-    }
 
-    try {
-      const scopeEntries = Object.entries(userWeightsByScope);
-
-      if (scopeEntries.length > 0) {
-        let savedUserCount = 0;
-
-        for (const [scopeKey, symbolMap] of scopeEntries) {
-          const { firebaseUserId, accountId } = splitUserWeightScopeKey(scopeKey);
-
-          if (!firebaseUserId) continue;
-
-          for (const [symbol, patternMap] of Object.entries(symbolMap || {})) {
-            const patternEntries = Object.entries(patternMap || {});
-
-            for (const [patternName, newWeight] of patternEntries) {
-              await upsertUserStrategyWeight({
-                firebaseUserId,
-                accountId,
-                symbol,
-                patternName,
-                weightScore: newWeight,
-              });
-
-              savedUserCount++;
-            }
-          }
-        }
-
-        console.log(
-          `[Daily Learner] User strategy weights saved ${savedUserCount} row(s).`
-        );
-      }
-    } catch (err) {
-      console.error("[Daily Learner] Save user weights error:", err.message);
+      console.log(
+        `[Daily Learner] User strategy weights saved ${savedUserCount} row(s).`
+      );
     }
 
     await updateAdaptiveScoreStats(adaptiveRows);
-
-    // for (let i = 0; i < mappedResults.length; i++) {
-    //   const item = mappedResults[i];
-    //   if (!item || typeof item !== "object" || Array.isArray(item)) {
-    //     console.warn(`[Daily Learner] mappedResults[${i}] invalid:`, item);
-    //   }
-
-    //   if (i < mappedResults.length && i < 51) {
-    //   console.warn(`[Daily Learner] mappedResults[${i}] invalid:`, item);
-    //   }
-    // }
-
-    // console.log(mappedResults)
     const safeItem = normalizeMappedItem(mappedResults);
     await insertManyMappedTradeAnalysis(safeItem);
   } catch (err) {
