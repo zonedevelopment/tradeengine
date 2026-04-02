@@ -90,6 +90,7 @@ const {
   isOpenDecision,
 } = require("./tradingPreferences.service");
 
+
 const MICRO_SCALP_CONFIG = {
   enabled: true,
   minScore: 45,
@@ -2201,6 +2202,108 @@ app.get("/trading-preferences", async (req, res) => {
     console.error("trading-preferences get error:", error);
     return res.status(500).json({
       success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+function escapeRegex(text = "") {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+app.get("/candle-training-data/mini-chart", async (req, res) => {
+  try {
+    const {
+      symbol = "",
+      timeframe = "M5",
+      minutes = 60,
+    } = req.query;
+
+    const safeSymbol = String(symbol || "").trim();
+    const safeTimeframe = String(timeframe || "M5").trim().toUpperCase();
+    const safeMinutes = Math.max(5, Math.min(240, parseInt(minutes, 10) || 60));
+
+    if (!safeSymbol) {
+      return res.status(400).json({
+        success: false,
+        message: "symbol is required",
+      });
+    }
+
+    const fromTime = new Date(Date.now() - safeMinutes * 60 * 1000);
+
+    const filter = {
+      symbol: { $regex: `^${escapeRegex(safeSymbol)}$`, $options: "i" },
+      eventTime: { $gte: fromTime },
+    };
+
+    const rows = await CandleTrainingData.find(filter)
+      .select({
+        _id: 0,
+        symbol: 1,
+        timeframe: 1,
+        eventTime: 1,
+        price: 1,
+        candles: 1,
+        mode: 1,
+      })
+      .sort({ eventTime: 1 })
+      .limit(1000)
+      .lean();
+
+    const bucketMs =
+      safeTimeframe === "M1"
+        ? 60 * 1000
+        : safeTimeframe === "M15"
+          ? 15 * 60 * 1000
+          : safeTimeframe === "H1"
+            ? 60 * 60 * 1000
+            : 5 * 60 * 1000;
+
+    const byBucket = new Map();
+
+    for (const row of rows) {
+      const eventDate = new Date(row.eventTime);
+      const bucketTime = Math.floor(eventDate.getTime() / bucketMs) * bucketMs;
+
+      const latestCandle =
+        Array.isArray(row.candles) && row.candles.length > 0
+          ? row.candles[row.candles.length - 1]
+          : null;
+
+      const point = {
+        time: new Date(bucketTime).toISOString(),
+        eventTime: eventDate.toISOString(),
+        price: Number(row.price || 0),
+        open: latestCandle ? Number(latestCandle.open || 0) : Number(row.price || 0),
+        high: latestCandle ? Number(latestCandle.high || 0) : Number(row.price || 0),
+        low: latestCandle ? Number(latestCandle.low || 0) : Number(row.price || 0),
+        close: latestCandle ? Number(latestCandle.close || 0) : Number(row.price || 0),
+        tickVolume: latestCandle ? Number(latestCandle.tickVolume || 0) : 0,
+        mode: row.mode || "NORMAL",
+      };
+
+      byBucket.set(bucketTime, point);
+    }
+
+    const chart = Array.from(byBucket.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, value]) => value);
+
+    return res.json({
+      success: true,
+      symbol: safeSymbol.toUpperCase(),
+      timeframe: safeTimeframe,
+      minutes: safeMinutes,
+      count: chart.length,
+      chart,
+    });
+  } catch (error) {
+    console.error("mini-chart candle_training_data error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load mini chart data",
       error: error.message || "Internal server error",
     });
   }
