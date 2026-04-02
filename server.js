@@ -378,6 +378,174 @@ function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode
   };
 }
 
+// function buildTradeSetupFromPattern({
+//   side,
+//   price,
+//   pattern,
+//   candles,
+//   balance,
+//   spreadPoints,
+//   activeCfg,
+//   score,
+//   defensiveFlags,
+//   userMaxLotCap
+// }) {
+//   let slPoints = 500;
+//   let tpPoints = 800;
+//   let lotSize = 0.01;
+//   let retracePoints = 0;
+//   let signalStrength = 0;
+
+//   if (side === "BUY") signalStrength = score;
+//   else if (side === "SELL") signalStrength = -score;
+
+//   const mult = activeCfg.pipMultiplier;
+//   const avgRange = calculateAvgRange(candles, 3, mult);
+
+//   if (side === "BUY") {
+//     if (pattern.slPrice < price) {
+//       slPoints = Math.round((price - pattern.slPrice) * mult);
+//     } else {
+//       slPoints = Math.round(avgRange * 1.4);
+//     }
+
+//     if (pattern.tpPrice > price) {
+//       tpPoints = Math.round((pattern.tpPrice - price) * mult);
+//     } else {
+//       tpPoints = Math.round(avgRange * 2.2);
+//     }
+
+//     if (spreadPoints > 0) {
+//       slPoints += Math.round(spreadPoints * 1.75);
+//       tpPoints += Math.round(spreadPoints * 1.75);
+//     }
+//   } else if (side === "SELL") {
+//     if (pattern.slPrice > price) {
+//       slPoints = Math.round((pattern.slPrice - price) * mult);
+//     } else {
+//       slPoints = Math.round(avgRange * 1.4);
+//     }
+
+//     if (pattern.tpPrice < price) {
+//       tpPoints = Math.round((price - pattern.tpPrice) * mult);
+//     } else {
+//       tpPoints = Math.round(avgRange * 2.2);
+//     }
+
+//     if (spreadPoints > 0) {
+//       slPoints += Math.round(spreadPoints * 1.75);
+//       tpPoints += Math.round(spreadPoints * 1.75);
+//     }
+//   }
+
+//   // Calculate Retracement (context-aware)
+//   const detectedMode =
+//     String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
+//     (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
+
+//   const retraceProfile = detectRetracementProfile({
+//     side,
+//     candles,
+//     signalStrength,
+//     mode: detectedMode
+//   });
+
+//   retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+
+//   // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
+//   if (pattern?.isVolumeClimax) {
+//     retracePoints = Math.round(retracePoints * 0.85);
+//   }
+
+//   // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
+//   if (pattern?.isVolumeDrying) {
+//     retracePoints = Math.round(retracePoints * 1.08);
+//   }
+
+//   // defensive warning = รอย่อลึกขึ้นเล็กน้อย
+//   if (defensiveFlags?.warningMatched) {
+//     retracePoints = Math.round(retracePoints * 1.08);
+//   }
+
+//   // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
+//   const maxRetraceBySL = Math.round(slPoints * 0.33);
+//   if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+//   // minimum / maximum ตาม mode
+//   const minR =
+//     detectedMode === "SCALP"
+//       ? Math.round(12 * (mult / 100))
+//       : Math.round(20 * (mult / 100));
+
+//   const maxR =
+//     detectedMode === "SCALP"
+//       ? Math.round(120 * (mult / 100))
+//       : Math.round(200 * (mult / 100));
+
+//   if (retracePoints < minR) retracePoints = minR;
+//   if (retracePoints > maxR) retracePoints = maxR;
+
+//   if (balance && balance > 0) {
+//     const riskPercent = calculateDynamicRisk(
+//       score,
+//       pattern.type,
+//       "SCALP",
+//       2.0
+//     );
+
+//     const riskAmount = balance * (riskPercent / 100);
+//     let calculatedLot = riskAmount / slPoints;
+
+//     if (signalStrength >= 6) {
+//       calculatedLot *= 1.1;
+//     } else if (signalStrength < 3) {
+//       calculatedLot *= 0.75;
+//     }
+
+//     lotSize = Number(calculatedLot.toFixed(2));
+//     if (lotSize < 0.01) lotSize = 0.01;
+//     if (lotSize > 5.0) lotSize = 5.0;
+//   }
+
+//   if (signalStrength < 3.0) {
+//     tpPoints = Math.round(tpPoints * 0.6);
+//     slPoints = Math.round(slPoints * 0.85);
+//   } else if (signalStrength < 5.5) {
+//     tpPoints = Math.round(tpPoints * 0.9);
+//     slPoints = Math.round(slPoints * 0.95);
+//   } else if (signalStrength >= 6.0) {
+//     tpPoints = Math.round(tpPoints * 1.15);
+//   }
+
+//   if (defensiveFlags?.warningMatched) {
+//     lotSize = Number((lotSize * defensiveFlags.lotMultiplier).toFixed(2));
+//     if (lotSize < 0.01) lotSize = 0.01;
+//     tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
+//   }
+
+//   if (tpPoints < activeCfg.minTP) tpPoints = activeCfg.minTP;
+//   if (slPoints < activeCfg.minSL) slPoints = activeCfg.minSL;
+//   if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
+//   if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
+
+//   const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+
+//   if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
+//     lotSize = Number(safeUserMaxLotCap.toFixed(2));
+
+//     if (lotSize < 0.01) {
+//       lotSize = 0.01;
+//     }
+//   }
+
+//   return {
+//     recommended_lot: lotSize,
+//     sl_points: slPoints,
+//     tp_points: tpPoints,
+//     retrace_points: retracePoints,
+//   };
+// }
+
 function buildTradeSetupFromPattern({
   side,
   price,
@@ -396,117 +564,62 @@ function buildTradeSetupFromPattern({
   let retracePoints = 0;
   let signalStrength = 0;
 
-  if (side === "BUY") signalStrength = score;
-  else if (side === "SELL") signalStrength = -score;
+  if (side === "BUY") signalStrength = Number(score || 0);
+  else if (side === "SELL") signalStrength = Math.abs(Number(score || 0));
 
-  const mult = activeCfg.pipMultiplier;
+  const mult = Number(activeCfg?.pipMultiplier || 100);
   const avgRange = calculateAvgRange(candles, 3, mult);
 
-  if (side === "BUY") {
-    if (pattern.slPrice < price) {
-      slPoints = Math.round((price - pattern.slPrice) * mult);
-    } else {
-      slPoints = Math.round(avgRange * 1.4);
-    }
-
-    if (pattern.tpPrice > price) {
-      tpPoints = Math.round((pattern.tpPrice - price) * mult);
-    } else {
-      tpPoints = Math.round(avgRange * 2.2);
-    }
-
-    if (spreadPoints > 0) {
-      slPoints += Math.round(spreadPoints * 1.75);
-      tpPoints += Math.round(spreadPoints * 1.75);
-    }
-  } else if (side === "SELL") {
-    if (pattern.slPrice > price) {
-      slPoints = Math.round((pattern.slPrice - price) * mult);
-    } else {
-      slPoints = Math.round(avgRange * 1.4);
-    }
-
-    if (pattern.tpPrice < price) {
-      tpPoints = Math.round((price - pattern.tpPrice) * mult);
-    } else {
-      tpPoints = Math.round(avgRange * 2.2);
-    }
-
-    if (spreadPoints > 0) {
-      slPoints += Math.round(spreadPoints * 1.75);
-      tpPoints += Math.round(spreadPoints * 1.75);
-    }
-  }
-
-  // Calculate Retracement (context-aware)
   const detectedMode =
     String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
     (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
 
-  const retraceProfile = detectRetracementProfile({
-    side,
-    candles,
-    signalStrength,
-    mode: detectedMode
-  });
-
-  retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
-
-  // volume climax = ไม่ควรรอย่อมาก เพราะแรงส่งยังดี
-  if (pattern?.isVolumeClimax) {
-    retracePoints = Math.round(retracePoints * 0.85);
-  }
-
-  // volume drying = ยอมให้รอย่อเพิ่มนิดเดียว แต่ไม่มากเหมือนเดิม
-  if (pattern?.isVolumeDrying) {
-    retracePoints = Math.round(retracePoints * 1.08);
-  }
-
-  // defensive warning = รอย่อลึกขึ้นเล็กน้อย
-  if (defensiveFlags?.warningMatched) {
-    retracePoints = Math.round(retracePoints * 1.08);
-  }
-
-  // อย่าให้ retrace ลึกเกินเมื่อเทียบกับ SL
-  const maxRetraceBySL = Math.round(slPoints * 0.33);
-  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
-
-  // minimum / maximum ตาม mode
-  const minR =
-    detectedMode === "SCALP"
-      ? Math.round(12 * (mult / 100))
-      : Math.round(20 * (mult / 100));
-
-  const maxR =
-    detectedMode === "SCALP"
-      ? Math.round(120 * (mult / 100))
-      : Math.round(200 * (mult / 100));
-
-  if (retracePoints < minR) retracePoints = minR;
-  if (retracePoints > maxR) retracePoints = maxR;
-
-  if (balance && balance > 0) {
-    const riskPercent = calculateDynamicRisk(
-      score,
-      pattern.type,
-      "SCALP",
-      2.0
-    );
-
-    const riskAmount = balance * (riskPercent / 100);
-    let calculatedLot = riskAmount / slPoints;
-
-    if (signalStrength >= 6) {
-      calculatedLot *= 1.1;
-    } else if (signalStrength < 3) {
-      calculatedLot *= 0.75;
+  // -----------------------------
+  // 1) Base SL / TP จาก pattern + avgRange
+  // -----------------------------
+  if (side === "BUY") {
+    if (Number(pattern?.slPrice || 0) < Number(price || 0)) {
+      slPoints = Math.round((Number(price) - Number(pattern.slPrice)) * mult);
+    } else {
+      slPoints = Math.round(avgRange * 1.4);
     }
 
-    lotSize = Number(calculatedLot.toFixed(2));
-    if (lotSize < 0.01) lotSize = 0.01;
-    if (lotSize > 5.0) lotSize = 5.0;
+    if (Number(pattern?.tpPrice || 0) > Number(price || 0)) {
+      tpPoints = Math.round((Number(pattern.tpPrice) - Number(price)) * mult);
+    } else {
+      tpPoints = Math.round(avgRange * 2.2);
+    }
+
+    if (spreadPoints > 0) {
+      slPoints += Math.round(Number(spreadPoints) * 1.75);
+      tpPoints += Math.round(Number(spreadPoints) * 1.75);
+    }
+  } else if (side === "SELL") {
+    if (Number(pattern?.slPrice || 0) > Number(price || 0)) {
+      slPoints = Math.round((Number(pattern.slPrice) - Number(price)) * mult);
+    } else {
+      slPoints = Math.round(avgRange * 1.4);
+    }
+
+    if (Number(pattern?.tpPrice || 0) < Number(price || 0)) {
+      tpPoints = Math.round((Number(price) - Number(pattern.tpPrice)) * mult);
+    } else {
+      tpPoints = Math.round(avgRange * 2.2);
+    }
+
+    if (spreadPoints > 0) {
+      slPoints += Math.round(Number(spreadPoints) * 1.75);
+      tpPoints += Math.round(Number(spreadPoints) * 1.75);
+    }
   }
 
+  // กันค่าหลุด/ติดลบตั้งแต่ต้น
+  if (!Number.isFinite(slPoints) || slPoints <= 0) slPoints = Math.round(avgRange * 1.4);
+  if (!Number.isFinite(tpPoints) || tpPoints <= 0) tpPoints = Math.round(avgRange * 2.2);
+
+  // -----------------------------
+  // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
+  // -----------------------------
   if (signalStrength < 3.0) {
     tpPoints = Math.round(tpPoints * 0.6);
     slPoints = Math.round(slPoints * 0.85);
@@ -517,32 +630,111 @@ function buildTradeSetupFromPattern({
     tpPoints = Math.round(tpPoints * 1.15);
   }
 
+  // Defensive flags ควรมีผลกับ TP ก่อนคำนวณ lot
   if (defensiveFlags?.warningMatched) {
-    lotSize = Number((lotSize * defensiveFlags.lotMultiplier).toFixed(2));
-    if (lotSize < 0.01) lotSize = 0.01;
-    tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
+    if (Number.isFinite(defensiveFlags?.tpMultiplier) && defensiveFlags.tpMultiplier > 0) {
+      tpPoints = Math.round(tpPoints * defensiveFlags.tpMultiplier);
+    }
+
+    // รองรับในอนาคตถ้ามี slMultiplier
+    if (Number.isFinite(defensiveFlags?.slMultiplier) && defensiveFlags.slMultiplier > 0) {
+      slPoints = Math.round(slPoints * defensiveFlags.slMultiplier);
+    }
   }
 
-  if (tpPoints < activeCfg.minTP) tpPoints = activeCfg.minTP;
-  if (slPoints < activeCfg.minSL) slPoints = activeCfg.minSL;
-  if (tpPoints > activeCfg.maxTP) tpPoints = activeCfg.maxTP;
-  if (slPoints > activeCfg.maxSL) slPoints = activeCfg.maxSL;
+  // Clamp SL / TP ให้เป็นค่าจริงสุดท้ายก่อนคำนวณ lot
+  if (slPoints < Number(activeCfg?.minSL || 1)) slPoints = Number(activeCfg.minSL || 1);
+  if (tpPoints < Number(activeCfg?.minTP || 1)) tpPoints = Number(activeCfg.minTP || 1);
+
+  if (slPoints > Number(activeCfg?.maxSL || slPoints)) slPoints = Number(activeCfg.maxSL || slPoints);
+  if (tpPoints > Number(activeCfg?.maxTP || tpPoints)) tpPoints = Number(activeCfg.maxTP || tpPoints);
+
+  // -----------------------------
+  // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
+  // -----------------------------
+  const retraceProfile = detectRetracementProfile({
+    side,
+    candles,
+    signalStrength,
+    mode: detectedMode
+  });
+
+  retracePoints = Math.round(avgRange * retraceProfile.retraceMultiplier);
+
+  if (pattern?.isVolumeClimax) {
+    retracePoints = Math.round(retracePoints * 0.65);
+  }
+
+  if (pattern?.isVolumeDrying) {
+    retracePoints = Math.round(retracePoints * .98);
+  }
+
+  if (defensiveFlags?.warningMatched) {
+    retracePoints = Math.round(retracePoints * 1.18);
+  }
+
+  const minR =
+    detectedMode === "SCALP"
+      ? Math.round(12 * (mult / 100))
+      : Math.round(20 * (mult / 100));
+
+  const maxR =
+    detectedMode === "SCALP"
+      ? Math.round(120 * (mult / 100))
+      : Math.round(200 * (mult / 100));
+
+  // ใช้ SL สุดท้ายที่ clamp แล้ว
+  const maxRetraceBySL = Math.max(1, Math.round(slPoints * 0.33));
+
+  if (retracePoints < minR) retracePoints = minR;
+  if (retracePoints > maxR) retracePoints = maxR;
+  if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+  // -----------------------------
+  // 4) คำนวณ lot จาก SL สุดท้าย
+  // -----------------------------
+  if (balance && Number(balance) > 0) {
+    const riskPercent = calculateDynamicRisk(
+      signalStrength,
+      pattern?.type,
+      detectedMode,
+      2.0
+    );
+
+    const riskAmount = Number(balance) * (riskPercent / 100);
+    let calculatedLot = riskAmount / slPoints;
+
+    if (signalStrength >= 6) {
+      calculatedLot *= 1.1;
+    } else if (signalStrength < 3) {
+      calculatedLot *= 0.75;
+    }
+
+    if (defensiveFlags?.warningMatched) {
+      const lotMultiplier = Number(defensiveFlags?.lotMultiplier || 1);
+      if (lotMultiplier > 0) {
+        calculatedLot *= lotMultiplier;
+      }
+    }
+
+    lotSize = Number(calculatedLot.toFixed(2));
+
+    if (!Number.isFinite(lotSize) || lotSize <= 0) lotSize = 0.01;
+    if (lotSize < 0.01) lotSize = 0.01;
+    if (lotSize > 5.0) lotSize = 5.0;
+  }
 
   const safeUserMaxLotCap = Number(userMaxLotCap || 0);
-
   if (safeUserMaxLotCap > 0 && lotSize > safeUserMaxLotCap) {
     lotSize = Number(safeUserMaxLotCap.toFixed(2));
-
-    if (lotSize < 0.01) {
-      lotSize = 0.01;
-    }
+    if (lotSize < 0.01) lotSize = 0.01;
   }
 
   return {
     recommended_lot: lotSize,
     sl_points: slPoints,
     tp_points: tpPoints,
-    retrace_points: retracePoints,
+    retrace_points: retracePoints
   };
 }
 
