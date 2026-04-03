@@ -124,16 +124,16 @@ const MICRO_SCALP_CONFIG = {
 const symbolConfig = {
   NORMAL: {
     "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 1000, maxSL: 1400, minTP: 1250, maxTP: 1800 },
-    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1000, maxSL: 2000, minTP: 1500, maxTP: 3000 },
+    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 3500, maxSL: 5000, minTP: 4000, maxTP: 8000 },
     "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 1000, maxSL: 1400, minTP: 1250, maxTP: 1800 },
-    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 1000, maxSL: 2000, minTP: 1500, maxTP: 3000 },
+    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 3500, maxSL: 5000, minTP: 4000, maxTP: 8000 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
     "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
-    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 2000 },
+    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 2000, maxSL: 2500, minTP: 3000, maxTP: 3500 },
     "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
-    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 1000, maxTP: 2000 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 2000, maxSL: 2500, minTP: 3000, maxTP: 3500 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
   }
 };
@@ -1674,18 +1674,6 @@ app.post("/signal", async (req, res) => {
       }
     }
 
-    // let signalResponse = {
-    //   decision: finalDecision,
-    //   score: score,
-    //   firebaseUserId: resolvedUserId,
-    //   mode: evaluateResult.mode || "NORMAL",
-    //   trend: evaluateResult.trend || "NEUTRAL",
-    //   pattern: pattern,
-    //   historicalVolume: historicalVolume,
-    //   defensiveFlags: defensiveFlags,
-    //   trade_setup,
-    // };
-
     const adaptiveMinScore = getAdaptiveMinRequiredScore({
       baseScore: 0,
       coldStartProfile,
@@ -1732,17 +1720,6 @@ app.post("/signal", async (req, res) => {
       totalClosedTrades,
     });
 
-    // return res.json({
-    //   decision: finalDecision,
-    //   score: score,
-    //   firebaseUserId: resolvedUserId,
-    //   mode: evaluateResult.mode || "NORMAL",
-    //   trend: evaluateResult.trend || "NEUTRAL",
-    //   pattern: pattern,
-    //   historicalVolume: historicalVolume,
-    //   defensiveFlags: defensiveFlags,
-    //   trade_setup,
-    // });
   } catch (error) {
     console.error("Signal processing error:", error);
     return res.status(500).json({
@@ -1989,32 +1966,32 @@ app.post("/check-exit-signal", async (req, res) => {
   }
 });
 
-app.post("/webhook/mae-pla", async (req, res) => {
-  try {
-    const payload = req.body;
-    console.log(`[Mae Pla Webhook] Received type: ${payload.type}`);
+// app.post("/webhook/mae-pla", async (req, res) => {
+//   try {
+//     const payload = req.body;
+//     console.log(`[Mae Pla Webhook] Received type: ${payload.type}`);
 
-    const dataPath = ensureDataDir();
-    const logPath = path.join(dataPath, "mae_pla_logs.json");
-    const logs = safeReadJsonArray(logPath);
+//     const dataPath = ensureDataDir();
+//     const logPath = path.join(dataPath, "mae_pla_logs.json");
+//     const logs = safeReadJsonArray(logPath);
 
-    logs.push(payload);
-    safeWriteJson(logPath, logs);
+//     logs.push(payload);
+//     safeWriteJson(logPath, logs);
 
-    if (payload.type === "market_context") {
-      console.log("-> Market Context Updated: recommendation =", payload.recommendation);
-    } else if (payload.type === "signal_validation") {
-      console.log("-> Signal Validation:", payload.action, "Score:", payload.ai_confidence_score);
-    } else if (payload.type === "trade_result") {
-      console.log("-> Trade Learning Logged:", payload.result, "Lesson:", payload.lesson_learned);
-    }
+//     if (payload.type === "market_context") {
+//       console.log("-> Market Context Updated: recommendation =", payload.recommendation);
+//     } else if (payload.type === "signal_validation") {
+//       console.log("-> Signal Validation:", payload.action, "Score:", payload.ai_confidence_score);
+//     } else if (payload.type === "trade_result") {
+//       console.log("-> Trade Learning Logged:", payload.result, "Lesson:", payload.lesson_learned);
+//     }
 
-    res.json({ success: true, message: "Mae Pla data logged & processed" });
-  } catch (error) {
-    console.error("Webhook Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+//     res.json({ success: true, message: "Mae Pla data logged & processed" });
+//   } catch (error) {
+//     console.error("Webhook Error:", error);
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
 app.get("/trade-history/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
