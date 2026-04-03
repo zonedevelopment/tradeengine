@@ -12,7 +12,8 @@ const { writeFilter, readFilter } = require("./filter-writer");
 const { sendTelegram } = require("./telegram");
 const { analyzePerformance } = require("./performance/performance-analyzer");
 const { runDailyLearning } = require("./performance/daily-learner");
-const { analyzeEarlyExit } = require("./brain/early-exit-engine");
+// const { analyzeEarlyExit } = require("./brain/early-exit-engine");
+const { analyzeEarlyExit } = require("./brain/early-exit-engine-v2");
 const {
   evaluateDecision,
   decision,
@@ -1887,36 +1888,58 @@ app.post("/trade-event", async (req, res) => {
 // });
 
 app.post("/check-exit-signal", async (req, res) => {
-  const {
-    firebaseUserId,
-    symbol,
-    openPosition,
-    candles,
-    currentProfit,
-    mode = null,
-    price,
-    tpPoints = null,
-    slPoints = null
-  } = req.body;
-
-  // console.log("Early exit body: " + JSON.stringify(req.body));
-
-  const resolvedUserId = firebaseUserId || null;
-
-  const historicalVolume = evaluateCurrentVolumeAgainstHistory({
-    firebaseUserId: resolvedUserId,
-    symbol,
-    candles,
-  });
-
-  // console.log("Early exit historical: " + JSON.stringify(historicalVolume));
-
   try {
-    const resolvedMode =
+    const {
+      firebaseUserId = null,
+      symbol = "",
+      openPosition = {},
+      candles = [],
+      currentProfit = 0,
+      mode = null,
+      price = 0,
+      tpPoints = null,
+      slPoints = null,
+      holdingMinutes = null,
+    } = req.body || {};
+
+    const resolvedUserId = firebaseUserId || null;
+    const resolvedSymbol = String(
+      symbol || openPosition?.symbol || ""
+    ).trim();
+
+    if (!resolvedSymbol) {
+      return res.status(400).json({
+        action: "HOLD",
+        reason: "Missing symbol",
+        riskLevel: "UNKNOWN",
+        score: 0,
+      });
+    }
+
+    if (!openPosition || typeof openPosition !== "object" || !openPosition.side) {
+      return res.status(400).json({
+        action: "HOLD",
+        reason: "Missing or invalid openPosition",
+        riskLevel: "UNKNOWN",
+        score: 0,
+      });
+    }
+
+    if (!Array.isArray(candles) || candles.length < 5) {
+      return res.status(400).json({
+        action: "HOLD",
+        reason: "Not enough candles",
+        riskLevel: "UNKNOWN",
+        score: 0,
+      });
+    }
+
+    const resolvedMode = String(
       mode ||
       openPosition?.mode ||
       openPosition?.tradeMode ||
-      "NORMAL";
+      "NORMAL"
+    ).toUpperCase();
 
     const resolvedTpPoints = Number(
       tpPoints ??
@@ -1932,9 +1955,39 @@ app.post("/check-exit-signal", async (req, res) => {
       0
     );
 
+    const resolvedHoldingMinutes = Number(
+      holdingMinutes ??
+      openPosition?.holdingMinutes ??
+      openPosition?.holding_minutes ??
+      openPosition?.minutesOpen ??
+      openPosition?.minutes_open ??
+      0
+    );
+
+    const resolvedPrice = Number(
+      price ??
+      openPosition?.currentPrice ??
+      openPosition?.current_price ??
+      openPosition?.marketPrice ??
+      0
+    );
+
+    const resolvedCurrentProfit = Number(
+      currentProfit ??
+      openPosition?.profit ??
+      openPosition?.floatingProfit ??
+      0
+    );
+
+    const historicalVolume = evaluateCurrentVolumeAgainstHistory({
+      firebaseUserId: resolvedUserId,
+      symbol: resolvedSymbol,
+      candles,
+    });
+
     const pattern = await analyzePattern({
-      symbol: symbol,
-      candles: candles,
+      symbol: resolvedSymbol,
+      candles,
       candlesH1: null,
       candlesH4: null,
       overlapPips: 100,
@@ -1942,22 +1995,56 @@ app.post("/check-exit-signal", async (req, res) => {
 
     const result = await analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
-      symbol,
+      symbol: resolvedSymbol,
       openPosition,
-      currentProfit,
+      currentProfit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
       candles,
-      mode: String(resolvedMode || "NORMAL").toUpperCase(),
-      price,
+      mode: resolvedMode,
+      price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
       tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
       slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
       historicalVolume,
-      holdingMinutes: 10,
-      pattern
+      holdingMinutes: Number.isFinite(resolvedHoldingMinutes)
+        ? Math.max(0, resolvedHoldingMinutes)
+        : 0,
+      pattern,
     });
 
-    console.log("Early exit result: " + JSON.stringify(result));
+    // ถ้า EA ของคุณยังไม่รองรับ action ใหม่
+    // ให้ map กลับเป็น action เดิมที่ EA ใช้อยู่
+    let responseAction = result?.action || "HOLD";
+    let responseReason = result?.reason || "No exit signal";
+    let responseRiskLevel = result?.riskLevel || "LOW";
+    let responseScore = Number(result?.score || 0);
 
-    return res.json(result);
+    if (responseAction === "REDUCE_TARGET") {
+      responseAction = "MOVE_TO_BE";
+      responseReason = `Mapped from REDUCE_TARGET: ${responseReason}`;
+    }
+
+    if (responseAction === "WAIT_FOR_SMALL_BOUNCE") {
+      responseAction = "HOLD";
+      responseReason = `Mapped from WAIT_FOR_SMALL_BOUNCE: ${responseReason}`;
+    }
+
+    const payload = {
+      action: responseAction,
+      reason: responseReason,
+      riskLevel: responseRiskLevel,
+      score: responseScore,
+      meta: {
+        rawAction: result?.action || "HOLD",
+        mode: resolvedMode,
+        holdingMinutes: Number.isFinite(resolvedHoldingMinutes)
+          ? Math.max(0, resolvedHoldingMinutes)
+          : 0,
+        symbol: resolvedSymbol,
+      },
+    };
+
+    console.log("Early exit result:", JSON.stringify(payload));
+
+    return res.json(payload);
   } catch (error) {
     console.error("check-exit-signal error:", error);
 
@@ -1965,10 +2052,94 @@ app.post("/check-exit-signal", async (req, res) => {
       action: "HOLD",
       reason: error.message || "Internal server error",
       riskLevel: "UNKNOWN",
-      score: 0
+      score: 0,
     });
   }
 });
+
+// app.post("/check-exit-signal", async (req, res) => {
+//   const {
+//     firebaseUserId,
+//     symbol,
+//     openPosition,
+//     candles,
+//     currentProfit,
+//     mode = null,
+//     price,
+//     tpPoints = null,
+//     slPoints = null
+//   } = req.body;
+
+//   // console.log("Early exit body: " + JSON.stringify(req.body));
+
+//   const resolvedUserId = firebaseUserId || null;
+
+//   const historicalVolume = evaluateCurrentVolumeAgainstHistory({
+//     firebaseUserId: resolvedUserId,
+//     symbol,
+//     candles,
+//   });
+
+//   // console.log("Early exit historical: " + JSON.stringify(historicalVolume));
+
+//   try {
+//     const resolvedMode =
+//       mode ||
+//       openPosition?.mode ||
+//       openPosition?.tradeMode ||
+//       "NORMAL";
+
+//     const resolvedTpPoints = Number(
+//       tpPoints ??
+//       openPosition?.tpPoints ??
+//       openPosition?.tp_points ??
+//       0
+//     );
+
+//     const resolvedSlPoints = Number(
+//       slPoints ??
+//       openPosition?.slPoints ??
+//       openPosition?.sl_points ??
+//       0
+//     );
+
+//     const pattern = await analyzePattern({
+//       symbol: symbol,
+//       candles: candles,
+//       candlesH1: null,
+//       candlesH4: null,
+//       overlapPips: 100,
+//     });
+
+//     const result = await analyzeEarlyExit({
+//       firebaseUserId: resolvedUserId,
+//       symbol,
+//       openPosition,
+//       currentProfit,
+//       candles,
+//       mode: String(resolvedMode || "NORMAL").toUpperCase(),
+//       price,
+//       tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
+//       slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+//       historicalVolume,
+//       holdingMinutes: 10,
+//       pattern
+//     });
+
+//     console.log("Early exit result: " + JSON.stringify(result));
+
+//     return res.json(result);
+//   } catch (error) {
+//     console.error("check-exit-signal error:", error);
+
+//     return res.status(500).json({
+//       action: "HOLD",
+//       reason: error.message || "Internal server error",
+//       riskLevel: "UNKNOWN",
+//       score: 0
+//     });
+//   }
+// });
 
 // app.post("/webhook/mae-pla", async (req, res) => {
 //   try {
