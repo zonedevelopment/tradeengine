@@ -176,8 +176,8 @@ function getDynamicThresholdContext({
       buyThreshold += 0.05;
       sellThreshold -= 0.05;
     } else {
-      buyThreshold += 0.12;
-      sellThreshold -= 0.12;
+      buyThreshold += 0.10;
+      sellThreshold -= 0.10;
     }
   }
 
@@ -619,13 +619,13 @@ async function evaluateDecision({
       !trendFollow4.volumeConfirmed &&
       pattern.isVolumeDrying
     ) {
-      if (!isGoldSymbol(market?.symbol)) {
-        return {
-          action: "NO_TRADE",
-          reason: "LOW_QUALITY_SCALP_SETUP",
-          score: 0,
-        };
-      }
+      // if (!isGoldSymbol(market?.symbol)) {
+      //   return {
+      //     action: "NO_TRADE",
+      //     reason: "LOW_QUALITY_SCALP_SETUP",
+      //     score: 0,
+      //   };
+      // }
 
       patternScore *= 0.88;
     }
