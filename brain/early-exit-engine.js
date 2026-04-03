@@ -369,7 +369,7 @@ function shouldCutWeakScalpTrade({
   side = "",
 }) {
   const normalizedMode = String(mode || "NORMAL").toUpperCase();
-  if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
+  // if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
 
   const profit = toNumber(currentProfit, 0);
   if (profit > -0.20) return false; // ยังไม่ต้องรีบตัดถ้ายังแทบไม่ติดลบ
