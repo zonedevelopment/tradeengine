@@ -1564,7 +1564,7 @@ app.post("/signal", async (req, res) => {
 
     // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
-      const microResult = microScalpEngine.evaluateMicroScalp({
+      const microResult = microScalpEngine.analyzeMicroScalp({
         candles: Array.isArray(candles) ? candles : [],
         spread: Number(spreadPoints || 0),
         openPositions: [],
