@@ -8,7 +8,7 @@ const {
 
 function isGoldSymbol(symbol = "") {
   const s = String(symbol || "").toUpperCase();
-  return s === "XAUUSD" || s === "XAUUSDM" || s === "XAUUSDM" || s === "XAUUSDM";
+  return s === "XAUUSD" || s === "XAUUSDM";
 }
 
 function isBtcLikeSymbol(symbol = "") {
