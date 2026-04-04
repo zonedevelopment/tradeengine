@@ -1314,12 +1314,6 @@ app.post("/signal", async (req, res) => {
   const resolvedUserId = firebaseUserId || null;
   const spreadPoints = req.body.spreadPoints || 0;
 
-  try {
-    await runDailyLearning();
-  } catch (dailyError) {
-    console.error("Load daily learner error:", dailyError.message);
-  }
-
   let tradingPreferences = normalizeTradingPreferences(null);
   try {
     if (resolvedUserId) {
