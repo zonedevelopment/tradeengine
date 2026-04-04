@@ -792,17 +792,29 @@ async function analyzeEarlyExit({
   if (profit > 0) {
     const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
 
+    // if (
+    //   riskLevel === "CRITICAL" &&
+    //   adjustedScore >= 4.1 &&
+    //   profit >= profile.minProfitForHighRiskExit &&
+    //   progress.progressToTarget >= 0.18 &&
+    //   progress.progressToTarget < 0.52 &&
+    //   holdingMinutes >=
+    //     (normalizedMode === "MICRO_SCALP" ? 8 : normalizedMode === "SCALP" ? 10 : 14) &&
+    //   profitRetractionRatio >= 0.22 &&
+    //   confirmation.level !== "NONE"
+    // ) 
     if (
       riskLevel === "CRITICAL" &&
-      adjustedScore >= 4.1 &&
+      adjustedScore >= 4.3 &&
       profit >= profile.minProfitForHighRiskExit &&
-      progress.progressToTarget >= 0.18 &&
-      progress.progressToTarget < 0.52 &&
+      progress.progressToTarget >= 0.24 &&
+      progress.progressToTarget < 0.50 &&
       holdingMinutes >=
-        (normalizedMode === "MICRO_SCALP" ? 8 : normalizedMode === "SCALP" ? 10 : 14) &&
-      profitRetractionRatio >= 0.22 &&
-      confirmation.level !== "NONE"
-    ) {
+        (normalizedMode === "MICRO_SCALP" ? 9 : normalizedMode === "SCALP" ? 12 : 16) &&
+      profitRetractionRatio >= 0.25 &&
+      (confirmation.level === "MEDIUM" || confirmation.level === "STRONG")
+    )
+    {
       return {
         action: "TAKE_SMALL_PROFIT",
         reason: "Critical danger override while profitable",
