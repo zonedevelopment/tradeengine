@@ -42,6 +42,7 @@ function normalizeTradingPreferences(row) {
         0;
 
     return {
+        engnine_enabled: Number(row.engnine_enabled ?? 1) === 1 ? 1 : 0,
         direction_bias: normalizeDirectionBias(row.direction_bias),
         max_open_positions: Math.max(
             0,
