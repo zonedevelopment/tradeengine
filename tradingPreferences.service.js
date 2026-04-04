@@ -1,4 +1,5 @@
 const DEFAULT_TRADING_PREFERENCES = {
+    engnine_enabled: 1,
     direction_bias: "AUTO",
     max_open_positions: 0,
     base_lot_size: 0,
@@ -110,10 +111,15 @@ function isOpenDecision(decision) {
     return OPEN_DECISIONS.has(String(decision || "").trim().toUpperCase());
 }
 
+function isTradingEngineEnabled(tradingPreferences) {
+  return Number(tradingPreferences?.engnine_enabled ?? 1) === 1;
+}
+
 module.exports = {
     DEFAULT_TRADING_PREFERENCES,
     normalizeTradingPreferences,
     enforceDirectionBiasOnDecision,
     isMaxOpenPositionsReached,
     isOpenDecision,
+    isTradingEngineEnabled
 };
