@@ -255,7 +255,6 @@ async function getTradeEventsForLearning(limit = 5000) {
       event_time
     FROM trade_history
     WHERE event_type IN ('OPEN_ORDER', 'CLOSE_ORDER', 'CLOSE_EMERGENCY')
-      AND firebase_user_id IS NOT NULL
     ORDER BY COALESCE(event_time, created_at) DESC, id DESC
     LIMIT ?
   `;
