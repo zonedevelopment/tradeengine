@@ -899,7 +899,7 @@ function buildTradeSetupFromPattern({
   activeCfg,
   score,
   defensiveFlags,
-  userMaxLotCap,
+  userMinLotFloor,
   coldStartProfile = null
 }) {
   let slPoints = 500;
@@ -1059,12 +1059,23 @@ function buildTradeSetupFromPattern({
     activeCfg,
   });
 
-  const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+  // const safeUserMaxLotCap = Number(userMaxLotCap || 0);
+  // if (
+  //   safeUserMaxLotCap > 0 &&
+  //   Number(tradeSetup.recommended_lot || 0) > safeUserMaxLotCap
+  // ) {
+  //   tradeSetup.recommended_lot = Number(safeUserMaxLotCap.toFixed(2));
+  //   if (tradeSetup.recommended_lot < 0.01) {
+  //     tradeSetup.recommended_lot = 0.01;
+  //   }
+  // }
+
+  const safeUserMinLotFloor = Number(userMinLotFloor || 0);
   if (
-    safeUserMaxLotCap > 0 &&
-    Number(tradeSetup.recommended_lot || 0) > safeUserMaxLotCap
+    safeUserMinLotFloor > 0 &&
+    Number(tradeSetup.recommended_lot || 0) < safeUserMinLotFloor
   ) {
-    tradeSetup.recommended_lot = Number(safeUserMaxLotCap.toFixed(2));
+    tradeSetup.recommended_lot = Number(safeUserMinLotFloor.toFixed(2));
     if (tradeSetup.recommended_lot < 0.01) {
       tradeSetup.recommended_lot = 0.01;
     }
@@ -1205,8 +1216,8 @@ function buildMicroFallbackResponse({
     tpMultiplier: 1,
     reason: "MICRO_SCALP_FALLBACK",
   };
-
-  const rawLotCap = Number(
+  
+  const rawLotFloor = Number(
     tradingPreferences?.base_log_size ??
     tradingPreferences?.base_lot_size ??
     0
@@ -1222,7 +1233,7 @@ function buildMicroFallbackResponse({
     activeCfg,
     score,
     defensiveFlags,
-    userMaxLotCap: rawLotCap,
+    userMinLotFloor: rawLotFloor,
     coldStartProfile,
   });
 
@@ -1232,8 +1243,8 @@ function buildMicroFallbackResponse({
     activeCfg,
   });
 
-  if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
-    trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
+  if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
+    trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
     if (trade_setup.recommended_lot < 0.01) {
       trade_setup.recommended_lot = 0.01;
     }
@@ -1646,7 +1657,12 @@ app.post("/signal", async (req, res) => {
       reason: null,
     };
 
-    const rawLotCap = Number(
+    // const rawLotCap = Number(
+    //   tradingPreferences?.base_log_size ??
+    //   tradingPreferences?.base_lot_size ??
+    //   0
+    // );
+    const rawLotFloor = Number(
       tradingPreferences?.base_log_size ??
       tradingPreferences?.base_lot_size ??
       0
@@ -1662,7 +1678,7 @@ app.post("/signal", async (req, res) => {
       activeCfg,
       score,
       defensiveFlags,
-      userMaxLotCap: rawLotCap,
+      userMinLotFloor: rawLotFloor,
       coldStartProfile,
     });
 
@@ -1672,8 +1688,14 @@ app.post("/signal", async (req, res) => {
       activeCfg,
     });
 
-    if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
-      trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
+    // if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
+    //   trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
+    //   if (trade_setup.recommended_lot < 0.01) {
+    //     trade_setup.recommended_lot = 0.01;
+    //   }
+    // }
+    if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
+      trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
       if (trade_setup.recommended_lot < 0.01) {
         trade_setup.recommended_lot = 0.01;
       }
