@@ -15,6 +15,20 @@ const {
   upsertUserStrategyWeight,
 } = require("../userStrategyWeights.repo");
 
+function normalizeMappedItem(item) {
+  if (!item) return null;
+
+  if (Array.isArray(item)) {
+    return item.length > 0 ? item[0] : null;
+  }
+
+  if (typeof item === "object" && item[0] && typeof item[0] === "object") {
+    return item[0];
+  }
+
+  return item;
+}
+
 function normalizeScopeValue(value, fallback = "") {
   if (value === undefined || value === null) return fallback;
   const s = String(value).trim();
@@ -917,8 +931,8 @@ async function runDailyLearning() {
     }
 
     await updateAdaptiveScoreStats(adaptiveRows);
-    const safeItem = normalizeMappedItem(mappedResults);
-    await insertManyMappedTradeAnalysis(safeItem);
+    //const safeItem = normalizeMappedItem(mappedResults);
+    await insertManyMappedTradeAnalysis(mappedResults);
   } catch (err) {
     console.error("[Daily Learner] Insert mapped_trade_analysis error:", err.message);
   }
@@ -1079,20 +1093,6 @@ function logUndefinedFields(label, obj = {}) {
   if (undefinedKeys.length > 0) {
     console.warn(`[Daily Learner] ${label} has undefined fields:`, undefinedKeys);
   }
-}
-
-function normalizeMappedItem(item) {
-  if (!item) return null;
-
-  if (Array.isArray(item)) {
-    return item.length > 0 ? item[0] : null;
-  }
-
-  if (typeof item === "object" && item[0] && typeof item[0] === "object") {
-    return item[0];
-  }
-
-  return item;
 }
 
 module.exports = { runDailyLearning };
