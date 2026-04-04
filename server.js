@@ -95,6 +95,7 @@ const {
   enforceDirectionBiasOnDecision,
   isMaxOpenPositionsReached,
   isOpenDecision,
+  isTradingEngineEnabled
 } = require("./tradingPreferences.service");
 
 
@@ -1325,6 +1326,23 @@ app.post("/signal", async (req, res) => {
     }
   } catch (prefError) {
     console.error("Load trading preferences error:", prefError.message);
+  }
+
+  if (!isTradingEngineEnabled(tradingPreferences)) {
+    return res.json(
+      buildBlockedSignalResponse({
+        reason: "ENGINE_DISABLED",
+        score: 0,
+        firebaseUserId: resolvedUserId,
+        mode: "NORMAL",
+        trend: "NEUTRAL",
+        pattern: null,
+        historicalVolume: null,
+        defensiveFlags: null,
+        trade_setup: null,
+        currentOpenPositionsCount: 0,
+      })
+    );
   }
 
   let totalClosedTrades = 0;
