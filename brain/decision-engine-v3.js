@@ -46,16 +46,12 @@ function getCandleDirection(candle = {}) {
 
 function averageBody(candles = [], lookback = 5) {
   if (!Array.isArray(candles) || candles.length === 0) return 0;
-
   const sample = candles.slice(-lookback);
   if (!sample.length) return 0;
-
-  const total = sample.reduce((sum, candle) => {
-    const c = getCandleDirection(candle);
-    return sum + c.body;
-  }, 0);
-
-  return total / sample.length;
+  return (
+    sample.reduce((sum, candle) => sum + getCandleDirection(candle).body, 0) /
+    sample.length
+  );
 }
 
 function averageRange(candles = [], lookback = 5) {
@@ -243,6 +239,75 @@ function getSwingBias(candles = []) {
   };
 }
 
+function findPivotHighs(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = getCandleDirection(candles[i - 1]);
+    const curr = getCandleDirection(candles[i]);
+    const next = getCandleDirection(candles[i + 1]);
+    if (curr.high > prev.high && curr.high >= next.high) {
+      result.push({ index: i, value: curr.high });
+    }
+  }
+  return result;
+}
+
+function findPivotLows(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = getCandleDirection(candles[i - 1]);
+    const curr = getCandleDirection(candles[i]);
+    const next = getCandleDirection(candles[i + 1]);
+    if (curr.low < prev.low && curr.low <= next.low) {
+      result.push({ index: i, value: curr.low });
+    }
+  }
+  return result;
+}
+
+function buildStructureState(candles = [], lookback = 10) {
+  const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  const highs = findPivotHighs(sample);
+  const lows = findPivotLows(sample);
+
+  let hh = false;
+  let hl = false;
+  let lh = false;
+  let ll = false;
+
+  if (highs.length >= 2) {
+    const a = highs[highs.length - 2].value;
+    const b = highs[highs.length - 1].value;
+    if (b > a) hh = true;
+    if (b < a) lh = true;
+  }
+
+  if (lows.length >= 2) {
+    const a = lows[lows.length - 2].value;
+    const b = lows[lows.length - 1].value;
+    if (b > a) hl = true;
+    if (b < a) ll = true;
+  }
+
+  let structure = "NEUTRAL";
+  if (hh && hl) structure = "HH_HL";
+  else if (lh && ll) structure = "LH_LL";
+  else if (hh && !hl) structure = "HH_ONLY";
+  else if (hl && !hh) structure = "HL_ONLY";
+  else if (lh && !ll) structure = "LH_ONLY";
+  else if (ll && !lh) structure = "LL_ONLY";
+
+  return {
+    structure,
+    hh,
+    hl,
+    lh,
+    ll,
+    pivotHighCount: highs.length,
+    pivotLowCount: lows.length,
+  };
+}
+
 function getWindowState(candles = [], lookback = 20, side = "NEUTRAL") {
   const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
   const bias = getSwingBias(sample);
@@ -260,6 +325,9 @@ function getWindowState(candles = [], lookback = 20, side = "NEUTRAL") {
     if (cd.range > 0 && cd.body >= avgB * 1.1 && cd.range >= avgR * 1.05) {
       if (side === "BUY" && cd.isBull) impulseCount += 1;
       if (side === "SELL" && cd.isBear) impulseCount += 1;
+    }
+    if (side === "NEUTRAL") {
+      if (cd.isBull || cd.isBear) impulseCount += cd.body >= avgB * 1.15 ? 1 : 0;
     }
   }
 
@@ -281,13 +349,49 @@ function getWindowState(candles = [], lookback = 20, side = "NEUTRAL") {
   };
 }
 
-function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
+function getSwingZoneState(candles = [], lookback = 10, price = 0) {
+  const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  if (!sample.length) {
+    return {
+      nearTop: false,
+      nearBottom: false,
+      normalizedPos: 0.5,
+      recentHigh: 0,
+      recentLow: 0,
+      range: 0,
+    };
+  }
+
+  const highs = sample.map(c => getCandleDirection(c).high);
+  const lows = sample.map(c => getCandleDirection(c).low);
+
+  const recentHigh = Math.max(...highs);
+  const recentLow = Math.min(...lows);
+  const range = Math.max(recentHigh - recentLow, 0.000001);
+  const current = toNumber(price, getCandleDirection(sample[sample.length - 1]).close);
+
+  const normalizedPos = clamp((current - recentLow) / range, 0, 1);
+
+  return {
+    nearTop: normalizedPos >= 0.78,
+    nearBottom: normalizedPos <= 0.22,
+    normalizedPos,
+    recentHigh,
+    recentLow,
+    range,
+  };
+}
+
+function buildHierarchicalFilters(candles = [], side = "NEUTRAL", price = 0) {
   const longWindow = getWindowState(candles, 20, side);
   const mediumWindow = getWindowState(candles, 10, side);
   const setupWindow = getWindowState(candles, 5, side);
   const triggerWindow = getWindowState(candles, 3, side);
+  const structure10 = buildStructureState(candles, 10);
+  const swingZone10 = getSwingZoneState(candles, 10, price);
 
-  const sideExpectedLong = side === "BUY" ? "UP" : side === "SELL" ? "DOWN" : "NEUTRAL";
+  const sideExpectedLong =
+    side === "BUY" ? "UP" : side === "SELL" ? "DOWN" : "NEUTRAL";
   const sideExpectedSetup = sideExpectedLong;
 
   const longAligned =
@@ -305,6 +409,25 @@ function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
     (triggerWindow.direction === sideExpectedSetup ||
       triggerWindow.strength >= 0.8);
 
+  let structureAligned = false;
+  let structureCounter = false;
+
+  if (side === "BUY") {
+    structureAligned =
+      structure10.structure === "HH_HL" ||
+      structure10.structure === "HL_ONLY";
+    structureCounter =
+      structure10.structure === "LH_LL" ||
+      structure10.structure === "LL_ONLY";
+  } else if (side === "SELL") {
+    structureAligned =
+      structure10.structure === "LH_LL" ||
+      structure10.structure === "LH_ONLY";
+    structureCounter =
+      structure10.structure === "HH_HL" ||
+      structure10.structure === "HH_ONLY";
+  }
+
   let score = 0;
   const reasons = [];
 
@@ -317,11 +440,19 @@ function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
   }
 
   if (mediumAligned) {
-    score += 0.28;
-    reasons.push("L10_ALIGNED");
+    score += 0.22;
+    reasons.push("L10_DIR_ALIGNED");
   } else if (mediumWindow.direction !== "NEUTRAL") {
-    score -= 0.3;
-    reasons.push("L10_COUNTER");
+    score -= 0.26;
+    reasons.push("L10_DIR_COUNTER");
+  }
+
+  if (structureAligned) {
+    score += 0.34;
+    reasons.push("L10_STRUCTURE_ALIGNED");
+  } else if (structureCounter) {
+    score -= 0.4;
+    reasons.push("L10_STRUCTURE_COUNTER");
   }
 
   if (setupAligned) {
@@ -343,14 +474,15 @@ function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
   const strongContinuation =
     longAligned &&
     mediumAligned &&
+    structureAligned &&
     longWindow.strength >= 2.2 &&
     mediumWindow.impulseCount >= 2;
 
   const possibleReversal =
     !longAligned &&
-    mediumWindow.direction === sideExpectedLong &&
-    mediumWindow.strength >= 1.0 &&
-    triggerAligned;
+    mediumAligned &&
+    triggerAligned &&
+    !structureCounter;
 
   const noisySetup =
     setupWindow.isCompression && triggerWindow.direction === "NEUTRAL";
@@ -361,7 +493,7 @@ function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
   }
 
   if (possibleReversal) {
-    score += 0.08;
+    score += 0.06;
     reasons.push("REVERSAL_EARLY_OK");
   }
 
@@ -370,15 +502,29 @@ function buildHierarchicalFilters(candles = [], side = "NEUTRAL") {
     reasons.push("NOISY_TRIGGER");
   }
 
+  if (side === "BUY" && swingZone10.nearTop) {
+    score -= 0.42;
+    reasons.push("NEAR_SWING_HIGH_BLOCK");
+  }
+
+  if (side === "SELL" && swingZone10.nearBottom) {
+    score -= 0.42;
+    reasons.push("NEAR_SWING_LOW_BLOCK");
+  }
+
   return {
     longWindow,
     mediumWindow,
     setupWindow,
     triggerWindow,
+    structure10,
+    swingZone10,
     longAligned,
     mediumAligned,
     setupAligned,
     triggerAligned,
+    structureAligned,
+    structureCounter,
     strongContinuation,
     possibleReversal,
     noisySetup,
@@ -503,10 +649,23 @@ function resolveTradeMode({
       regime = "HIERARCHICAL_CONTINUATION";
     }
 
-    if (!hierarchical.longAligned && !hierarchical.mediumAligned && mode === "NORMAL") {
+    if (
+      hierarchical.structureCounter &&
+      mode === "NORMAL" &&
+      !hierarchical.possibleReversal
+    ) {
       mode = "SCALP";
-      quality -= 0.4;
-      reasons.push("DOWNGRADE_BY_HIERARCHY");
+      quality -= 0.35;
+      reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
+    }
+
+    if (
+      (side === "BUY" && hierarchical.swingZone10.nearTop) ||
+      (side === "SELL" && hierarchical.swingZone10.nearBottom)
+    ) {
+      mode = "SCALP";
+      quality -= 0.25;
+      reasons.push("PRICE_NEAR_SWING_EDGE");
     }
   }
 
@@ -671,6 +830,13 @@ function buildContextComponents({
     components.structure -= 0.26;
   }
 
+  if (hierarchical?.structureAligned) {
+    components.structure += 0.18;
+  }
+  if (hierarchical?.structureCounter) {
+    components.structure -= 0.28;
+  }
+
   if (pattern?.isVolumeClimax) {
     components.volumeState += isTrendAligned(side, overallTrend) ? 0.18 : 0.08;
   }
@@ -728,6 +894,15 @@ function buildContextComponents({
       if (Math.abs(currentPrice - toNumber(zone?.midpoint, 0)) <= 2.0) {
         components.ict += 0.16;
       }
+    }
+  }
+
+  if (hierarchical?.swingZone10) {
+    if (side === "BUY" && hierarchical.swingZone10.nearTop) {
+      components.hierarchy -= 0.18;
+    }
+    if (side === "SELL" && hierarchical.swingZone10.nearBottom) {
+      components.hierarchy -= 0.18;
     }
   }
 
@@ -810,6 +985,14 @@ function getDynamicThresholdContext({
     if (hierarchical.strongContinuation) {
       buyThreshold -= 0.05;
       sellThreshold += 0.05;
+    }
+    if (
+      (hierarchical.structureCounter && hierarchical.triggerWindow.direction !== "NEUTRAL") ||
+      (hierarchical.swingZone10?.nearTop && hierarchical.triggerWindow.direction === "UP") ||
+      (hierarchical.swingZone10?.nearBottom && hierarchical.triggerWindow.direction === "DOWN")
+    ) {
+      buyThreshold += 0.08;
+      sellThreshold -= 0.08;
     }
   }
 
@@ -902,7 +1085,11 @@ async function evaluateDecision({
   };
 
   const side = resolvePatternSide(pattern);
-  const hierarchical = buildHierarchicalFilters(market?.candles || [], side);
+  const hierarchical = buildHierarchicalFilters(
+    market?.candles || [],
+    side,
+    market?.price || 0
+  );
 
   if (!pattern || pattern.pattern === "NONE" || side === "NEUTRAL") {
     return {

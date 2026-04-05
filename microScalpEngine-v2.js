@@ -81,17 +81,120 @@ function getWindowState(candles = [], lookback = 20) {
   };
 }
 
+function findPivotHighs(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = getCandle(candles[i - 1]);
+    const curr = getCandle(candles[i]);
+    const next = getCandle(candles[i + 1]);
+    if (curr.high > prev.high && curr.high >= next.high) {
+      result.push({ index: i, value: curr.high });
+    }
+  }
+  return result;
+}
+
+function findPivotLows(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = getCandle(candles[i - 1]);
+    const curr = getCandle(candles[i]);
+    const next = getCandle(candles[i + 1]);
+    if (curr.low < prev.low && curr.low <= next.low) {
+      result.push({ index: i, value: curr.low });
+    }
+  }
+  return result;
+}
+
+function buildStructureState(candles = [], lookback = 10) {
+  const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  const highs = findPivotHighs(sample);
+  const lows = findPivotLows(sample);
+
+  let hh = false;
+  let hl = false;
+  let lh = false;
+  let ll = false;
+
+  if (highs.length >= 2) {
+    const a = highs[highs.length - 2].value;
+    const b = highs[highs.length - 1].value;
+    if (b > a) hh = true;
+    if (b < a) lh = true;
+  }
+
+  if (lows.length >= 2) {
+    const a = lows[lows.length - 2].value;
+    const b = lows[lows.length - 1].value;
+    if (b > a) hl = true;
+    if (b < a) ll = true;
+  }
+
+  let structure = "NEUTRAL";
+  if (hh && hl) structure = "HH_HL";
+  else if (lh && ll) structure = "LH_LL";
+  else if (hh && !hl) structure = "HH_ONLY";
+  else if (hl && !hh) structure = "HL_ONLY";
+  else if (lh && !ll) structure = "LH_ONLY";
+  else if (ll && !lh) structure = "LL_ONLY";
+
+  return {
+    structure,
+    hh,
+    hl,
+    lh,
+    ll,
+  };
+}
+
+function getSwingZoneState(candles = [], lookback = 10) {
+  const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  if (!sample.length) {
+    return {
+      nearTop: false,
+      nearBottom: false,
+      normalizedPos: 0.5,
+      recentHigh: 0,
+      recentLow: 0,
+      range: 0,
+    };
+  }
+
+  const highs = sample.map(c => getCandle(c).high);
+  const lows = sample.map(c => getCandle(c).low);
+  const current = getCandle(sample[sample.length - 1]).close;
+
+  const recentHigh = Math.max(...highs);
+  const recentLow = Math.min(...lows);
+  const range = Math.max(recentHigh - recentLow, 0.000001);
+  const normalizedPos = Math.max(0, Math.min(1, (current - recentLow) / range));
+
+  return {
+    nearTop: normalizedPos >= 0.78,
+    nearBottom: normalizedPos <= 0.22,
+    normalizedPos,
+    recentHigh,
+    recentLow,
+    range,
+  };
+}
+
 function buildHierarchicalContext(candles = []) {
   const l20 = getWindowState(candles, 20);
   const l10 = getWindowState(candles, 10);
   const l5 = getWindowState(candles, 5);
   const l3 = getWindowState(candles, 3);
+  const structure10 = buildStructureState(candles, 10);
+  const swingZone10 = getSwingZoneState(candles, 10);
 
   return {
     l20,
     l10,
     l5,
     l3,
+    structure10,
+    swingZone10,
   };
 }
 
@@ -109,11 +212,38 @@ function scoreHierarchyForSide(side, hc) {
   }
 
   if (hc.l10.direction === expected) {
-    score += 8;
-    reasons.push("H10_ALIGNED");
+    score += 6;
+    reasons.push("H10_DIR_ALIGNED");
   } else if (hc.l10.direction !== "NEUTRAL") {
-    score -= 10;
-    reasons.push("H10_COUNTER");
+    score -= 8;
+    reasons.push("H10_DIR_COUNTER");
+  }
+
+  let structureAligned = false;
+  let structureCounter = false;
+
+  if (side === "BUY") {
+    structureAligned =
+      hc.structure10.structure === "HH_HL" ||
+      hc.structure10.structure === "HL_ONLY";
+    structureCounter =
+      hc.structure10.structure === "LH_LL" ||
+      hc.structure10.structure === "LL_ONLY";
+  } else {
+    structureAligned =
+      hc.structure10.structure === "LH_LL" ||
+      hc.structure10.structure === "LH_ONLY";
+    structureCounter =
+      hc.structure10.structure === "HH_HL" ||
+      hc.structure10.structure === "HH_ONLY";
+  }
+
+  if (structureAligned) {
+    score += 10;
+    reasons.push("H10_STRUCTURE_ALIGNED");
+  } else if (structureCounter) {
+    score -= 14;
+    reasons.push("H10_STRUCTURE_COUNTER");
   }
 
   if (hc.l5.direction === expected || hc.l5.direction === "NEUTRAL") {
@@ -135,6 +265,7 @@ function scoreHierarchyForSide(side, hc) {
   const strongContinuation =
     hc.l20.direction === expected &&
     hc.l10.direction === expected &&
+    structureAligned &&
     hc.l20.strength >= 2.2 &&
     hc.l10.impulseCount >= 2;
 
@@ -148,10 +279,22 @@ function scoreHierarchyForSide(side, hc) {
     reasons.push("NOISY_TRIGGER");
   }
 
+  if (side === "BUY" && hc.swingZone10.nearTop) {
+    score -= 16;
+    reasons.push("NEAR_SWING_HIGH_BLOCK");
+  }
+
+  if (side === "SELL" && hc.swingZone10.nearBottom) {
+    score -= 16;
+    reasons.push("NEAR_SWING_LOW_BLOCK");
+  }
+
   return {
     score,
     reasons,
     strongContinuation,
+    structureAligned,
+    structureCounter,
   };
 }
 
@@ -173,7 +316,34 @@ function getWickPenalty(candles = [], side = "BUY") {
   return 0;
 }
 
-function calculateEntryTimingScore(candles = [], side = "BUY") {
+function getChasePenalty(candles = [], side = "BUY", hc = null) {
+  if (!Array.isArray(candles) || candles.length < 2) return 0;
+  const last = getCandle(candles[candles.length - 1]);
+  const prev = getCandle(candles[candles.length - 2]);
+  const avgB = avgBody(candles, 5) || 1;
+
+  let penalty = 0;
+
+  if (side === "BUY") {
+    if (last.isBull && last.body >= avgB * 1.2 && last.close > prev.high) {
+      penalty += 4;
+    }
+    if (hc?.swingZone10?.nearTop) {
+      penalty += 6;
+    }
+  } else {
+    if (last.isBear && last.body >= avgB * 1.2 && last.close < prev.low) {
+      penalty += 4;
+    }
+    if (hc?.swingZone10?.nearBottom) {
+      penalty += 6;
+    }
+  }
+
+  return penalty;
+}
+
+function calculateEntryTimingScore(candles = [], side = "BUY", hc = null) {
   if (!Array.isArray(candles) || candles.length < 3) return 0;
 
   const c1 = getCandle(candles[candles.length - 1]);
@@ -182,16 +352,25 @@ function calculateEntryTimingScore(candles = [], side = "BUY") {
   const avgB = avgBody(candles, 5) || 1;
 
   let score = 0;
+
   if (side === "BUY") {
     if (c1.isBull) score += 6;
     if (c1.close > c2.high) score += 8;
     if (c2.isBull && c3.isBull) score += 4;
     if (c1.body >= avgB * 1.1) score += 4;
+
+    if (hc?.swingZone10?.nearTop) {
+      score -= 8;
+    }
   } else {
     if (c1.isBear) score += 6;
     if (c1.close < c2.low) score += 8;
     if (c2.isBear && c3.isBear) score += 4;
     if (c1.body >= avgB * 1.1) score += 4;
+
+    if (hc?.swingZone10?.nearBottom) {
+      score -= 8;
+    }
   }
 
   return score;
@@ -208,15 +387,22 @@ function calculateSignalScores({ candles = [], spreadPoints = 0, trendContext = 
   buyScore += buyHierarchy.score;
   sellScore += sellHierarchy.score;
 
-  buyScore += calculateEntryTimingScore(candles, "BUY");
-  sellScore += calculateEntryTimingScore(candles, "SELL");
+  buyScore += calculateEntryTimingScore(candles, "BUY", hierarchical);
+  sellScore += calculateEntryTimingScore(candles, "SELL", hierarchical);
 
   const spreadPenalty = getSpreadPenalty(spreadPoints);
   buyScore -= spreadPenalty;
   sellScore -= spreadPenalty;
 
-  buyScore -= getWickPenalty(candles, "BUY");
-  sellScore -= getWickPenalty(candles, "SELL");
+  const buyWickPenalty = getWickPenalty(candles, "BUY");
+  const sellWickPenalty = getWickPenalty(candles, "SELL");
+  buyScore -= buyWickPenalty;
+  sellScore -= sellWickPenalty;
+
+  const buyChasePenalty = getChasePenalty(candles, "BUY", hierarchical);
+  const sellChasePenalty = getChasePenalty(candles, "SELL", hierarchical);
+  buyScore -= buyChasePenalty;
+  sellScore -= sellChasePenalty;
 
   if (trendContext) {
     const trend = String(trendContext.overallTrend || "NEUTRAL").toUpperCase();
@@ -237,8 +423,10 @@ function calculateSignalScores({ candles = [], spreadPoints = 0, trendContext = 
       buyHierarchy,
       sellHierarchy,
       spreadPenalty,
-      buyWickPenalty: getWickPenalty(candles, "BUY"),
-      sellWickPenalty: getWickPenalty(candles, "SELL"),
+      buyWickPenalty,
+      sellWickPenalty,
+      buyChasePenalty,
+      sellChasePenalty,
     },
   };
 }
@@ -312,6 +500,7 @@ async function analyzeMicroScalp({
 
 module.exports = {
   analyzeMicroScalp,
+  evaluateMicroScalp: analyzeMicroScalp,
   calculateSignalScores,
   buildHierarchicalContext,
 };
