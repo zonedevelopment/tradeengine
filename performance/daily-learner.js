@@ -758,7 +758,7 @@ async function runDailyLearning() {
           minPriceDiff: minDiff,
         };
 
-        if (learningItem.userId) {
+        // if (learningItem.userId) {
           mappedResults.push({
             firebaseUserId: learningItem.userId || null,
             accountId: learningItem.accountId || null,
@@ -786,7 +786,7 @@ async function runDailyLearning() {
             postMortem,
             contextHash: learningItem.contextHash,
           });
-        }
+        // }
 
         adaptiveRows.push({
           firebaseUserId: learningItem.userId,

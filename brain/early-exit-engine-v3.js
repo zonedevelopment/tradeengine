@@ -96,6 +96,10 @@ function getExitProfile(mode = "NORMAL") {
       scalpTimeoutNoProgressMinutes: 17,
       smallProfitMaxProgressToTarget: 0.24,
       smallProfitMinPullbackFromPeak: 0.34,
+      scalpMaxHoldingBars: 4,
+      scalpMinExpectedProgressToTarget: 0.30,
+      scalpStructureFailureLoss: -0.22,
+      scalpFailedContinuationLoss: -0.18,
     };
   }
 
@@ -113,6 +117,10 @@ function getExitProfile(mode = "NORMAL") {
       scalpTimeoutNoProgressMinutes: 21,
       smallProfitMaxProgressToTarget: 0.26,
       smallProfitMinPullbackFromPeak: 0.32,
+      scalpMaxHoldingBars: 5,
+      scalpMinExpectedProgressToTarget: 0.35,
+      scalpStructureFailureLoss: -0.35,
+      scalpFailedContinuationLoss: -0.25,
     };
   }
 
@@ -120,7 +128,7 @@ function getExitProfile(mode = "NORMAL") {
     minProfitToProtect: 0.75,
     minProfitForHighRiskExit: 1.35,
     minProfitForStrongReversalExit: 1.65,
-    moveToBeMinR: 1.00,
+    moveToBeMinR: 1.0,
     moveToBeMinProgressToTarget: 0.48,
     strongReversalThresholdProfit: 5.3,
     hardCutLossReversalThreshold: 4.9,
@@ -129,6 +137,10 @@ function getExitProfile(mode = "NORMAL") {
     scalpTimeoutNoProgressMinutes: 34,
     smallProfitMaxProgressToTarget: 0.22,
     smallProfitMinPullbackFromPeak: 0.36,
+    scalpMaxHoldingBars: 8,
+    scalpMinExpectedProgressToTarget: 0.42,
+    scalpStructureFailureLoss: -0.55,
+    scalpFailedContinuationLoss: -0.45,
   };
 }
 
@@ -426,6 +438,177 @@ function detectExitConfirmation(candles = [], side = "") {
   };
 }
 
+function findPivotHighs(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = candles[i - 1];
+    const curr = candles[i];
+    const next = candles[i + 1];
+    if (
+      toNumber(curr.high) > toNumber(prev.high) &&
+      toNumber(curr.high) >= toNumber(next.high)
+    ) {
+      result.push({ index: i, value: toNumber(curr.high) });
+    }
+  }
+  return result;
+}
+
+function findPivotLows(candles = []) {
+  const result = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = candles[i - 1];
+    const curr = candles[i];
+    const next = candles[i + 1];
+    if (
+      toNumber(curr.low) < toNumber(prev.low) &&
+      toNumber(curr.low) <= toNumber(next.low)
+    ) {
+      result.push({ index: i, value: toNumber(curr.low) });
+    }
+  }
+  return result;
+}
+
+function buildShortStructureState(candles = [], lookback = 10) {
+  const sample = Array.isArray(candles) ? candles.slice(-lookback) : [];
+  const highs = findPivotHighs(sample);
+  const lows = findPivotLows(sample);
+
+  let hh = false;
+  let hl = false;
+  let lh = false;
+  let ll = false;
+
+  if (highs.length >= 2) {
+    const a = highs[highs.length - 2].value;
+    const b = highs[highs.length - 1].value;
+    if (b > a) hh = true;
+    if (b < a) lh = true;
+  }
+
+  if (lows.length >= 2) {
+    const a = lows[lows.length - 2].value;
+    const b = lows[lows.length - 1].value;
+    if (b > a) hl = true;
+    if (b < a) ll = true;
+  }
+
+  let structure = "NEUTRAL";
+  if (hh && hl) structure = "HH_HL";
+  else if (lh && ll) structure = "LH_LL";
+  else if (hh && !hl) structure = "HH_ONLY";
+  else if (hl && !hh) structure = "HL_ONLY";
+  else if (lh && !ll) structure = "LH_ONLY";
+  else if (ll && !lh) structure = "LL_ONLY";
+
+  return {
+    structure,
+    hh,
+    hl,
+    lh,
+    ll,
+    pivotHighCount: highs.length,
+    pivotLowCount: lows.length,
+  };
+}
+
+function detectFailedScalpContinuation(candles = [], side = "") {
+  if (!Array.isArray(candles) || candles.length < 4) {
+    return {
+      failed: false,
+      score: 0,
+      reason: "NOT_ENOUGH_CANDLES",
+    };
+  }
+
+  const c1 = candles[candles.length - 1];
+  const c2 = candles[candles.length - 2];
+  const c3 = candles[candles.length - 3];
+  const c4 = candles[candles.length - 4];
+
+  let score = 0;
+
+  if (side === "BUY") {
+    const lowerHigh =
+      toNumber(c1.high) < toNumber(c2.high) &&
+      toNumber(c2.high) <= toNumber(c3.high);
+
+    const weakBounce =
+      toNumber(c1.close) <= toNumber(c2.close) &&
+      toNumber(c2.close) <= toNumber(c3.close);
+
+    const failedReclaim =
+      toNumber(c2.high) < toNumber(c4.high) &&
+      toNumber(c1.close) < toNumber(c2.open);
+
+    if (lowerHigh) score += 1.0;
+    if (weakBounce) score += 0.8;
+    if (failedReclaim) score += 1.1;
+  } else if (side === "SELL") {
+    const higherLow =
+      toNumber(c1.low) > toNumber(c2.low) &&
+      toNumber(c2.low) >= toNumber(c3.low);
+
+    const weakDrop =
+      toNumber(c1.close) >= toNumber(c2.close) &&
+      toNumber(c2.close) >= toNumber(c3.close);
+
+    const failedBreakdown =
+      toNumber(c2.low) > toNumber(c4.low) &&
+      toNumber(c1.close) > toNumber(c2.open);
+
+    if (higherLow) score += 1.0;
+    if (weakDrop) score += 0.8;
+    if (failedBreakdown) score += 1.1;
+  }
+
+  return {
+    failed: score >= 1.8,
+    score: Number(score.toFixed(2)),
+    reason: score >= 1.8 ? "FAILED_SCALP_CONTINUATION" : "CONTINUATION_OK",
+  };
+}
+
+function detectStructureFailure(candles = [], side = "") {
+  const structure = buildShortStructureState(candles, 10);
+
+  let failed = false;
+  let score = 0;
+
+  if (side === "BUY") {
+    if (
+      structure.structure === "LH_LL" ||
+      structure.structure === "LL_ONLY" ||
+      structure.structure === "LH_ONLY"
+    ) {
+      failed = true;
+      score = 2.2;
+    }
+  } else if (side === "SELL") {
+    if (
+      structure.structure === "HH_HL" ||
+      structure.structure === "HH_ONLY" ||
+      structure.structure === "HL_ONLY"
+    ) {
+      failed = true;
+      score = 2.2;
+    }
+  }
+
+  return {
+    failed,
+    score,
+    structure,
+  };
+}
+
+function getApproxBarsHeld(holdingMinutes = 0, timeframeMinutes = 5) {
+  const mins = Math.max(0, toNumber(holdingMinutes, 0));
+  const tf = Math.max(1, toNumber(timeframeMinutes, 5));
+  return mins / tf;
+}
+
 function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
   const upperMode = String(mode || "NORMAL").toUpperCase();
 
@@ -686,6 +869,8 @@ async function analyzeEarlyExit({
 
   const baseReversalScore = detectReversalScore(candles, side, normalizedMode);
   const confirmation = detectExitConfirmation(candles, side);
+  const structureFailure = detectStructureFailure(candles, side);
+  const failedContinuation = detectFailedScalpContinuation(candles, side);
 
   const failedPattern = await findFailedPatternRule({
     userId: firebaseUserId || null,
@@ -735,9 +920,12 @@ async function analyzeEarlyExit({
   }
 
   adjustedScore += confirmation.score * 0.8;
+  adjustedScore += structureFailure.score * 0.65;
+  adjustedScore += failedContinuation.score * 0.55;
   adjustedScore = Number(adjustedScore.toFixed(2));
 
   const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
+  const approxBarsHeld = getApproxBarsHeld(holdingMinutes, 5);
 
   if (
     shouldCutWeakScalpTrade({
@@ -755,6 +943,48 @@ async function analyzeEarlyExit({
       riskLevel,
       score: adjustedScore,
     };
+  }
+
+  if (normalizedMode === "SCALP" || normalizedMode === "MICRO_SCALP") {
+    if (
+      profit < 0 &&
+      approxBarsHeld >= profile.scalpMaxHoldingBars &&
+      progress.progressToTarget < profile.scalpMinExpectedProgressToTarget &&
+      failedContinuation.failed
+    ) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: `FAILED_SCALP_CONTINUATION (${approxBarsHeld.toFixed(1)} bars)`,
+        riskLevel,
+        score: adjustedScore,
+      };
+    }
+
+    if (
+      profit <= profile.scalpStructureFailureLoss &&
+      structureFailure.failed &&
+      approxBarsHeld >= Math.max(3, profile.scalpMaxHoldingBars - 1)
+    ) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: `STRUCTURE_FAILURE_SCALP_CUT (${structureFailure.structure.structure})`,
+        riskLevel,
+        score: adjustedScore,
+      };
+    }
+
+    if (
+      profit <= profile.scalpFailedContinuationLoss &&
+      approxBarsHeld >= profile.scalpMaxHoldingBars + 1 &&
+      progress.progressToTarget < profile.scalpMinExpectedProgressToTarget
+    ) {
+      return {
+        action: "CUT_LOSS_NOW",
+        reason: `SCALP_TIMEOUT_BY_BARS (${approxBarsHeld.toFixed(1)} bars)`,
+        riskLevel,
+        score: adjustedScore,
+      };
+    }
   }
 
   if (profit < 0) {
@@ -792,29 +1022,17 @@ async function analyzeEarlyExit({
   if (profit > 0) {
     const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
 
-    // if (
-    //   riskLevel === "CRITICAL" &&
-    //   adjustedScore >= 4.1 &&
-    //   profit >= profile.minProfitForHighRiskExit &&
-    //   progress.progressToTarget >= 0.18 &&
-    //   progress.progressToTarget < 0.52 &&
-    //   holdingMinutes >=
-    //     (normalizedMode === "MICRO_SCALP" ? 8 : normalizedMode === "SCALP" ? 10 : 14) &&
-    //   profitRetractionRatio >= 0.22 &&
-    //   confirmation.level !== "NONE"
-    // ) 
     if (
       riskLevel === "CRITICAL" &&
       adjustedScore >= 4.3 &&
       profit >= profile.minProfitForHighRiskExit &&
       progress.progressToTarget >= 0.24 &&
-      progress.progressToTarget < 0.50 &&
+      progress.progressToTarget < 0.5 &&
       holdingMinutes >=
         (normalizedMode === "MICRO_SCALP" ? 9 : normalizedMode === "SCALP" ? 12 : 16) &&
       profitRetractionRatio >= 0.25 &&
       (confirmation.level === "MEDIUM" || confirmation.level === "STRONG")
-    )
-    {
+    ) {
       return {
         action: "TAKE_SMALL_PROFIT",
         reason: "Critical danger override while profitable",
@@ -924,7 +1142,7 @@ async function analyzeEarlyExit({
 
   return {
     action: "HOLD",
-    reason: `No strong exit signal (score=${adjustedScore}, mode=${normalizedMode}, confirm=${confirmation.level})`,
+    reason: `No strong exit signal (score=${adjustedScore}, mode=${normalizedMode}, confirm=${confirmation.level}, bars=${approxBarsHeld.toFixed(1)})`,
     riskLevel,
     score: adjustedScore,
   };
