@@ -18,7 +18,7 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v4");
+} = require("./brain/decision-engine-v5");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
@@ -87,7 +87,7 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 
-const microScalpEngine = require("./microScalpEngine-v3");
+const microScalpEngine = require("./microScalpEngine-v4");
 
 const { getUserTradingPreferences } = require("./userTradingPreferences.repo");
 const {
@@ -1277,13 +1277,22 @@ function buildMicroFallbackResponse({
   userAdaptiveProfile = null,
 }) {
   const side = String(reqBody.side || "").toUpperCase();
-  const microSignal = String(microResult.signal || "").toUpperCase();
+  const microSignal = String(microResult?.signal || "").toUpperCase();
 
+  if (!microSignal || microSignal === "NONE") {
+    return null;
+  }
+
+  // ให้ fallback รับเฉพาะฝั่งเดียวกับคำขอจาก EA
   if (microSignal !== side) {
     return null;
   }
 
-  const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
+  const score = mapMicroScoreToMainScore(
+    Number(microResult?.confidenceScore || 0),
+    side
+  );
+
   const decision =
     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
 
@@ -1306,9 +1315,11 @@ function buildMicroFallbackResponse({
       firebaseUserId: resolvedUserId,
       mode: "MICRO_SCALP",
       trend:
-        microSignal === "BUY" ? "BULLISH" :
-          microSignal === "SELL" ? "BEARISH" :
-            "NEUTRAL",
+        microSignal === "BUY"
+          ? "BULLISH"
+          : microSignal === "SELL"
+            ? "BEARISH"
+            : "NEUTRAL",
       pattern,
       historicalVolume,
       defensiveFlags: {
@@ -1321,6 +1332,7 @@ function buildMicroFallbackResponse({
       cold_start_profile: coldStartProfile,
       user_adaptive_profile: userAdaptiveProfile,
       totalClosedTrades,
+      micro_result: microResult,
     };
   }
 
@@ -1357,7 +1369,10 @@ function buildMicroFallbackResponse({
     activeCfg,
   });
 
-  if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
+  if (
+    rawLotFloor > 0 &&
+    Number(trade_setup?.recommended_lot || 0) < rawLotFloor
+  ) {
     trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
     if (trade_setup.recommended_lot < 0.01) {
       trade_setup.recommended_lot = 0.01;
@@ -1370,9 +1385,11 @@ function buildMicroFallbackResponse({
     firebaseUserId: resolvedUserId,
     mode: "MICRO_SCALP",
     trend:
-      microSignal === "BUY" ? "BULLISH" :
-        microSignal === "SELL" ? "BEARISH" :
-          "NEUTRAL",
+      microSignal === "BUY"
+        ? "BULLISH"
+        : microSignal === "SELL"
+          ? "BEARISH"
+          : "NEUTRAL",
     pattern,
     historicalVolume,
     defensiveFlags,
@@ -1380,6 +1397,7 @@ function buildMicroFallbackResponse({
     cold_start_profile: coldStartProfile,
     user_adaptive_profile: userAdaptiveProfile,
     totalClosedTrades,
+    micro_result: microResult,
   };
 }
 
@@ -1676,15 +1694,115 @@ app.post("/signal", async (req, res) => {
     }
 
     // ========= FALLBACK TO MICRO SCALP =========
+    // if (!isPrimaryTradeDecision(finalDecision)) {
+    //   const microResult = microScalpEngine.analyzeMicroScalp({
+    //     candles: Array.isArray(candles) ? candles : [],
+    //     spread: Number(spreadPoints || 0),
+    //     openPositions: [],
+    //     config: MICRO_SCALP_CONFIG,
+    //   });
+
+    //   if (microResult.allowOpen) {
+    //     const microUserRecentPerformance = await getRecentClosedTradePerformance({
+    //       firebaseUserId: resolvedUserId,
+    //       accountId,
+    //       symbol,
+    //       mode: "SCALP",
+    //       limit: 18,
+    //     });
+
+    //     const microUserAdaptiveProfile = buildUserAdaptiveProfile({
+    //       recentPerformance: microUserRecentPerformance,
+    //       mode: "MICRO_SCALP",
+    //     });
+
+    //     const microResponse = buildMicroFallbackResponse({
+    //       microResult,
+    //       reqBody: req.body,
+    //       resolvedUserId,
+    //       pattern,
+    //       historicalVolume,
+    //       activeCfg,
+    //       tradingPreferences,
+    //       totalClosedTrades,
+    //       userAdaptiveProfile: microUserAdaptiveProfile,
+    //     });
+
+    //     if (microResponse) {
+    //       if (microResponse.decision === "NO_TRADE") {
+    //         return res.json(microResponse);
+    //       }
+
+    //       const microDirectionResult = enforceDirectionBiasOnDecision(
+    //         microResponse.decision,
+    //         tradingPreferences
+    //       );
+
+    //       if (microDirectionResult.blocked) {
+    //         return res.json(
+    //           buildBlockedSignalResponse({
+    //             reason: microDirectionResult.reason,
+    //             score: microResponse.score || 0,
+    //             firebaseUserId: resolvedUserId,
+    //             mode: microResponse.mode || "MICRO_SCALP",
+    //             trend: microResponse.trend || "NEUTRAL",
+    //             pattern: microResponse.pattern || null,
+    //             historicalVolume: microResponse.historicalVolume || null,
+    //             defensiveFlags: microResponse.defensiveFlags || null,
+    //             trade_setup: null,
+    //             currentOpenPositionsCount: 0,
+    //           })
+    //         );
+    //       }
+
+    //       const currentOpenPositionsCount =
+    //         await countOpenPositionsByUserAccountAndSymbol({
+    //           firebaseUserId: resolvedUserId,
+    //           accountId,
+    //           symbol,
+    //         });
+
+    //       if (
+    //         isMaxOpenPositionsReached(
+    //           currentOpenPositionsCount,
+    //           tradingPreferences.max_open_positions
+    //         )
+    //       ) {
+    //         return res.json(
+    //           buildBlockedSignalResponse({
+    //             reason: "MAX_OPEN_POSITIONS_REACHED",
+    //             score: microResponse.score || 0,
+    //             firebaseUserId: resolvedUserId,
+    //             mode: microResponse.mode || "MICRO_SCALP",
+    //             trend: microResponse.trend || "NEUTRAL",
+    //             pattern: microResponse.pattern || null,
+    //             historicalVolume: microResponse.historicalVolume || null,
+    //             defensiveFlags: microResponse.defensiveFlags || null,
+    //             trade_setup: null,
+    //             currentOpenPositionsCount,
+    //           })
+    //         );
+    //       }
+    //       console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
+
+    //       return res.json(microResponse);
+    //     }
+    //   }
+    // }
+    // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.analyzeMicroScalp({
+        symbol,
         candles: Array.isArray(candles) ? candles : [],
-        spread: Number(spreadPoints || 0),
-        openPositions: [],
+        candlesH1: Array.isArray(candles_h1) ? candles_h1 : [],
+        candlesH4: Array.isArray(candles_h4) ? candles_h4 : [],
+        spreadPoints: Number(spreadPoints || 0),
         config: MICRO_SCALP_CONFIG,
       });
 
-      if (microResult.allowOpen) {
+      const microSignal = String(microResult?.signal || "").toUpperCase();
+
+      if (microSignal && microSignal !== "NONE") {
         const microUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
           accountId,
@@ -1765,10 +1883,35 @@ app.post("/signal", async (req, res) => {
               })
             );
           }
-          console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
+
+          console.log(
+            `[MICRO_SCALP FALLBACK] symbol=${symbol} requestSide=${String(req.body.side || "").toUpperCase()} microSignal=${microSignal} score=${microResponse.score} decision=${microResponse.decision}`
+          );
 
           return res.json(microResponse);
         }
+
+        // ถ้า micro engine มีสัญญาณ แต่ไม่ตรง side ที่ request มา
+        // ให้บล็อกไปเลย จะได้ไม่เกิด sell ใส่ก้อน buy / buy ใส่ก้อน sell จาก fallback
+        return res.json(
+          buildBlockedSignalResponse({
+            reason: "MICRO_SCALP_SIDE_MISMATCH_OR_BLOCKED",
+            score: 0,
+            firebaseUserId: resolvedUserId,
+            mode: "MICRO_SCALP",
+            trend: "NEUTRAL",
+            pattern,
+            historicalVolume,
+            defensiveFlags: {
+              warningMatched: false,
+              lotMultiplier: 1,
+              tpMultiplier: 1,
+              reason: microResult?.reason || "MICRO_SCALP_BLOCKED",
+            },
+            trade_setup: null,
+            currentOpenPositionsCount: 0,
+          })
+        );
       }
     }
 
