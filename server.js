@@ -518,6 +518,41 @@ function getAdaptiveMinRequiredScore({
   return Number(required.toFixed(2));
 }
 
+function computeDynamicLotFromBalance(balance = 0) {
+  const safeBalance = Number(balance || 0);
+
+  if (!Number.isFinite(safeBalance) || safeBalance <= 0) {
+    return 0.01;
+  }
+
+  // สูตร dynamic lot พื้นฐานของระบบ
+  // Balance 1,000 = 0.01 lot
+  // Balance 2,000 = 0.02 lot
+  // Balance 10,000 = 0.10 lot
+  const dynamicLot = Number(((safeBalance / 1000) * 0.01).toFixed(2));
+
+  if (!Number.isFinite(dynamicLot) || dynamicLot <= 0) {
+    return 0.01;
+  }
+
+  return Math.max(0.01, dynamicLot);
+}
+
+function resolveBaseLot({
+  configuredLot = 0,
+  balance = 0,
+}) {
+  const safeConfiguredLot = Number(configuredLot || 0);
+
+  // ถ้าผู้ใช้ตั้ง lot > 0 ให้ใช้ค่าที่ตั้ง
+  if (Number.isFinite(safeConfiguredLot) && safeConfiguredLot > 0) {
+    return Math.max(0.01, Number(safeConfiguredLot.toFixed(2)));
+  }
+
+  // ถ้าตั้งเป็น 0.00 หรือไม่มีค่า ให้ใช้ dynamic lot ของระบบ
+  return computeDynamicLotFromBalance(balance);
+}
+
 function applyUserAdaptiveProfileToTradeSetup({
   tradeSetup,
   userAdaptiveProfile,
@@ -530,17 +565,21 @@ function applyUserAdaptiveProfileToTradeSetup({
   let slPoints = Math.round(
     Number(tradeSetup.sl_points || 0) * Number(userAdaptiveProfile.slMultiplier || 1)
   );
+
   let tpPoints = Math.round(
     Number(tradeSetup.tp_points || 0) * Number(userAdaptiveProfile.tpMultiplier || 1)
   );
+
   let retracePoints = Math.round(
     Number(tradeSetup.retrace_points || 0) *
     Number(userAdaptiveProfile.retraceMultiplier || 1)
   );
 
+  const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
+
   let recommendedLot = Number(
     (
-      Number(tradeSetup.recommended_lot || 0.01) *
+      (Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0 ? baseRecommendedLot : 0.01) *
       Number(userAdaptiveProfile.lotMultiplier || 1)
     ).toFixed(2)
   );
@@ -558,7 +597,9 @@ function applyUserAdaptiveProfileToTradeSetup({
   }
 
   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
-    recommendedLot = 0.01;
+    recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+      ? Number(baseRecommendedLot.toFixed(2))
+      : 0.01;
   }
 
   if (recommendedLot < 0.01) recommendedLot = 0.01;
@@ -856,17 +897,21 @@ function applyColdStartProfileToTradeSetup({
   let slPoints = Math.round(
     Number(tradeSetup.sl_points || 0) * Number(coldStartProfile.slMultiplier || 1)
   );
+
   let tpPoints = Math.round(
     Number(tradeSetup.tp_points || 0) * Number(coldStartProfile.tpMultiplier || 1)
   );
+
   let retracePoints = Math.round(
     Number(tradeSetup.retrace_points || 0) *
     Number(coldStartProfile.retraceMultiplier || 1)
   );
 
+  const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
+
   let recommendedLot = Number(
     (
-      Number(tradeSetup.recommended_lot || 0.01) *
+      (Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0 ? baseRecommendedLot : 0.01) *
       Number(coldStartProfile.lotMultiplier || 1)
     ).toFixed(2)
   );
@@ -884,7 +929,9 @@ function applyColdStartProfileToTradeSetup({
   }
 
   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
-    recommendedLot = 0.01;
+    recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+      ? Number(baseRecommendedLot.toFixed(2))
+      : 0.01;
   }
 
   if (recommendedLot < 0.01) recommendedLot = 0.01;
@@ -913,9 +960,14 @@ function buildTradeSetupFromPattern({
 }) {
   let slPoints = 500;
   let tpPoints = 800;
-  let lotSize = 0.01;
+  // let lotSize = 0.01;
   let retracePoints = 0;
   let signalStrength = 0;
+
+  let lotSize = resolveBaseLot({
+    configuredLot: userMinLotFloor,
+    balance,
+  });
 
   if (side === "BUY") signalStrength = Number(score || 0);
   else if (side === "SELL") signalStrength = Math.abs(Number(score || 0));
@@ -1035,6 +1087,25 @@ function buildTradeSetupFromPattern({
 
   if (slPoints > Number(activeCfg?.maxSL || slPoints)) slPoints = Number(activeCfg.maxSL || slPoints);
   if (tpPoints > Number(activeCfg?.maxTP || tpPoints)) tpPoints = Number(activeCfg.maxTP || tpPoints);
+
+  // -----------------------------
+  // 4) Lot size
+  // - ถ้าผู้ใช้ตั้ง lot > 0 ใช้ค่าที่ตั้ง
+  // - ถ้าตั้ง 0.00 หรือไม่มีค่า ใช้ dynamic lot ของระบบ
+  // -----------------------------
+  const resolvedBaseLot = resolveBaseLot({
+    configuredLot: userMinLotFloor,
+    balance,
+  });
+
+  lotSize = resolvedBaseLot;
+
+  // เผื่อกรณีมีการคำนวณเพี้ยนจาก flow อื่น
+  if (!Number.isFinite(lotSize) || lotSize <= 0) {
+    lotSize = computeDynamicLotFromBalance(balance);
+  }
+
+  lotSize = Math.max(0.01, Number(lotSize.toFixed(2)));
 
   // -----------------------------
   // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
