@@ -18,7 +18,7 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v3");
+} = require("./brain/decision-engine-v4");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
@@ -61,7 +61,7 @@ const {
   initSseHeaders
 } = require("./accountSnapshot.stream");
 
-const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
+// const { syncActivePositionsToFirebase } = require("./firebaseActivePositions.service");
 
 const {
   insertEmergencyCommand,
@@ -87,7 +87,7 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 
-const microScalpEngine = require("./microScalpEngine-v2");
+const microScalpEngine = require("./microScalpEngine-v3");
 
 const { getUserTradingPreferences } = require("./userTradingPreferences.repo");
 const {
