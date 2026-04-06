@@ -28997,5 +28997,53 @@
     "mode": "SCALP",
     "ticket_id": 2633918868,
     "logged_at": "2026-04-05T22:20:41.031Z"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "accountId": "415438329",
+    "ticketId": 0,
+    "side": "BUY",
+    "lot": 0.02,
+    "price": 4654.979,
+    "sl": 10300,
+    "tp": 12500,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticket_id": 0,
+    "logged_at": "2026-04-06T07:40:01.707Z"
+  },
+  {
+    "type": "CANCEL_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "accountId": "415438329",
+    "ticketId": 0,
+    "side": "BUY",
+    "lot": 0.02,
+    "price": 4654.979,
+    "sl": 10300,
+    "tp": 12500,
+    "profit": 0,
+    "mode": "NORMAL",
+    "ticket_id": 0,
+    "logged_at": "2026-04-06T07:45:01.469Z"
+  },
+  {
+    "type": "WAIT_ORDER",
+    "symbol": "XAUUSDm",
+    "firebaseUserId": "z1stn2ouHQgp6SWTUrEXF15HOfR2",
+    "accountId": "415438329",
+    "ticketId": 0,
+    "side": "BUY",
+    "lot": 0.02,
+    "price": 4662.534,
+    "sl": 7580,
+    "tp": 8000,
+    "profit": 0,
+    "mode": "SCALP",
+    "ticket_id": 0,
+    "logged_at": "2026-04-06T07:45:02.190Z"
   }
 ]

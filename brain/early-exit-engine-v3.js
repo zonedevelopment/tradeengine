@@ -79,48 +79,113 @@ function normalizeMode(mode = "NORMAL") {
   return "NORMAL";
 }
 
+// function getExitProfile(mode = "NORMAL") {
+//   const normalized = normalizeMode(mode);
+
+//   if (normalized === "MICRO_SCALP") {
+//     return {
+//       minProfitToProtect: 0.10,
+//       minProfitForHighRiskExit: 0.28,
+//       minProfitForStrongReversalExit: 0.34,
+//       moveToBeMinR: 0.62,
+//       moveToBeMinProgressToTarget: 0.38,
+//       strongReversalThresholdProfit: 4.7,
+//       hardCutLossReversalThreshold: 4.3,
+//       mediumBounceThreshold: 2.9,
+//       scalpTimeoutLowVolumeMinutes: 15,
+//       scalpTimeoutNoProgressMinutes: 17,
+//       smallProfitMaxProgressToTarget: 0.24,
+//       smallProfitMinPullbackFromPeak: 0.34,
+//       scalpMaxHoldingBars: 4,
+//       scalpMinExpectedProgressToTarget: 0.30,
+//       scalpStructureFailureLoss: -0.22,
+//       scalpFailedContinuationLoss: -0.18,
+//     };
+//   }
+
+//   if (normalized === "SCALP") {
+//     return {
+//       minProfitToProtect: 0.35,
+//       minProfitForHighRiskExit: 0.75,
+//       minProfitForStrongReversalExit: 0.95,
+//       moveToBeMinR: 0.82,
+//       moveToBeMinProgressToTarget: 0.42,
+//       strongReversalThresholdProfit: 5.0,
+//       hardCutLossReversalThreshold: 4.6,
+//       mediumBounceThreshold: 3.2,
+//       scalpTimeoutLowVolumeMinutes: 18,
+//       scalpTimeoutNoProgressMinutes: 21,
+//       smallProfitMaxProgressToTarget: 0.26,
+//       smallProfitMinPullbackFromPeak: 0.32,
+//       scalpMaxHoldingBars: 5,
+//       scalpMinExpectedProgressToTarget: 0.35,
+//       scalpStructureFailureLoss: -0.35,
+//       scalpFailedContinuationLoss: -0.25,
+//     };
+//   }
+
+//   return {
+//     minProfitToProtect: 0.75,
+//     minProfitForHighRiskExit: 1.35,
+//     minProfitForStrongReversalExit: 1.65,
+//     moveToBeMinR: 1.0,
+//     moveToBeMinProgressToTarget: 0.48,
+//     strongReversalThresholdProfit: 5.3,
+//     hardCutLossReversalThreshold: 4.9,
+//     mediumBounceThreshold: 3.4,
+//     scalpTimeoutLowVolumeMinutes: 30,
+//     scalpTimeoutNoProgressMinutes: 34,
+//     smallProfitMaxProgressToTarget: 0.22,
+//     smallProfitMinPullbackFromPeak: 0.36,
+//     scalpMaxHoldingBars: 8,
+//     scalpMinExpectedProgressToTarget: 0.42,
+//     scalpStructureFailureLoss: -0.55,
+//     scalpFailedContinuationLoss: -0.45,
+//   };
+// }
+
 function getExitProfile(mode = "NORMAL") {
   const normalized = normalizeMode(mode);
 
   if (normalized === "MICRO_SCALP") {
     return {
-      minProfitToProtect: 0.10,
-      minProfitForHighRiskExit: 0.28,
-      minProfitForStrongReversalExit: 0.34,
-      moveToBeMinR: 0.62,
-      moveToBeMinProgressToTarget: 0.38,
-      strongReversalThresholdProfit: 4.7,
-      hardCutLossReversalThreshold: 4.3,
-      mediumBounceThreshold: 2.9,
-      scalpTimeoutLowVolumeMinutes: 15,
-      scalpTimeoutNoProgressMinutes: 17,
-      smallProfitMaxProgressToTarget: 0.24,
-      smallProfitMinPullbackFromPeak: 0.34,
-      scalpMaxHoldingBars: 4,
-      scalpMinExpectedProgressToTarget: 0.30,
-      scalpStructureFailureLoss: -0.22,
-      scalpFailedContinuationLoss: -0.18,
+      minProfitToProtect: 0.08,
+      minProfitForHighRiskExit: 0.20,
+      minProfitForStrongReversalExit: 0.26,
+      moveToBeMinR: 0.42,
+      moveToBeMinProgressToTarget: 0.24,
+      strongReversalThresholdProfit: 3.6,
+      hardCutLossReversalThreshold: 3.2,
+      mediumBounceThreshold: 2.2,
+      scalpTimeoutLowVolumeMinutes: 7,
+      scalpTimeoutNoProgressMinutes: 9,
+      smallProfitMaxProgressToTarget: 0.52,
+      smallProfitMinPullbackFromPeak: 0.22,
+      scalpMaxHoldingBars: 2,
+      scalpMinExpectedProgressToTarget: 0.18,
+      scalpStructureFailureLoss: -0.12,
+      scalpFailedContinuationLoss: -0.10,
     };
   }
 
   if (normalized === "SCALP") {
     return {
-      minProfitToProtect: 0.35,
-      minProfitForHighRiskExit: 0.75,
-      minProfitForStrongReversalExit: 0.95,
-      moveToBeMinR: 0.82,
-      moveToBeMinProgressToTarget: 0.42,
-      strongReversalThresholdProfit: 5.0,
-      hardCutLossReversalThreshold: 4.6,
-      mediumBounceThreshold: 3.2,
-      scalpTimeoutLowVolumeMinutes: 18,
-      scalpTimeoutNoProgressMinutes: 21,
-      smallProfitMaxProgressToTarget: 0.26,
-      smallProfitMinPullbackFromPeak: 0.32,
-      scalpMaxHoldingBars: 5,
-      scalpMinExpectedProgressToTarget: 0.35,
-      scalpStructureFailureLoss: -0.35,
-      scalpFailedContinuationLoss: -0.25,
+      minProfitToProtect: 0.18,
+      minProfitForHighRiskExit: 0.42,
+      minProfitForStrongReversalExit: 0.56,
+      moveToBeMinR: 0.56,
+      moveToBeMinProgressToTarget: 0.28,
+      strongReversalThresholdProfit: 3.9,
+      hardCutLossReversalThreshold: 3.5,
+      mediumBounceThreshold: 2.5,
+      scalpTimeoutLowVolumeMinutes: 10,
+      scalpTimeoutNoProgressMinutes: 12,
+      smallProfitMaxProgressToTarget: 0.58,
+      smallProfitMinPullbackFromPeak: 0.20,
+      scalpMaxHoldingBars: 3,
+      scalpMinExpectedProgressToTarget: 0.22,
+      scalpStructureFailureLoss: -0.18,
+      scalpFailedContinuationLoss: -0.14,
     };
   }
 
@@ -147,32 +212,32 @@ function getExitProfile(mode = "NORMAL") {
 function getProgressToTarget(openPosition, currentProfit, tpPoints = 0, slPoints = 0) {
   const entryPrice = toNumber(
     openPosition.entryPrice ??
-      openPosition.entry ??
-      openPosition.openPrice ??
-      openPosition.price ??
-      0
+    openPosition.entry ??
+    openPosition.openPrice ??
+    openPosition.price ??
+    0
   );
 
   const currentPrice = toNumber(
     openPosition.currentPrice ??
-      openPosition.current_price ??
-      openPosition.marketPrice ??
-      openPosition.lastPrice ??
-      0
+    openPosition.current_price ??
+    openPosition.marketPrice ??
+    openPosition.lastPrice ??
+    0
   );
 
   const stopLossPrice = toNumber(
     openPosition.sl ??
-      openPosition.stopLoss ??
-      openPosition.stop_loss ??
-      0
+    openPosition.stopLoss ??
+    openPosition.stop_loss ??
+    0
   );
 
   const takeProfitPrice = toNumber(
     openPosition.tp ??
-      openPosition.takeProfit ??
-      openPosition.take_profit ??
-      0
+    openPosition.takeProfit ??
+    openPosition.take_profit ??
+    0
   );
 
   const side = String(openPosition.side || "").toUpperCase();
@@ -623,6 +688,55 @@ function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
   return upperMode === "MICRO_SCALP" ? 14 : upperMode === "SCALP" ? 18 : 32;
 }
 
+// function shouldExitScalpTimeout({
+//   mode = "NORMAL",
+//   currentProfit = 0,
+//   holdingMinutes = 0,
+//   historicalVolumeSignal = null,
+//   openPosition = {},
+//   tpPoints = 0,
+//   slPoints = 0,
+//   candles = [],
+//   side = "",
+// }) {
+//   const normalizedMode = String(mode || "NORMAL").toUpperCase();
+//   if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return null;
+
+//   const profit = toNumber(currentProfit, 0);
+//   const mins = toNumber(holdingMinutes, 0);
+//   const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
+//   const profile = getExitProfile(normalizedMode);
+//   const confirmation = detectExitConfirmation(candles, side);
+//   const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
+
+//   if (
+//     String(historicalVolumeSignal || "").toUpperCase() === "LOW_VOLUME" &&
+//     mins >= profile.scalpTimeoutLowVolumeMinutes &&
+//     profit > 0 &&
+//     progress.progressToTarget < profile.smallProfitMaxProgressToTarget &&
+//     profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak &&
+//     confirmation.level !== "NONE"
+//   ) {
+//     return {
+//       action: "TAKE_SMALL_PROFIT",
+//       reason: "SCALP_TIMEOUT_LOW_VOLUME_CONFIRMED",
+//     };
+//   }
+
+//   if (
+//     mins >= profile.scalpTimeoutNoProgressMinutes &&
+//     profit < 0 &&
+//     progress.progressToTarget < 0.18 &&
+//     confirmation.level === "STRONG"
+//   ) {
+//     return {
+//       action: "CUT_LOSS_NOW",
+//       reason: "SCALP_TIMEOUT_NO_PROGRESS_CONFIRMED",
+//     };
+//   }
+
+//   return null;
+// }
 function shouldExitScalpTimeout({
   mode = "NORMAL",
   currentProfit = 0,
@@ -649,30 +763,72 @@ function shouldExitScalpTimeout({
     mins >= profile.scalpTimeoutLowVolumeMinutes &&
     profit > 0 &&
     progress.progressToTarget < profile.smallProfitMaxProgressToTarget &&
-    profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak &&
+    (
+      profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak ||
+      confirmation.level === "STRONG"
+    )
+  ) {
+    return {
+      action: "TAKE_SMALL_PROFIT",
+      reason: "SCALP_TIMEOUT_LOW_VOLUME_FAST",
+    };
+  }
+
+  if (
+    mins >= profile.scalpTimeoutNoProgressMinutes &&
+    profit > 0 &&
+    progress.progressToTarget < 0.35 &&
     confirmation.level !== "NONE"
   ) {
     return {
       action: "TAKE_SMALL_PROFIT",
-      reason: "SCALP_TIMEOUT_LOW_VOLUME_CONFIRMED",
+      reason: "SCALP_TIMEOUT_STALLED_PROFIT",
     };
   }
 
   if (
     mins >= profile.scalpTimeoutNoProgressMinutes &&
     profit < 0 &&
-    progress.progressToTarget < 0.18 &&
-    confirmation.level === "STRONG"
+    progress.progressToTarget < 0.22 &&
+    confirmation.level !== "NONE"
   ) {
     return {
       action: "CUT_LOSS_NOW",
-      reason: "SCALP_TIMEOUT_NO_PROGRESS_CONFIRMED",
+      reason: "SCALP_TIMEOUT_NO_PROGRESS_FAST",
     };
   }
 
   return null;
 }
 
+// function shouldCutWeakScalpTrade({
+//   mode = "NORMAL",
+//   currentProfit = 0,
+//   holdingMinutes = 0,
+//   reversalScore = 0,
+//   candles = [],
+//   side = "",
+// }) {
+//   const normalizedMode = String(mode || "NORMAL").toUpperCase();
+//   if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
+
+//   const profit = toNumber(currentProfit, 0);
+//   if (profit > -0.25) return false;
+//   if (toNumber(holdingMinutes, 0) < 8) return false;
+
+//   const last = candles[candles.length - 1] || {};
+//   const prev = candles[candles.length - 2] || {};
+//   const lastBody = candleBody(last);
+//   const prevBody = candleBody(prev);
+//   const avgB = avgBody(candles, 5) || 1;
+//   const confirmation = detectExitConfirmation(candles, side);
+
+//   const weakMomentum =
+//     lastBody < avgB * 0.75 &&
+//     prevBody < avgB * 0.9;
+
+//   return weakMomentum && reversalScore >= 1.6 && confirmation.level === "STRONG";
+// }
 function shouldCutWeakScalpTrade({
   mode = "NORMAL",
   currentProfit = 0,
@@ -685,8 +841,15 @@ function shouldCutWeakScalpTrade({
   if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
 
   const profit = toNumber(currentProfit, 0);
-  if (profit > -0.25) return false;
-  if (toNumber(holdingMinutes, 0) < 8) return false;
+  const mins = toNumber(holdingMinutes, 0);
+
+  if (normalizedMode === "MICRO_SCALP") {
+    if (profit > -0.12) return false;
+    if (mins < 4) return false;
+  } else {
+    if (profit > -0.18) return false;
+    if (mins < 5) return false;
+  }
 
   const last = candles[candles.length - 1] || {};
   const prev = candles[candles.length - 2] || {};
@@ -696,10 +859,10 @@ function shouldCutWeakScalpTrade({
   const confirmation = detectExitConfirmation(candles, side);
 
   const weakMomentum =
-    lastBody < avgB * 0.75 &&
-    prevBody < avgB * 0.9;
+    lastBody < avgB * 0.85 &&
+    prevBody < avgB * 0.95;
 
-  return weakMomentum && reversalScore >= 1.6 && confirmation.level === "STRONG";
+  return weakMomentum && reversalScore >= 1.2 && confirmation.level !== "NONE";
 }
 
 function shouldTakeProfitOnLowVolume({
@@ -1029,7 +1192,7 @@ async function analyzeEarlyExit({
       progress.progressToTarget >= 0.24 &&
       progress.progressToTarget < 0.5 &&
       holdingMinutes >=
-        (normalizedMode === "MICRO_SCALP" ? 9 : normalizedMode === "SCALP" ? 12 : 16) &&
+      (normalizedMode === "MICRO_SCALP" ? 9 : normalizedMode === "SCALP" ? 12 : 16) &&
       profitRetractionRatio >= 0.25 &&
       (confirmation.level === "MEDIUM" || confirmation.level === "STRONG")
     ) {

@@ -431,13 +431,22 @@ function calculateSignalScores({ candles = [], spreadPoints = 0, trendContext = 
     };
 }
 
+// function getDefaultScalpConfig() {
+//     return {
+//         minScore: 45,
+//         minScoreGap: 8,
+//         maxHoldBars: 2,
+//         maxLossUsd: 8,
+//         minProfitToClose: 2,
+//     };
+// }
 function getDefaultScalpConfig() {
     return {
-        minScore: 45,
-        minScoreGap: 8,
-        maxHoldBars: 2,
-        maxLossUsd: 8,
-        minProfitToClose: 2,
+        minScore: 47,
+        minScoreGap: 9,
+        maxHoldBars: 1,
+        maxLossUsd: 6,
+        minProfitToClose: 1.2,
     };
 }
 

@@ -101,26 +101,22 @@ const {
 
 const MICRO_SCALP_CONFIG = {
   enabled: true,
-  minScore: 45,
-  minScoreGap: 8,
-  maxSpread: 20,
-
+  minScore: 47,
+  minScoreGap: 9,
+  maxSpread: 18,
   onePositionOnly: true,
-  maxHoldBars: 2,
-  maxLossUsd: 8,
-  minProfitToClose: 2,
-
+  maxHoldBars: 1,
+  maxLossUsd: 6,
+  minProfitToClose: 1.2,
   trendWeight: 1,
   momentumWeight: 1,
   entryWeight: 1,
   volumeWeight: 1,
   penaltyWeight: 1,
-
   extremeBodyMultiplier: 2.5,
-  momentumBodyMultiplier: 1.2,
-
+  momentumBodyMultiplier: 1.15,
   useVolume: true,
-  minVolumeRatio: 1.05,
+  minVolumeRatio: 1.03,
 };
 
 const symbolConfig = {
@@ -134,14 +130,26 @@ const symbolConfig = {
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "XAUUSD": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
-    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+
+    "XAUUSDm": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
+    "XAUUSDM": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
+
     "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
     "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 250, maxSL: 800, minTP: 220, maxTP: 900 }
   }
+  // SCALP: {
+  //   "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+  //   "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+  //   "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+  //   "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+  //   "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+  //   "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+  //   "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+  // }
 };
 
 const app = express();
@@ -965,14 +973,48 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  if (signalStrength < 3.0) {
-    tpPoints = Math.round(tpPoints * 0.6);
-    slPoints = Math.round(slPoints * 0.85);
-  } else if (signalStrength < 5.5) {
-    tpPoints = Math.round(tpPoints * 0.9);
-    slPoints = Math.round(slPoints * 0.95);
-  } else if (signalStrength >= 6.0) {
-    tpPoints = Math.round(tpPoints * 1.15);
+  // if (signalStrength < 3.0) {
+  //   tpPoints = Math.round(tpPoints * 0.6);
+  //   slPoints = Math.round(slPoints * 0.85);
+  // } else if (signalStrength < 5.5) {
+  //   tpPoints = Math.round(tpPoints * 0.9);
+  //   slPoints = Math.round(slPoints * 0.95);
+  // } else if (signalStrength >= 6.0) {
+  //   tpPoints = Math.round(tpPoints * 1.15);
+  // }
+  // -----------------------------
+  // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
+  // -----------------------------
+  const normalizedModeForSetup = String(mode || "NORMAL").toUpperCase();
+  const isScalpModeForSetup =
+    normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
+
+  if (isScalpModeForSetup) {
+    if (signalStrength < 3.0) {
+      tpPoints = Math.round(tpPoints * 0.52);
+      slPoints = Math.round(slPoints * 0.82);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.72);
+      slPoints = Math.round(slPoints * 0.90);
+    } else if (signalStrength >= 6.0) {
+      tpPoints = Math.round(tpPoints * 0.88); // เดิมขยาย TP, ตอนนี้กดให้สั้นลง
+      slPoints = Math.round(slPoints * 0.96);
+    }
+
+    // ให้ scalp มี RR แบบเก็บไว ไม่ใช่ถือยาว
+    if (tpPoints > Math.round(slPoints * 0.90)) {
+      tpPoints = Math.round(slPoints * 0.90);
+    }
+  } else {
+    if (signalStrength < 3.0) {
+      tpPoints = Math.round(tpPoints * 0.6);
+      slPoints = Math.round(slPoints * 0.85);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.9);
+      slPoints = Math.round(slPoints * 0.95);
+    } else if (signalStrength >= 6.0) {
+      tpPoints = Math.round(tpPoints * 1.15);
+    }
   }
 
   // Defensive flags ควรมีผลกับ TP ก่อนคำนวณ lot
@@ -1217,7 +1259,7 @@ function buildMicroFallbackResponse({
     tpMultiplier: 1,
     reason: "MICRO_SCALP_FALLBACK",
   };
-  
+
   const rawLotFloor = Number(
     tradingPreferences?.base_log_size ??
     tradingPreferences?.base_lot_size ??
@@ -1572,15 +1614,6 @@ app.post("/signal", async (req, res) => {
       });
 
       if (microResult.allowOpen) {
-        // const microResponse = buildMicroFallbackResponse({
-        //   microResult,
-        //   reqBody: req.body,
-        //   resolvedUserId,
-        //   pattern,
-        //   historicalVolume,
-        //   activeCfg,
-        //   tradingPreferences
-        // });
         const microUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
           accountId,
