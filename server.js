@@ -985,7 +985,7 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  const normalizedModeForSetup = String(mode || "NORMAL").toUpperCase();
+  const normalizedModeForSetup = String(detectedMode || "NORMAL").toUpperCase();
   const isScalpModeForSetup =
     normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
 
