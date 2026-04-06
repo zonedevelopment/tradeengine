@@ -18,7 +18,7 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v4");
+} = require("./brain/decision-engine-v3");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
@@ -87,7 +87,7 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 
-const microScalpEngine = require("./microScalpEngine-v3");
+const microScalpEngine = require("./microScalpEngine-v2");
 
 const { getUserTradingPreferences } = require("./userTradingPreferences.repo");
 const {
@@ -1544,29 +1544,29 @@ app.post("/signal", async (req, res) => {
       console.error("Error saving candle training data to MongoDB:", e);
     }
 
-    // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
-    // console.log(`Price: ${price}`);
-    // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
-    // if (pattern.structure) {
-    //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
-    //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
-    //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
-    // }
-    // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
-    // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
-    // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
-    // console.log(`--------------------------------------\n`);
+    console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
+    console.log(`Price: ${price}`);
+    console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
+    if (pattern.structure) {
+      console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
+      console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
+      console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
+    }
+    console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
+    console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
+    console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
+    console.log(`--------------------------------------\n`);
 
-    // console.log("[DECISION_BREAKDOWN]", {
-    //   symbol,
-    //   mode: evaluateResult.mode,
-    //   trend: evaluateResult.trend,
-    //   score: evaluateResult.score,
-    //   adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
-    //   historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
-    //   thresholdContext: evaluateResult.thresholdContext,
-    //   finalDecision
-    // });
+    console.log("[DECISION_BREAKDOWN]", {
+      symbol,
+      mode: evaluateResult.mode,
+      trend: evaluateResult.trend,
+      score: evaluateResult.score,
+      adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+      historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+      thresholdContext: evaluateResult.thresholdContext,
+      finalDecision
+    });
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
