@@ -1139,61 +1139,6 @@ function buildTradeSetupFromPattern({
   // };
 }
 
-// function buildMicroFallbackResponse({
-//   microResult,
-//   reqBody,
-//   resolvedUserId,
-//   pattern,
-//   historicalVolume,
-//   activeCfg,
-//   tradingPreferences
-// }) {
-//   const side = String(reqBody.side || "").toUpperCase();
-//   const microSignal = String(microResult.signal || "").toUpperCase();
-
-//   if (microSignal !== side) {
-//     return null;
-//   }
-
-//   const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
-//   const decision =
-//     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
-
-//   const defensiveFlags = {
-//     warningMatched: false,
-//     lotMultiplier: 1,
-//     tpMultiplier: 1,
-//     reason: "MICRO_SCALP_FALLBACK",
-//   };
-
-//   const trade_setup = buildTradeSetupFromPattern({
-//     side,
-//     price: Number(reqBody.price || 0),
-//     pattern,
-//     candles: Array.isArray(reqBody.candles) ? reqBody.candles : [],
-//     balance: Number(reqBody.balance || 0),
-//     spreadPoints: Number(reqBody.spreadPoints || 0),
-//     activeCfg,
-//     score,
-//     defensiveFlags,
-//     userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0)
-//   });
-
-//   return {
-//     decision,
-//     score,
-//     firebaseUserId: resolvedUserId,
-//     mode: "MICRO_SCALP",
-//     trend:
-//       microSignal === "BUY" ? "BULLISH" :
-//         microSignal === "SELL" ? "BEARISH" :
-//           "NEUTRAL",
-//     pattern,
-//     historicalVolume,
-//     defensiveFlags,
-//     trade_setup,
-//   };
-// }
 function buildMicroFallbackResponse({
   microResult,
   reqBody,
@@ -1201,69 +1146,18 @@ function buildMicroFallbackResponse({
   pattern,
   historicalVolume,
   activeCfg,
-  tradingPreferences,
-  totalClosedTrades = 0,
-  userAdaptiveProfile = null,
+  tradingPreferences
 }) {
   const side = String(reqBody.side || "").toUpperCase();
-  const microSignal = String(microResult?.signal || "").toUpperCase();
+  const microSignal = String(microResult.signal || "").toUpperCase();
 
-  if (!microSignal || microSignal === "NONE") {
-    return null;
-  }
-
-  // ให้ fallback รับเฉพาะฝั่งเดียวกับคำขอจาก EA
   if (microSignal !== side) {
     return null;
   }
 
-  const score = mapMicroScoreToMainScore(
-    Number(microResult?.confidenceScore || 0),
-    side
-  );
-
+  const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
   const decision =
     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
-
-  const coldStartProfile = buildColdStartProfile({
-    closedTradesCount: totalClosedTrades,
-    mode: "MICRO_SCALP",
-  });
-
-  const adaptiveMinScore = getAdaptiveMinRequiredScore({
-    baseScore: 0,
-    coldStartProfile,
-    userAdaptiveProfile,
-  });
-
-  if (Math.abs(Number(score || 0)) < adaptiveMinScore) {
-    return {
-      decision: "NO_TRADE",
-      reason: "MICRO_SCALP_ADAPTIVE_MIN_SCORE",
-      score,
-      firebaseUserId: resolvedUserId,
-      mode: "MICRO_SCALP",
-      trend:
-        microSignal === "BUY"
-          ? "BULLISH"
-          : microSignal === "SELL"
-            ? "BEARISH"
-            : "NEUTRAL",
-      pattern,
-      historicalVolume,
-      defensiveFlags: {
-        warningMatched: false,
-        lotMultiplier: 1,
-        tpMultiplier: 1,
-        reason: "MICRO_SCALP_FALLBACK_ADAPTIVE_BLOCK",
-      },
-      trade_setup: null,
-      cold_start_profile: coldStartProfile,
-      user_adaptive_profile: userAdaptiveProfile,
-      totalClosedTrades,
-      micro_result: microResult,
-    };
-  }
 
   const defensiveFlags = {
     warningMatched: false,
@@ -1272,13 +1166,7 @@ function buildMicroFallbackResponse({
     reason: "MICRO_SCALP_FALLBACK",
   };
 
-  const rawLotFloor = Number(
-    tradingPreferences?.base_log_size ??
-    tradingPreferences?.base_lot_size ??
-    0
-  );
-
-  let trade_setup = buildTradeSetupFromPattern({
+  const trade_setup = buildTradeSetupFromPattern({
     side,
     price: Number(reqBody.price || 0),
     pattern,
@@ -1288,25 +1176,8 @@ function buildMicroFallbackResponse({
     activeCfg,
     score,
     defensiveFlags,
-    userMinLotFloor: rawLotFloor,
-    coldStartProfile,
+    userMaxLotCap: Number(tradingPreferences?.base_lot_size || 0)
   });
-
-  trade_setup = applyUserAdaptiveProfileToTradeSetup({
-    tradeSetup: trade_setup,
-    userAdaptiveProfile,
-    activeCfg,
-  });
-
-  if (
-    rawLotFloor > 0 &&
-    Number(trade_setup?.recommended_lot || 0) < rawLotFloor
-  ) {
-    trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
-    if (trade_setup.recommended_lot < 0.01) {
-      trade_setup.recommended_lot = 0.01;
-    }
-  }
 
   return {
     decision,
@@ -1314,21 +1185,150 @@ function buildMicroFallbackResponse({
     firebaseUserId: resolvedUserId,
     mode: "MICRO_SCALP",
     trend:
-      microSignal === "BUY"
-        ? "BULLISH"
-        : microSignal === "SELL"
-          ? "BEARISH"
-          : "NEUTRAL",
+      microSignal === "BUY" ? "BULLISH" :
+        microSignal === "SELL" ? "BEARISH" :
+          "NEUTRAL",
     pattern,
     historicalVolume,
     defensiveFlags,
     trade_setup,
-    cold_start_profile: coldStartProfile,
-    user_adaptive_profile: userAdaptiveProfile,
-    totalClosedTrades,
-    micro_result: microResult,
   };
 }
+// function buildMicroFallbackResponse({
+//   microResult,
+//   reqBody,
+//   resolvedUserId,
+//   pattern,
+//   historicalVolume,
+//   activeCfg,
+//   tradingPreferences,
+//   totalClosedTrades = 0,
+//   userAdaptiveProfile = null,
+// }) {
+//   const side = String(reqBody.side || "").toUpperCase();
+//   const microSignal = String(microResult?.signal || "").toUpperCase();
+
+//   if (!microSignal || microSignal === "NONE") {
+//     return null;
+//   }
+
+//   // ให้ fallback รับเฉพาะฝั่งเดียวกับคำขอจาก EA
+//   if (microSignal !== side) {
+//     return null;
+//   }
+
+//   const score = mapMicroScoreToMainScore(
+//     Number(microResult?.confidenceScore || 0),
+//     side
+//   );
+
+//   const decision =
+//     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
+
+//   const coldStartProfile = buildColdStartProfile({
+//     closedTradesCount: totalClosedTrades,
+//     mode: "MICRO_SCALP",
+//   });
+
+//   const adaptiveMinScore = getAdaptiveMinRequiredScore({
+//     baseScore: 0,
+//     coldStartProfile,
+//     userAdaptiveProfile,
+//   });
+
+//   if (Math.abs(Number(score || 0)) < adaptiveMinScore) {
+//     return {
+//       decision: "NO_TRADE",
+//       reason: "MICRO_SCALP_ADAPTIVE_MIN_SCORE",
+//       score,
+//       firebaseUserId: resolvedUserId,
+//       mode: "MICRO_SCALP",
+//       trend:
+//         microSignal === "BUY"
+//           ? "BULLISH"
+//           : microSignal === "SELL"
+//             ? "BEARISH"
+//             : "NEUTRAL",
+//       pattern,
+//       historicalVolume,
+//       defensiveFlags: {
+//         warningMatched: false,
+//         lotMultiplier: 1,
+//         tpMultiplier: 1,
+//         reason: "MICRO_SCALP_FALLBACK_ADAPTIVE_BLOCK",
+//       },
+//       trade_setup: null,
+//       cold_start_profile: coldStartProfile,
+//       user_adaptive_profile: userAdaptiveProfile,
+//       totalClosedTrades,
+//       micro_result: microResult,
+//     };
+//   }
+
+//   const defensiveFlags = {
+//     warningMatched: false,
+//     lotMultiplier: 1,
+//     tpMultiplier: 1,
+//     reason: "MICRO_SCALP_FALLBACK",
+//   };
+
+//   const rawLotFloor = Number(
+//     tradingPreferences?.base_log_size ??
+//     tradingPreferences?.base_lot_size ??
+//     0
+//   );
+
+//   let trade_setup = buildTradeSetupFromPattern({
+//     side,
+//     price: Number(reqBody.price || 0),
+//     pattern,
+//     candles: Array.isArray(reqBody.candles) ? reqBody.candles : [],
+//     balance: Number(reqBody.balance || 0),
+//     spreadPoints: Number(reqBody.spreadPoints || 0),
+//     activeCfg,
+//     score,
+//     defensiveFlags,
+//     userMinLotFloor: rawLotFloor,
+//     coldStartProfile,
+//   });
+
+//   trade_setup = applyUserAdaptiveProfileToTradeSetup({
+//     tradeSetup: trade_setup,
+//     userAdaptiveProfile,
+//     activeCfg,
+//   });
+
+//   if (
+//     rawLotFloor > 0 &&
+//     Number(trade_setup?.recommended_lot || 0) < rawLotFloor
+//   ) {
+//     trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
+//     if (trade_setup.recommended_lot < 0.01) {
+//       trade_setup.recommended_lot = 0.01;
+//     }
+//   }
+
+//   return {
+//     decision,
+//     score,
+//     firebaseUserId: resolvedUserId,
+//     mode: "MICRO_SCALP",
+//     trend:
+//       microSignal === "BUY"
+//         ? "BULLISH"
+//         : microSignal === "SELL"
+//           ? "BEARISH"
+//           : "NEUTRAL",
+//     pattern,
+//     historicalVolume,
+//     defensiveFlags,
+//     trade_setup,
+//     cold_start_profile: coldStartProfile,
+//     user_adaptive_profile: userAdaptiveProfile,
+//     totalClosedTrades,
+//     micro_result: microResult,
+//   };
+// }
 
 function buildBlockedSignalResponse({
   reason,
@@ -1623,115 +1623,15 @@ app.post("/signal", async (req, res) => {
     }
 
     // ========= FALLBACK TO MICRO SCALP =========
-    // if (!isPrimaryTradeDecision(finalDecision)) {
-    //   const microResult = microScalpEngine.analyzeMicroScalp({
-    //     candles: Array.isArray(candles) ? candles : [],
-    //     spread: Number(spreadPoints || 0),
-    //     openPositions: [],
-    //     config: MICRO_SCALP_CONFIG,
-    //   });
-
-    //   if (microResult.allowOpen) {
-    //     const microUserRecentPerformance = await getRecentClosedTradePerformance({
-    //       firebaseUserId: resolvedUserId,
-    //       accountId,
-    //       symbol,
-    //       mode: "SCALP",
-    //       limit: 18,
-    //     });
-
-    //     const microUserAdaptiveProfile = buildUserAdaptiveProfile({
-    //       recentPerformance: microUserRecentPerformance,
-    //       mode: "MICRO_SCALP",
-    //     });
-
-    //     const microResponse = buildMicroFallbackResponse({
-    //       microResult,
-    //       reqBody: req.body,
-    //       resolvedUserId,
-    //       pattern,
-    //       historicalVolume,
-    //       activeCfg,
-    //       tradingPreferences,
-    //       totalClosedTrades,
-    //       userAdaptiveProfile: microUserAdaptiveProfile,
-    //     });
-
-    //     if (microResponse) {
-    //       if (microResponse.decision === "NO_TRADE") {
-    //         return res.json(microResponse);
-    //       }
-
-    //       const microDirectionResult = enforceDirectionBiasOnDecision(
-    //         microResponse.decision,
-    //         tradingPreferences
-    //       );
-
-    //       if (microDirectionResult.blocked) {
-    //         return res.json(
-    //           buildBlockedSignalResponse({
-    //             reason: microDirectionResult.reason,
-    //             score: microResponse.score || 0,
-    //             firebaseUserId: resolvedUserId,
-    //             mode: microResponse.mode || "MICRO_SCALP",
-    //             trend: microResponse.trend || "NEUTRAL",
-    //             pattern: microResponse.pattern || null,
-    //             historicalVolume: microResponse.historicalVolume || null,
-    //             defensiveFlags: microResponse.defensiveFlags || null,
-    //             trade_setup: null,
-    //             currentOpenPositionsCount: 0,
-    //           })
-    //         );
-    //       }
-
-    //       const currentOpenPositionsCount =
-    //         await countOpenPositionsByUserAccountAndSymbol({
-    //           firebaseUserId: resolvedUserId,
-    //           accountId,
-    //           symbol,
-    //         });
-
-    //       if (
-    //         isMaxOpenPositionsReached(
-    //           currentOpenPositionsCount,
-    //           tradingPreferences.max_open_positions
-    //         )
-    //       ) {
-    //         return res.json(
-    //           buildBlockedSignalResponse({
-    //             reason: "MAX_OPEN_POSITIONS_REACHED",
-    //             score: microResponse.score || 0,
-    //             firebaseUserId: resolvedUserId,
-    //             mode: microResponse.mode || "MICRO_SCALP",
-    //             trend: microResponse.trend || "NEUTRAL",
-    //             pattern: microResponse.pattern || null,
-    //             historicalVolume: microResponse.historicalVolume || null,
-    //             defensiveFlags: microResponse.defensiveFlags || null,
-    //             trade_setup: null,
-    //             currentOpenPositionsCount,
-    //           })
-    //         );
-    //       }
-    //       console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
-
-    //       return res.json(microResponse);
-    //     }
-    //   }
-    // }
-    // ========= FALLBACK TO MICRO SCALP =========
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.analyzeMicroScalp({
-        symbol,
         candles: Array.isArray(candles) ? candles : [],
-        candlesH1: Array.isArray(candles_h1) ? candles_h1 : [],
-        candlesH4: Array.isArray(candles_h4) ? candles_h4 : [],
-        spreadPoints: Number(spreadPoints || 0),
+        spread: Number(spreadPoints || 0),
+        openPositions: [],
         config: MICRO_SCALP_CONFIG,
       });
 
-      const microSignal = String(microResult?.signal || "").toUpperCase();
-
-      if (microSignal && microSignal !== "NONE") {
+      if (microResult.allowOpen) {
         const microUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
           accountId,
@@ -1812,37 +1712,137 @@ app.post("/signal", async (req, res) => {
               })
             );
           }
-
-          console.log(
-            `[MICRO_SCALP FALLBACK] symbol=${symbol} requestSide=${String(req.body.side || "").toUpperCase()} microSignal=${microSignal} score=${microResponse.score} decision=${microResponse.decision}`
-          );
+          console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
 
           return res.json(microResponse);
         }
-
-        // ถ้า micro engine มีสัญญาณ แต่ไม่ตรง side ที่ request มา
-        // ให้บล็อกไปเลย จะได้ไม่เกิด sell ใส่ก้อน buy / buy ใส่ก้อน sell จาก fallback
-        return res.json(
-          buildBlockedSignalResponse({
-            reason: "MICRO_SCALP_SIDE_MISMATCH_OR_BLOCKED",
-            score: 0,
-            firebaseUserId: resolvedUserId,
-            mode: "MICRO_SCALP",
-            trend: "NEUTRAL",
-            pattern,
-            historicalVolume,
-            defensiveFlags: {
-              warningMatched: false,
-              lotMultiplier: 1,
-              tpMultiplier: 1,
-              reason: microResult?.reason || "MICRO_SCALP_BLOCKED",
-            },
-            trade_setup: null,
-            currentOpenPositionsCount: 0,
-          })
-        );
       }
     }
+    // ========= FALLBACK TO MICRO SCALP =========
+    // if (!isPrimaryTradeDecision(finalDecision)) {
+    //   const microResult = microScalpEngine.analyzeMicroScalp({
+    //     symbol,
+    //     candles: Array.isArray(candles) ? candles : [],
+    //     candlesH1: Array.isArray(candles_h1) ? candles_h1 : [],
+    //     candlesH4: Array.isArray(candles_h4) ? candles_h4 : [],
+    //     spreadPoints: Number(spreadPoints || 0),
+    //     config: MICRO_SCALP_CONFIG,
+    //   });
+
+    //   const microSignal = String(microResult?.signal || "").toUpperCase();
+
+    //   if (microSignal && microSignal !== "NONE") {
+    //     const microUserRecentPerformance = await getRecentClosedTradePerformance({
+    //       firebaseUserId: resolvedUserId,
+    //       accountId,
+    //       symbol,
+    //       mode: "SCALP",
+    //       limit: 18,
+    //     });
+
+    //     const microUserAdaptiveProfile = buildUserAdaptiveProfile({
+    //       recentPerformance: microUserRecentPerformance,
+    //       mode: "MICRO_SCALP",
+    //     });
+
+    //     const microResponse = buildMicroFallbackResponse({
+    //       microResult,
+    //       reqBody: req.body,
+    //       resolvedUserId,
+    //       pattern,
+    //       historicalVolume,
+    //       activeCfg,
+    //       tradingPreferences,
+    //       totalClosedTrades,
+    //       userAdaptiveProfile: microUserAdaptiveProfile,
+    //     });
+
+    //     if (microResponse) {
+    //       if (microResponse.decision === "NO_TRADE") {
+    //         return res.json(microResponse);
+    //       }
+
+    //       const microDirectionResult = enforceDirectionBiasOnDecision(
+    //         microResponse.decision,
+    //         tradingPreferences
+    //       );
+
+    //       if (microDirectionResult.blocked) {
+    //         return res.json(
+    //           buildBlockedSignalResponse({
+    //             reason: microDirectionResult.reason,
+    //             score: microResponse.score || 0,
+    //             firebaseUserId: resolvedUserId,
+    //             mode: microResponse.mode || "MICRO_SCALP",
+    //             trend: microResponse.trend || "NEUTRAL",
+    //             pattern: microResponse.pattern || null,
+    //             historicalVolume: microResponse.historicalVolume || null,
+    //             defensiveFlags: microResponse.defensiveFlags || null,
+    //             trade_setup: null,
+    //             currentOpenPositionsCount: 0,
+    //           })
+    //         );
+    //       }
+
+    //       const currentOpenPositionsCount =
+    //         await countOpenPositionsByUserAccountAndSymbol({
+    //           firebaseUserId: resolvedUserId,
+    //           accountId,
+    //           symbol,
+    //         });
+
+    //       if (
+    //         isMaxOpenPositionsReached(
+    //           currentOpenPositionsCount,
+    //           tradingPreferences.max_open_positions
+    //         )
+    //       ) {
+    //         return res.json(
+    //           buildBlockedSignalResponse({
+    //             reason: "MAX_OPEN_POSITIONS_REACHED",
+    //             score: microResponse.score || 0,
+    //             firebaseUserId: resolvedUserId,
+    //             mode: microResponse.mode || "MICRO_SCALP",
+    //             trend: microResponse.trend || "NEUTRAL",
+    //             pattern: microResponse.pattern || null,
+    //             historicalVolume: microResponse.historicalVolume || null,
+    //             defensiveFlags: microResponse.defensiveFlags || null,
+    //             trade_setup: null,
+    //             currentOpenPositionsCount,
+    //           })
+    //         );
+    //       }
+
+    //       console.log(
+    //         `[MICRO_SCALP FALLBACK] symbol=${symbol} requestSide=${String(req.body.side || "").toUpperCase()} microSignal=${microSignal} score=${microResponse.score} decision=${microResponse.decision}`
+    //       );
+
+    //       return res.json(microResponse);
+    //     }
+
+    //     // ถ้า micro engine มีสัญญาณ แต่ไม่ตรง side ที่ request มา
+    //     // ให้บล็อกไปเลย จะได้ไม่เกิด sell ใส่ก้อน buy / buy ใส่ก้อน sell จาก fallback
+    //     return res.json(
+    //       buildBlockedSignalResponse({
+    //         reason: "MICRO_SCALP_SIDE_MISMATCH_OR_BLOCKED",
+    //         score: 0,
+    //         firebaseUserId: resolvedUserId,
+    //         mode: "MICRO_SCALP",
+    //         trend: "NEUTRAL",
+    //         pattern,
+    //         historicalVolume,
+    //         defensiveFlags: {
+    //           warningMatched: false,
+    //           lotMultiplier: 1,
+    //           tpMultiplier: 1,
+    //           reason: microResult?.reason || "MICRO_SCALP_BLOCKED",
+    //         },
+    //         trade_setup: null,
+    //         currentOpenPositionsCount: 0,
+    //       })
+    //     );
+    //   }
+    // }
 
     const defensiveFlags = evaluateResult.defensiveFlags || {
       warningMatched: false,
