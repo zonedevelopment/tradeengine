@@ -121,10 +121,10 @@ const MICRO_SCALP_CONFIG = {
 
 const symbolConfig = {
   NORMAL: {
-    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 1000, maxSL: 1400, minTP: 1250, maxTP: 1800 },
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
     "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 1000, maxSL: 1400, minTP: 1250, maxTP: 1800 },
-    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 1000, maxSL: 1400, minTP: 1250, maxTP: 1800 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
+    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
     "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
@@ -142,10 +142,10 @@ const symbolConfig = {
   //   "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 250, maxSL: 800, minTP: 220, maxTP: 900 }
   // }
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 640, maxSL: 820, minTP: 680, maxTP: 890 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
-    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 640, maxSL: 820, minTP: 680, maxTP: 890 },
+    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 640, maxSL: 820, minTP: 680, maxTP: 890 },
     "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
     "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
