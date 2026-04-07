@@ -1139,7 +1139,7 @@ function buildTradeSetupFromPattern({
 
   const detectedMode =
     String(pattern?.tradeMode || pattern?.mode || "").toUpperCase() ||
-    (signalStrength >= 2.45 ? "SCALP" : "NORMAL");
+    (signalStrength >= 2.45 ? "NORMAL" : "SCALP");
 
   // -----------------------------
   // 1) Base SL / TP จาก pattern + avgRange
