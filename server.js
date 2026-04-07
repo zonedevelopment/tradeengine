@@ -129,27 +129,27 @@ const symbolConfig = {
     "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
-  SCALP: {
-    "XAUUSD": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
-    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-
-    "XAUUSDm": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
-    "XAUUSDM": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
-
-    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 250, maxSL: 800, minTP: 220, maxTP: 900 }
-  }
   // SCALP: {
-  //   "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+  //   "XAUUSD": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
   //   "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-  //   "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
-  //   "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+
+  //   "XAUUSDm": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
+  //   "XAUUSDM": { maxSpread: 45, pipMultiplier: 100, minSL: 420, maxSL: 620, minTP: 260, maxTP: 480 },
+
   //   "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
   //   "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-  //   "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+
+  //   "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 250, maxSL: 800, minTP: 220, maxTP: 900 }
   // }
+  SCALP: {
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1000 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+  }
 };
 
 const app = express();
@@ -1815,7 +1815,7 @@ app.post("/signal", async (req, res) => {
     });
 
     console.log("[EVALUATE_DECISION_BREAKDOWN]", {
-      Action: evaluateResult.action,
+      Action: evaluateResult.finalDecision,
       reason: evaluateResult.reason,
       evaluateResult
     });
@@ -1895,16 +1895,16 @@ app.post("/signal", async (req, res) => {
     // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
     // console.log(`--------------------------------------\n`);
 
-    // console.log("[DECISION_BREAKDOWN]", {
-    //   symbol,
-    //   mode: evaluateResult.mode,
-    //   trend: evaluateResult.trend,
-    //   score: evaluateResult.score,
-    //   adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
-    //   historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
-    //   thresholdContext: evaluateResult.thresholdContext,
-    //   finalDecision
-    // });
+    console.log("[DECISION_BREAKDOWN]", {
+      symbol,
+      mode: evaluateResult.mode,
+      trend: evaluateResult.trend,
+      score: evaluateResult.score,
+      adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+      historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+      thresholdContext: evaluateResult.thresholdContext,
+      finalDecision
+    });
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
