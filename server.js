@@ -570,10 +570,19 @@ function applyUserAdaptiveProfileToTradeSetup({
     Number(tradeSetup.tp_points || 0) * Number(userAdaptiveProfile.tpMultiplier || 1)
   );
 
-  let retracePoints = Math.round(
-    Number(tradeSetup.retrace_points || 0) *
-    Number(userAdaptiveProfile.retraceMultiplier || 1)
+  const safeRetraceMultiplier = Math.min(
+    1.0,
+    Math.max(0.60, Number(userAdaptiveProfile.retraceMultiplier || 1))
   );
+
+  let retracePoints = Math.round(
+    Number(tradeSetup.retrace_points || 0) * safeRetraceMultiplier
+  );
+
+  // let retracePoints = Math.round(
+  //   Number(tradeSetup.retrace_points || 0) *
+  //   Number(userAdaptiveProfile.retraceMultiplier || 1)
+  // );
 
   const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
 
@@ -744,6 +753,78 @@ function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode
   };
 }
 
+// function calculateAdaptiveRetracementPoints({
+//   side,
+//   candles = [],
+//   signalStrength = 0,
+//   mode = "NORMAL",
+//   avgRange = 0,
+//   slPoints = 0,
+//   pattern = {},
+//   defensiveFlags = {},
+//   pipMultiplier = 100,
+// }) {
+//   const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
+//   const profile = detectRetracementProfile({ side, candles, signalStrength, mode });
+
+//   let retracePoints = Math.round(Number(avgRange || 0) * Number(profile.retraceMultiplier || 0));
+
+//   // impulse แรง -> ย่อตื้นลง
+//   if (profile.impulseCount >= 3) {
+//     retracePoints = Math.round(retracePoints * 0.90);
+//   } else if (profile.impulseCount === 0) {
+//     retracePoints = Math.round(retracePoints * 1.08);
+//   }
+
+//   // congestion มาก -> ย่อลึกขึ้น
+//   if (profile.congestionCount >= 3) {
+//     retracePoints = Math.round(retracePoints * 1.15);
+//   } else if (profile.congestionCount >= 2) {
+//     retracePoints = Math.round(retracePoints * 1.08);
+//   }
+
+//   // wick สวนทางเยอะ -> ต้องเผื่อย่อมากขึ้น
+//   if (profile.againstWickRatio >= 0.55) {
+//     retracePoints = Math.round(retracePoints * 1.10);
+//   }
+
+//   if (pattern?.isVolumeClimax) {
+//     retracePoints = Math.round(retracePoints * 0.82);
+//   }
+
+//   if (pattern?.isVolumeDrying) {
+//     retracePoints = Math.round(retracePoints * 1.10);
+//   }
+
+//   if (defensiveFlags?.warningMatched) {
+//     retracePoints = Math.round(retracePoints * 1.12);
+//   }
+
+//   const minR = scalpMode
+//     ? Math.round(10 * (pipMultiplier / 100))
+//     : Math.round(18 * (pipMultiplier / 100));
+
+//   const maxR = scalpMode
+//     ? Math.round(110 * (pipMultiplier / 100))
+//     : Math.round(190 * (pipMultiplier / 100));
+
+//   const slCapRatio = Number(profile.slCapRatio || (scalpMode ? 0.30 : 0.36));
+//   const maxRetraceBySL = Math.max(1, Math.round(Number(slPoints || 0) * slCapRatio));
+
+//   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+//     retracePoints = minR;
+//   }
+
+//   if (retracePoints < minR) retracePoints = minR;
+//   if (retracePoints > maxR) retracePoints = maxR;
+//   if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+
+//   return {
+//     retracePoints,
+//     retraceProfile: profile.profile,
+//   };
+// }
+
 function calculateAdaptiveRetracementPoints({
   side,
   candles = [],
@@ -754,52 +835,121 @@ function calculateAdaptiveRetracementPoints({
   pattern = {},
   defensiveFlags = {},
   pipMultiplier = 100,
+  historicalVolumeSignal = {},
+  symbol = "",
 }) {
-  const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
   const profile = detectRetracementProfile({ side, candles, signalStrength, mode });
+  const absStrength = Math.abs(Number(signalStrength || 0));
+  const symbolUpper = String(symbol || "").toUpperCase();
+  const volumeState = String(historicalVolumeSignal.signal || "NORMAL").toUpperCase();
 
-  let retracePoints = Math.round(Number(avgRange || 0) * Number(profile.retraceMultiplier || 0));
+  let retracePoints = Math.round(
+    Number(avgRange || 0) * Number(profile.retraceMultiplier || 0)
+  );
+
+  // =========================
+  // Volume-driven retracement
+  // volume สูง = retrace สั้น
+  // volume ต่ำ = retrace ยาวขึ้น
+  // =========================
+  let volumeMultiplier = 1.0;
+  let minR = 0;
+  let maxR = 0;
+  let slCapRatio = Number(profile.slCapRatio || 0.30);
+
+  if (symbolUpper.includes("BTC")) {
+    if (volumeState === "HISTORICAL_CLIMAX") {
+      volumeMultiplier = 0.45;
+      minR = Math.round(15 * (pipMultiplier / 100));
+      maxR = Math.round(90 * (pipMultiplier / 100));
+      slCapRatio = 0.18;
+    } else if (volumeState === "ABOVE_AVERAGE") {
+      volumeMultiplier = 1.18;
+      minR = Math.round(60 * (pipMultiplier / 100));
+      maxR = Math.round(260 * (pipMultiplier / 100));
+      slCapRatio = 0.36;
+    } else if (volumeState === "ABOVE_AVERAGE") {
+      volumeMultiplier = 0.78;
+      minR = Math.round(30 * (pipMultiplier / 100));
+      maxR = Math.round(180 * (pipMultiplier / 100));
+      slCapRatio = 0.26;
+    }
+  } else {
+    // XAU / pairs / อื่น ๆ
+    if (volumeState === "HISTORICAL_CLIMAX") {
+      volumeMultiplier = 0.42;
+      minR = Math.round(3 * (pipMultiplier / 100));
+      maxR = Math.round(25 * (pipMultiplier / 100));
+      slCapRatio = 0.16;
+    } else if (volumeState === "ABOVE_AVERAGE") {
+      volumeMultiplier = 1.16;
+      minR = Math.round(15 * (pipMultiplier / 100));
+      maxR = Math.round(110 * (pipMultiplier / 100));
+      slCapRatio = 0.32;
+    } else if (volumeState === "ABOVE_AVERAGE") {
+      volumeMultiplier = 0.72;
+      minR = Math.round(8 * (pipMultiplier / 100));
+      maxR = Math.round(70 * (pipMultiplier / 100));
+      slCapRatio = 0.24;
+    }
+  }
+
+  retracePoints = Math.round(retracePoints * volumeMultiplier);
+
+  // signal แรง -> ย่อตื้นลงอีก
+  if (absStrength >= 4.0) {
+    retracePoints = Math.round(retracePoints * 0.55);
+  } else if (absStrength >= 3.0) {
+    retracePoints = Math.round(retracePoints * 0.72);
+  } else if (absStrength >= 2.2) {
+    retracePoints = Math.round(retracePoints * 0.88);
+  }
 
   // impulse แรง -> ย่อตื้นลง
   if (profile.impulseCount >= 3) {
     retracePoints = Math.round(retracePoints * 0.90);
   } else if (profile.impulseCount === 0) {
-    retracePoints = Math.round(retracePoints * 1.08);
+    retracePoints = Math.round(retracePoints * 1.06);
   }
 
-  // congestion มาก -> ย่อลึกขึ้น
+  // congestion มาก -> ย่อลึกขึ้นนิดหน่อย
   if (profile.congestionCount >= 3) {
-    retracePoints = Math.round(retracePoints * 1.15);
+    retracePoints = Math.round(retracePoints * 1.10);
   } else if (profile.congestionCount >= 2) {
+    retracePoints = Math.round(retracePoints * 1.05);
+  }
+
+  // wick สวนทางเยอะ -> เผื่อย่อเพิ่มเล็กน้อย
+  if (profile.againstWickRatio >= 0.55) {
     retracePoints = Math.round(retracePoints * 1.08);
   }
 
-  // wick สวนทางเยอะ -> ต้องเผื่อย่อมากขึ้น
-  if (profile.againstWickRatio >= 0.55) {
-    retracePoints = Math.round(retracePoints * 1.10);
-  }
+  // continuation / breakout / volume climax -> เข้าไวขึ้น
+  const patternUpper = String(
+    pattern?.name || pattern?.patternName || pattern?.type || pattern?.signal || ""
+  ).toUpperCase();
 
-  if (pattern?.isVolumeClimax) {
+  if (
+    patternUpper.includes("CLAW") ||
+    patternUpper.includes("BREAK") ||
+    patternUpper.includes("MARUBOZU") ||
+    patternUpper.includes("ENGULF")
+  ) {
     retracePoints = Math.round(retracePoints * 0.82);
   }
 
+  if (pattern?.isVolumeClimax) {
+    retracePoints = Math.round(retracePoints * 0.78);
+  }
+
   if (pattern?.isVolumeDrying) {
-    retracePoints = Math.round(retracePoints * 1.10);
+    retracePoints = Math.round(retracePoints * 1.08);
   }
 
   if (defensiveFlags?.warningMatched) {
-    retracePoints = Math.round(retracePoints * 1.12);
+    retracePoints = Math.round(retracePoints * 1.06);
   }
 
-  const minR = scalpMode
-    ? Math.round(10 * (pipMultiplier / 100))
-    : Math.round(18 * (pipMultiplier / 100));
-
-  const maxR = scalpMode
-    ? Math.round(110 * (pipMultiplier / 100))
-    : Math.round(190 * (pipMultiplier / 100));
-
-  const slCapRatio = Number(profile.slCapRatio || (scalpMode ? 0.30 : 0.36));
   const maxRetraceBySL = Math.max(1, Math.round(Number(slPoints || 0) * slCapRatio));
 
   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
@@ -809,10 +959,11 @@ function calculateAdaptiveRetracementPoints({
   if (retracePoints < minR) retracePoints = minR;
   if (retracePoints > maxR) retracePoints = maxR;
   if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
+  if (retracePoints < 0) retracePoints = 0;
 
   return {
     retracePoints,
-    retraceProfile: profile.profile,
+    retraceProfile: `${profile.profile}_${volumeState}`,
   };
 }
 
@@ -902,10 +1053,19 @@ function applyColdStartProfileToTradeSetup({
     Number(tradeSetup.tp_points || 0) * Number(coldStartProfile.tpMultiplier || 1)
   );
 
-  let retracePoints = Math.round(
-    Number(tradeSetup.retrace_points || 0) *
-    Number(coldStartProfile.retraceMultiplier || 1)
+  const safeRetraceMultiplier = Math.min(
+    1.0,
+    Math.max(0.70, Number(coldStartProfile.retraceMultiplier || 1))
   );
+
+  let retracePoints = Math.round(
+    Number(tradeSetup.retrace_points || 0) * safeRetraceMultiplier
+  );
+
+  // let retracePoints = Math.round(
+  //   Number(tradeSetup.retrace_points || 0) *
+  //   Number(coldStartProfile.retraceMultiplier || 1)
+  // );
 
   const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
 
@@ -956,7 +1116,9 @@ function buildTradeSetupFromPattern({
   score,
   defensiveFlags,
   userMinLotFloor,
-  coldStartProfile = null
+  coldStartProfile = null,
+  historicalVolumeSignal = null,
+  symbol = "",
 }) {
   let slPoints = 500;
   let tpPoints = 800;
@@ -1111,19 +1273,35 @@ function buildTradeSetupFromPattern({
   // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
   // -----------------------------
 
-  const retraceResult = calculateAdaptiveRetracementPoints({
-    side,
-    candles,
-    signalStrength,
-    mode: detectedMode,
-    avgRange,
-    slPoints,
-    pattern,
-    defensiveFlags,
-    pipMultiplier: mult,
-  });
+  // const retraceResult = calculateAdaptiveRetracementPoints({
+  //   side,
+  //   candles,
+  //   signalStrength,
+  //   mode: detectedMode,
+  //   avgRange,
+  //   slPoints,
+  //   pattern,
+  //   defensiveFlags,
+  //   pipMultiplier: mult,
+  // });
 
-  retracePoints = retraceResult.retracePoints;
+  // retracePoints = retraceResult.retracePoints;
+  const { retracePoints: adaptiveRetracePoints, retraceProfile } =
+    calculateAdaptiveRetracementPoints({
+      side,
+      candles,
+      signalStrength,
+      mode: detectedMode,
+      avgRange,
+      slPoints,
+      pattern,
+      defensiveFlags,
+      pipMultiplier: mult,
+      historicalVolumeSignal,
+      symbol,
+    });
+
+  retracePoints = adaptiveRetracePoints;
 
   // -----------------------------
   // 4) คำนวณ lot จาก SL สุดท้าย
@@ -1349,6 +1527,8 @@ function buildMicroFallbackResponse({
     defensiveFlags,
     userMinLotFloor: rawLotFloor,
     coldStartProfile,
+    historicalVolumeSignal: historicalVolume,
+    symbol,
   });
 
   trade_setup = applyUserAdaptiveProfileToTradeSetup({
@@ -1709,7 +1889,7 @@ app.post("/signal", async (req, res) => {
           reqBody: req.body,
           resolvedUserId,
           pattern,
-          historicalVolume,
+          historicalVolume, 
           activeCfg,
           tradingPreferences,
           totalClosedTrades,
@@ -1808,6 +1988,8 @@ app.post("/signal", async (req, res) => {
       defensiveFlags,
       userMinLotFloor: rawLotFloor,
       coldStartProfile,
+      historicalVolumeSignal: historicalVolume,
+      symbol,
     });
 
     trade_setup = applyUserAdaptiveProfileToTradeSetup({
