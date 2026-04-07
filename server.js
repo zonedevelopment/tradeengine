@@ -1025,49 +1025,49 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  if (signalStrength < 3.0) {
-    tpPoints = Math.round(tpPoints * 0.6);
-    slPoints = Math.round(slPoints * 0.85);
-  } else if (signalStrength < 5.5) {
-    tpPoints = Math.round(tpPoints * 0.9);
-    slPoints = Math.round(slPoints * 0.95);
-  } else if (signalStrength >= 6.0) {
-    tpPoints = Math.round(tpPoints * 1.15);
-  }
+  // if (signalStrength < 3.0) {
+  //   tpPoints = Math.round(tpPoints * 0.6);
+  //   slPoints = Math.round(slPoints * 0.85);
+  // } else if (signalStrength < 5.5) {
+  //   tpPoints = Math.round(tpPoints * 0.9);
+  //   slPoints = Math.round(slPoints * 0.95);
+  // } else if (signalStrength >= 6.0) {
+  //   tpPoints = Math.round(tpPoints * 1.15);
+  // }
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  // const normalizedModeForSetup = String(detectedMode || "NORMAL").toUpperCase();
-  // const isScalpModeForSetup =
-  //   normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
+  const normalizedModeForSetup = String(detectedMode || "NORMAL").toUpperCase();
+  const isScalpModeForSetup =
+    normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
 
-  // if (isScalpModeForSetup) {
-  //   if (signalStrength < 3.0) {
-  //     tpPoints = Math.round(tpPoints * 0.52);
-  //     slPoints = Math.round(slPoints * 0.82);
-  //   } else if (signalStrength < 5.5) {
-  //     tpPoints = Math.round(tpPoints * 0.72);
-  //     slPoints = Math.round(slPoints * 0.90);
-  //   } else if (signalStrength >= 6.0) {
-  //     tpPoints = Math.round(tpPoints * 0.88); // เดิมขยาย TP, ตอนนี้กดให้สั้นลง
-  //     slPoints = Math.round(slPoints * 0.96);
-  //   }
+  if (isScalpModeForSetup) {
+    if (signalStrength < 3.0) {
+      tpPoints = Math.round(tpPoints * 0.52);
+      slPoints = Math.round(slPoints * 0.82);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.72);
+      slPoints = Math.round(slPoints * 0.90);
+    } else if (signalStrength >= 6.0) {
+      tpPoints = Math.round(tpPoints * 0.88); // เดิมขยาย TP, ตอนนี้กดให้สั้นลง
+      slPoints = Math.round(slPoints * 0.96);
+    }
 
-  //   // ให้ scalp มี RR แบบเก็บไว ไม่ใช่ถือยาว
-  //   if (tpPoints > Math.round(slPoints * 0.90)) {
-  //     tpPoints = Math.round(slPoints * 0.90);
-  //   }
-  // } else {
-  //   if (signalStrength < 3.0) {
-  //     tpPoints = Math.round(tpPoints * 0.6);
-  //     slPoints = Math.round(slPoints * 0.85);
-  //   } else if (signalStrength < 5.5) {
-  //     tpPoints = Math.round(tpPoints * 0.9);
-  //     slPoints = Math.round(slPoints * 0.95);
-  //   } else if (signalStrength >= 6.0) {
-  //     tpPoints = Math.round(tpPoints * 1.15);
-  //   }
-  // }
+    // ให้ scalp มี RR แบบเก็บไว ไม่ใช่ถือยาว
+    if (tpPoints > Math.round(slPoints * 0.90)) {
+      tpPoints = Math.round(slPoints * 0.90);
+    }
+  } else {
+    if (signalStrength < 3.0) {
+      tpPoints = Math.round(tpPoints * 0.6);
+      slPoints = Math.round(slPoints * 0.85);
+    } else if (signalStrength < 5.5) {
+      tpPoints = Math.round(tpPoints * 0.9);
+      slPoints = Math.round(slPoints * 0.95);
+    } else if (signalStrength >= 6.0) {
+      tpPoints = Math.round(tpPoints * 1.15);
+    }
+  }
 
   // Defensive flags ควรมีผลกับ TP ก่อนคำนวณ lot
   if (defensiveFlags?.warningMatched) {
