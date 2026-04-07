@@ -1,5 +1,3 @@
-const fs = require("fs");
-const path = require("path");
 const { query } = require("../db");
 const { detectMotherFishPattern } = require("./pattern-rules");
 
@@ -103,6 +101,7 @@ function analyzeHigherTimeframeFollow(candles = [], label = "M15") {
             recentVolumeAvg: 0,
             priorVolumeAvg: 0,
             momentumBias: "NONE",
+            available: false,
         };
     }
 
@@ -179,6 +178,7 @@ function analyzeHigherTimeframeFollow(candles = [], label = "M15") {
         recentVolumeAvg: Number(recentVolumeAvg.toFixed(2)),
         priorVolumeAvg: Number(priorVolumeAvg.toFixed(2)),
         momentumBias,
+        available: true,
     };
 }
 
@@ -188,12 +188,15 @@ function resolveHigherTimeframeContext(signal = {}) {
     const candlesH1 = normalizeCandles(signal.candles_h1 || signal.candlesH1 || []);
     const candlesH4 = normalizeCandles(signal.candles_h4 || signal.candlesH4 || []);
 
-    // ใช้ M15/M30 เป็น HTF หลักก่อน
-    const primary = candlesM15.length > 0
+    const hasM15 = candlesM15.length >= 3;
+    const hasM30 = candlesM30.length >= 3;
+    const isM5OnlyContext = !hasM15 && !hasM30;
+
+    const primary = hasM15
         ? analyzeHigherTimeframeFollow(candlesM15, "M15")
         : analyzeHigherTimeframeFollow([], "M15");
 
-    const secondary = candlesM30.length > 0
+    const secondary = hasM30
         ? analyzeHigherTimeframeFollow(candlesM30, "M30")
         : analyzeHigherTimeframeFollow([], "M30");
 
@@ -239,8 +242,11 @@ function resolveHigherTimeframeContext(signal = {}) {
         overallDirection,
         volumeConfirmed,
         strength,
-        source: "M15_M30",
+        source: isM5OnlyContext ? "M5_ONLY" : "M15_M30",
         fallbackDisabled: true,
+        isM5OnlyContext,
+        hasPrimary: hasM15,
+        hasSecondary: hasM30,
         // h1: fallbackPrimary,
         // h4: fallbackSecondary,
     };
@@ -248,6 +254,10 @@ function resolveHigherTimeframeContext(signal = {}) {
 
 function applyHigherTimeframeScoreAdjustment(score, result, higherTfContext) {
     let adjustedScore = Number(score || 0);
+
+    if (higherTfContext?.isM5OnlyContext) {
+        return adjustedScore;
+    }
 
     const patternDirection =
         result?.pattern === "CLAW_BUY"
@@ -281,11 +291,27 @@ function applyHigherTimeframeScoreAdjustment(score, result, higherTfContext) {
     return Number(adjustedScore.toFixed(4));
 }
 
-async function analyzePattern(signal) {
-    const weights = await loadWeightsFromDB(signal.symbol);
+function shouldUseSymbolWeights(signal = {}) {
+    const hasM15 = Array.isArray(signal.candles_m15) && signal.candles_m15.length > 0;
+    const hasM30 = Array.isArray(signal.candles_m30) && signal.candles_m30.length > 0;
+    const hasH1 = Array.isArray(signal.candles_h1) && signal.candles_h1.length > 0;
+    const hasH4 = Array.isArray(signal.candles_h4) && signal.candles_h4.length > 0;
+
+    return hasM15 || hasM30 || hasH1 || hasH4;
+}
+
+async function analyzePattern(signal = {}) {
+    const safeCandles = normalizeCandles(
+        signal.candles || [signal.prevCandle, signal.currentCandle].filter(Boolean)
+    );
+
+    const useWeights = shouldUseSymbolWeights(signal);
+    const weights = useWeights
+        ? await loadWeightsFromDB(signal.symbol)
+        : initialDefaultWeights;
 
     const result = detectMotherFishPattern({
-        candles: signal.candles || [signal.prevCandle, signal.currentCandle].filter(Boolean),
+        candles: safeCandles,
     });
 
     const higherTfContext = resolveHigherTimeframeContext(signal);
@@ -323,6 +349,7 @@ async function analyzePattern(signal) {
             strength: 0,
             structure: result.structure,
             higherTfContext,
+            isM5OnlyContext: higherTfContext.isM5OnlyContext,
         };
     }
 
@@ -335,7 +362,6 @@ async function analyzePattern(signal) {
         score = score * 1.5;
     }
 
-    // เพิ่ม/ลดคะแนนตาม M15/M30 ก่อน
     score = applyHigherTimeframeScoreAdjustment(score, result, higherTfContext);
 
     let isVolumeClimax = false;
@@ -343,29 +369,28 @@ async function analyzePattern(signal) {
     let recentMassiveBear = false;
     let recentMassiveBull = false;
 
-    const candles = signal.candles || [];
-    const trendFollow4 = analyzeM5FourCandleFollow(candles);
+    const trendFollow4 = analyzeM5FourCandleFollow(safeCandles);
 
-    if (candles.length >= 7) {
+    if (safeCandles.length >= 7) {
         let totalVol = 0;
         let count = 0;
 
-        let useCandles = candles.length - 15;
+        let useCandles = safeCandles.length - 15;
         if (useCandles < 0) useCandles = 0;
 
-        for (let i = useCandles; i < candles.length - 2; i++) {
-            if (i >= 0 && candles[i].tick_volume) {
-                totalVol += Number(candles[i].tick_volume);
+        for (let i = useCandles; i < safeCandles.length - 2; i++) {
+            if (i >= 0 && safeCandles[i].tick_volume) {
+                totalVol += Number(safeCandles[i].tick_volume);
                 count++;
             }
         }
 
         const avgVol = count > 0 ? totalVol / count : 0;
-        const currVol = candles[candles.length - 1]
-            ? Number(candles[candles.length - 1].tick_volume || 0)
+        const currVol = safeCandles[safeCandles.length - 1]
+            ? Number(safeCandles[safeCandles.length - 1].tick_volume || 0)
             : 0;
-        const prevVol = candles[candles.length - 2]
-            ? Number(candles[candles.length - 2].tick_volume || 0)
+        const prevVol = safeCandles[safeCandles.length - 2]
+            ? Number(safeCandles[safeCandles.length - 2].tick_volume || 0)
             : 0;
 
         const triggerVol = Math.max(currVol, prevVol);
@@ -376,16 +401,16 @@ async function analyzePattern(signal) {
             isVolumeDrying = true;
         }
 
-        for (let i = candles.length - 3; i < candles.length; i++) {
+        for (let i = safeCandles.length - 3; i < safeCandles.length; i++) {
             if (i >= 0) {
-                const c = candles[i];
+                const c = safeCandles[i];
                 const body = Math.abs(c.close - c.open);
-                const isBear = c.close < c.open;
-                const isBull = c.close > c.open;
+                const bear = c.close < c.open;
+                const bull = c.close > c.open;
 
                 if (body > 2.0 && c.tick_volume > avgVol * 1.5) {
-                    if (isBear) recentMassiveBear = true;
-                    if (isBull) recentMassiveBull = true;
+                    if (bear) recentMassiveBear = true;
+                    if (bull) recentMassiveBull = true;
                 }
             }
         }
@@ -397,6 +422,7 @@ async function analyzePattern(signal) {
         score: Number(score.toFixed(4)),
         trendFollow4,
         higherTfContext,
+        isM5OnlyContext: higherTfContext.isM5OnlyContext,
         strength: result.strength || 0,
         structure: result.structure,
         slPrice: result.slPrice,
@@ -443,6 +469,5 @@ async function loadWeightsFromDB(symbol) {
         return initialDefaultWeights;
     }
 }
-
 
 module.exports = { analyzePattern };
