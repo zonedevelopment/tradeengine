@@ -868,7 +868,7 @@ function calculateAdaptiveRetracementPoints({
       minR = Math.round(60 * (pipMultiplier / 100));
       maxR = Math.round(260 * (pipMultiplier / 100));
       slCapRatio = 0.36;
-    } else if (volumeState === "ABOVE_AVERAGE") {
+    } else if (volumeState === "LOW_VOLUME") {
       volumeMultiplier = 0.78;
       minR = Math.round(30 * (pipMultiplier / 100));
       maxR = Math.round(180 * (pipMultiplier / 100));
@@ -886,7 +886,7 @@ function calculateAdaptiveRetracementPoints({
       minR = Math.round(15 * (pipMultiplier / 100));
       maxR = Math.round(110 * (pipMultiplier / 100));
       slCapRatio = 0.32;
-    } else if (volumeState === "ABOVE_AVERAGE") {
+    } else if (volumeState === "LOW_VOLUME") {
       volumeMultiplier = 0.72;
       minR = Math.round(8 * (pipMultiplier / 100));
       maxR = Math.round(70 * (pipMultiplier / 100));

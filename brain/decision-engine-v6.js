@@ -1227,7 +1227,7 @@ async function evaluateDecision({
                 return {
                     action: "NO_TRADE",
                     reason: "ANTI_HEDGE_BLOCK",
-                    score: 0,
+                    score: score,
                 };
             }
 
@@ -1235,7 +1235,7 @@ async function evaluateDecision({
                 return {
                     action: "NO_TRADE",
                     reason: "ANTI_HEDGE_BLOCK",
-                    score: 0,
+                    score: score,
                 };
             }
 
@@ -1244,7 +1244,7 @@ async function evaluateDecision({
                     return {
                         action: "NO_TRADE",
                         reason: "MAX_PYRAMID_ORDERS_REACHED",
-                        score: 0,
+                        score: score,
                     };
                 }
 
@@ -1262,7 +1262,7 @@ async function evaluateDecision({
                     return {
                         action: "NO_TRADE",
                         reason: "MAX_PYRAMID_ORDERS_REACHED",
-                        score: 0,
+                        score: score,
                     };
                 }
 
@@ -1278,7 +1278,7 @@ async function evaluateDecision({
             return {
                 action: "NO_TRADE",
                 reason: "SCORE_TOO_LOW_FOR_PYRAMIDING",
-                score: 0,
+                score: score,
             };
         }
     }
