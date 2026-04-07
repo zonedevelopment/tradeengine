@@ -48,7 +48,7 @@ function analyzeM5FourCandleFollow(candles = []) {
         };
     }
 
-    const last4 = candles.slice(-4);
+    const last4 = candles.slice(-3);
 
     let bullishCount = 0;
     let bearishCount = 0;
@@ -276,15 +276,15 @@ function applyHigherTimeframeScoreAdjustment(score, result, higherTfContext) {
 
     if (overallDirection === patternDirection) {
         if (strength === "STRONG" && volumeConfirmed) {
-            adjustedScore += patternDirection === "BUY" ? 0.45 : -0.45;
+            adjustedScore += patternDirection === "BUY" ? 0.50 : -0.50;
         } else {
-            adjustedScore += patternDirection === "BUY" ? 0.20 : -0.20;
+            adjustedScore += patternDirection === "BUY" ? 0.25 : -0.25;
         }
     } else if (overallDirection !== "NEUTRAL" && overallDirection !== patternDirection) {
         if (strength === "STRONG") {
-            adjustedScore += patternDirection === "BUY" ? -0.55 : 0.55;
+            adjustedScore += patternDirection === "BUY" ? -0.65 : 0.65;
         } else {
-            adjustedScore += patternDirection === "BUY" ? -0.25 : 0.25;
+            adjustedScore += patternDirection === "BUY" ? -0.35 : 0.35;
         }
     }
 

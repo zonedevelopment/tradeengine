@@ -898,18 +898,18 @@ function calculateAdaptiveRetracementPoints({
 
   // signal แรง -> ย่อตื้นลงอีก
   if (absStrength >= 4.0) {
-    retracePoints = Math.round(retracePoints * 0.55);
+    retracePoints = Math.round(retracePoints * 0.50);
   } else if (absStrength >= 3.0) {
-    retracePoints = Math.round(retracePoints * 0.72);
+    retracePoints = Math.round(retracePoints * 0.67);
   } else if (absStrength >= 2.2) {
-    retracePoints = Math.round(retracePoints * 0.88);
+    retracePoints = Math.round(retracePoints * 0.83);
   }
 
   // impulse แรง -> ย่อตื้นลง
   if (profile.impulseCount >= 3) {
-    retracePoints = Math.round(retracePoints * 0.90);
+    retracePoints = Math.round(retracePoints * 0.88);
   } else if (profile.impulseCount === 0) {
-    retracePoints = Math.round(retracePoints * 1.06);
+    retracePoints = Math.round(retracePoints * 1.04);
   }
 
   // congestion มาก -> ย่อลึกขึ้นนิดหน่อย
@@ -921,7 +921,7 @@ function calculateAdaptiveRetracementPoints({
 
   // wick สวนทางเยอะ -> เผื่อย่อเพิ่มเล็กน้อย
   if (profile.againstWickRatio >= 0.55) {
-    retracePoints = Math.round(retracePoints * 1.08);
+    retracePoints = Math.round(retracePoints * 1.60);
   }
 
   // continuation / breakout / volume climax -> เข้าไวขึ้น
@@ -935,11 +935,11 @@ function calculateAdaptiveRetracementPoints({
     patternUpper.includes("MARUBOZU") ||
     patternUpper.includes("ENGULF")
   ) {
-    retracePoints = Math.round(retracePoints * 0.82);
+    retracePoints = Math.round(retracePoints * 0.72);
   }
 
   if (pattern?.isVolumeClimax) {
-    retracePoints = Math.round(retracePoints * 0.78);
+    retracePoints = Math.round(retracePoints * 0.68);
   }
 
   if (pattern?.isVolumeDrying) {
