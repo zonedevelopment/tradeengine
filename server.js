@@ -1469,30 +1469,30 @@ app.post("/signal", async (req, res) => {
   }
 
   try {
-    try {
-      if (Array.isArray(candles) && candles.length > 0) {
-        const dataPath = ensureDataDir();
-        const trainingDataPath = path.join(dataPath, "candle_training_data.json");
-        const trainingLogs = safeReadJsonArray(trainingDataPath);
+    // try {
+    //   if (Array.isArray(candles) && candles.length > 0) {
+    //     const dataPath = ensureDataDir();
+    //     const trainingDataPath = path.join(dataPath, "candle_training_data.json");
+    //     const trainingLogs = safeReadJsonArray(trainingDataPath);
 
-        const contextCandles = candles.slice(-10);
-        trainingLogs.push({
-          timestamp: new Date().toISOString(),
-          symbol: symbol,
-          firebaseUserId: resolvedUserId,
-          price: price,
-          candles: contextCandles,
-        });
+    //     const contextCandles = candles.slice(-10);
+    //     trainingLogs.push({
+    //       timestamp: new Date().toISOString(),
+    //       symbol: symbol,
+    //       firebaseUserId: resolvedUserId,
+    //       price: price,
+    //       candles: contextCandles,
+    //     });
 
-        if (trainingLogs.length > 5000) {
-          trainingLogs.shift();
-        }
+    //     if (trainingLogs.length > 5000) {
+    //       trainingLogs.shift();
+    //     }
 
-        safeWriteJson(trainingDataPath, trainingLogs);
-      }
-    } catch (e) {
-      console.error("Error saving training data:", e);
-    }
+    //     safeWriteJson(trainingDataPath, trainingLogs);
+    //   }
+    // } catch (e) {
+    //   console.error("Error saving training data:", e);
+    // }
 
     const news = readFilter();
     const calendar = checkCalendar();
