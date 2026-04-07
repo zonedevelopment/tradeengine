@@ -18,11 +18,11 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v5");
+} = require("./brain/decision-engine-v6");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
-const { analyzePattern } = require("./pattern/pattern-analyzer");
+const { analyzePattern } = require("./pattern/pattern-analyzer-v2");
 const { analyzeICT } = require("./pattern/ict-rules");
 const { learnPatternWeights } = require("./learning/pattern-learner");
 const { findFailedPattern } = require("./failedPattern.repo");
@@ -1590,6 +1590,43 @@ function buildBlockedSignalResponse({
   };
 }
 
+function normalizeCandleArray(input) {
+  if (!Array.isArray(input)) return [];
+  return input.filter(
+    (c) =>
+      c &&
+      Number.isFinite(Number(c.open)) &&
+      Number.isFinite(Number(c.high)) &&
+      Number.isFinite(Number(c.low)) &&
+      Number.isFinite(Number(c.close))
+  );
+}
+
+function resolveHigherTimeframes(body = {}) {
+  const candlesM15 = normalizeCandleArray(body.candles_m15);
+  const candlesM30 = normalizeCandleArray(body.candles_m30);
+  const candlesH1 = normalizeCandleArray(body.candles_h1);
+  const candlesH4 = normalizeCandleArray(body.candles_h4);
+
+  // ใช้ M15/M30 เป็น HTF หลักสำหรับเทรดสั้น
+  const trendPrimaryCandles = candlesM15.length > 0 ? candlesM15 : candlesH1;
+  const trendSecondaryCandles = candlesM30.length > 0 ? candlesM30 : candlesH4;
+
+  const trendPrimaryLabel = candlesM15.length > 0 ? "M15" : "H1";
+  const trendSecondaryLabel = candlesM30.length > 0 ? "M30" : "H4";
+
+  return {
+    candlesM15,
+    candlesM30,
+    candlesH1,
+    candlesH4,
+    trendPrimaryCandles,
+    trendSecondaryCandles,
+    trendPrimaryLabel,
+    trendSecondaryLabel,
+  };
+}
+
 app.post("/signal", async (req, res) => {
   const {
     symbol,
@@ -1598,6 +1635,8 @@ app.post("/signal", async (req, res) => {
     side,
     price,
     candles,
+    candles_m15,
+    candles_m30,
     candles_h1,
     candles_h4,
     balance,
@@ -1606,6 +1645,13 @@ app.post("/signal", async (req, res) => {
 
   const resolvedUserId = firebaseUserId || null;
   const spreadPoints = req.body.spreadPoints || 0;
+
+  const higherTf = resolveHigherTimeframes({
+    candles_m15,
+    candles_m30,
+    candles_h1,
+    candles_h4,
+  });
 
   let tradingPreferences = normalizeTradingPreferences(null);
   try {
@@ -1679,11 +1725,29 @@ app.post("/signal", async (req, res) => {
     const session = getSession();
     const risk = getRiskState();
 
+    // const pattern = await analyzePattern({
+    //   symbol: symbol,
+    //   candles: candles,
+    //   candlesH1: candles_h1,
+    //   candlesH4: candles_h4,
+    //   overlapPips: overlapPips,
+    // });
     const pattern = await analyzePattern({
       symbol: symbol,
       candles: candles,
-      candlesH1: candles_h1,
-      candlesH4: candles_h4,
+      candlesM15: higherTf.candlesM15,
+      candlesM30: higherTf.candlesM30,
+      candlesH1: higherTf.candlesH1,
+      candlesH4: higherTf.candlesH4,
+
+      // ส่ง HTF หลักที่ระบบจะใช้จริง
+      candlesTrendPrimary: higherTf.trendPrimaryCandles,
+      candlesTrendSecondary: higherTf.trendSecondaryCandles,
+
+      // คงชื่อเดิมไว้ให้ flow เก่าทำงานต่อได้
+      candlesH1: higherTf.trendPrimaryCandles,
+      candlesH4: higherTf.trendSecondaryCandles,
+
       overlapPips: overlapPips,
     });
 
@@ -1694,6 +1758,26 @@ app.post("/signal", async (req, res) => {
       candles,
     });
 
+    // const evaluateResult = await evaluateDecision({
+    //   news,
+    //   calendar,
+    //   session,
+    //   risk,
+    //   pattern,
+    //   ictContext,
+    //   historicalVolume,
+    //   market: {
+    //     userId: resolvedUserId,
+    //     symbol: symbol,
+    //     timeframe: "M5",
+    //     price: price,
+    //     candles: candles,
+    //     candlesH1: candles_h1,
+    //     candlesH4: candles_h4,
+    //     portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
+    //     sessionName: session.name,
+    //   }
+    // });
     const evaluateResult = await evaluateDecision({
       news,
       calendar,
@@ -1708,8 +1792,23 @@ app.post("/signal", async (req, res) => {
         timeframe: "M5",
         price: price,
         candles: candles,
-        candlesH1: candles_h1,
-        candlesH4: candles_h4,
+
+        // เก็บทุก TF ไว้
+        candlesM15: higherTf.candlesM15,
+        candlesM30: higherTf.candlesM30,
+        candlesH1: higherTf.candlesH1,
+        candlesH4: higherTf.candlesH4,
+
+        // TF ที่ใช้เป็น HTF หลักจริง
+        trendPrimaryCandles: higherTf.trendPrimaryCandles,
+        trendSecondaryCandles: higherTf.trendSecondaryCandles,
+        trendPrimaryLabel: higherTf.trendPrimaryLabel,
+        trendSecondaryLabel: higherTf.trendSecondaryLabel,
+
+        // backward compatible
+        candlesH1: higherTf.trendPrimaryCandles,
+        candlesH4: higherTf.trendSecondaryCandles,
+
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
         sessionName: session.name,
       }
@@ -1889,7 +1988,7 @@ app.post("/signal", async (req, res) => {
           reqBody: req.body,
           resolvedUserId,
           pattern,
-          historicalVolume, 
+          historicalVolume,
           activeCfg,
           tradingPreferences,
           totalClosedTrades,
