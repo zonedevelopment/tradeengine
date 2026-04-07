@@ -18,7 +18,7 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v4");
+} = require("./brain/decision-engine-v5");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
@@ -87,7 +87,7 @@ const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 
-const microScalpEngine = require("./microScalpEngine-v3");
+const microScalpEngine = require("./microScalpEngine-v4");
 
 const { getUserTradingPreferences } = require("./userTradingPreferences.repo");
 const {
@@ -1025,49 +1025,49 @@ function buildTradeSetupFromPattern({
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  // if (signalStrength < 3.0) {
-  //   tpPoints = Math.round(tpPoints * 0.6);
-  //   slPoints = Math.round(slPoints * 0.85);
-  // } else if (signalStrength < 5.5) {
-  //   tpPoints = Math.round(tpPoints * 0.9);
-  //   slPoints = Math.round(slPoints * 0.95);
-  // } else if (signalStrength >= 6.0) {
-  //   tpPoints = Math.round(tpPoints * 1.15);
-  // }
+  if (signalStrength < 3.0) {
+    tpPoints = Math.round(tpPoints * 0.6);
+    slPoints = Math.round(slPoints * 0.85);
+  } else if (signalStrength < 5.5) {
+    tpPoints = Math.round(tpPoints * 0.9);
+    slPoints = Math.round(slPoints * 0.95);
+  } else if (signalStrength >= 6.0) {
+    tpPoints = Math.round(tpPoints * 1.15);
+  }
   // -----------------------------
   // 2) ปรับ SL / TP ตามคุณภาพสัญญาณก่อน
   // -----------------------------
-  const normalizedModeForSetup = String(detectedMode || "NORMAL").toUpperCase();
-  const isScalpModeForSetup =
-    normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
+  // const normalizedModeForSetup = String(detectedMode || "NORMAL").toUpperCase();
+  // const isScalpModeForSetup =
+  //   normalizedModeForSetup === "SCALP" || normalizedModeForSetup === "MICRO_SCALP";
 
-  if (isScalpModeForSetup) {
-    if (signalStrength < 3.0) {
-      tpPoints = Math.round(tpPoints * 0.52);
-      slPoints = Math.round(slPoints * 0.82);
-    } else if (signalStrength < 5.5) {
-      tpPoints = Math.round(tpPoints * 0.72);
-      slPoints = Math.round(slPoints * 0.90);
-    } else if (signalStrength >= 6.0) {
-      tpPoints = Math.round(tpPoints * 0.88); // เดิมขยาย TP, ตอนนี้กดให้สั้นลง
-      slPoints = Math.round(slPoints * 0.96);
-    }
+  // if (isScalpModeForSetup) {
+  //   if (signalStrength < 3.0) {
+  //     tpPoints = Math.round(tpPoints * 0.52);
+  //     slPoints = Math.round(slPoints * 0.82);
+  //   } else if (signalStrength < 5.5) {
+  //     tpPoints = Math.round(tpPoints * 0.72);
+  //     slPoints = Math.round(slPoints * 0.90);
+  //   } else if (signalStrength >= 6.0) {
+  //     tpPoints = Math.round(tpPoints * 0.88); // เดิมขยาย TP, ตอนนี้กดให้สั้นลง
+  //     slPoints = Math.round(slPoints * 0.96);
+  //   }
 
-    // ให้ scalp มี RR แบบเก็บไว ไม่ใช่ถือยาว
-    if (tpPoints > Math.round(slPoints * 0.90)) {
-      tpPoints = Math.round(slPoints * 0.90);
-    }
-  } else {
-    if (signalStrength < 3.0) {
-      tpPoints = Math.round(tpPoints * 0.6);
-      slPoints = Math.round(slPoints * 0.85);
-    } else if (signalStrength < 5.5) {
-      tpPoints = Math.round(tpPoints * 0.9);
-      slPoints = Math.round(slPoints * 0.95);
-    } else if (signalStrength >= 6.0) {
-      tpPoints = Math.round(tpPoints * 1.15);
-    }
-  }
+  //   // ให้ scalp มี RR แบบเก็บไว ไม่ใช่ถือยาว
+  //   if (tpPoints > Math.round(slPoints * 0.90)) {
+  //     tpPoints = Math.round(slPoints * 0.90);
+  //   }
+  // } else {
+  //   if (signalStrength < 3.0) {
+  //     tpPoints = Math.round(tpPoints * 0.6);
+  //     slPoints = Math.round(slPoints * 0.85);
+  //   } else if (signalStrength < 5.5) {
+  //     tpPoints = Math.round(tpPoints * 0.9);
+  //     slPoints = Math.round(slPoints * 0.95);
+  //   } else if (signalStrength >= 6.0) {
+  //     tpPoints = Math.round(tpPoints * 1.15);
+  //   }
+  // }
 
   // Defensive flags ควรมีผลกับ TP ก่อนคำนวณ lot
   if (defensiveFlags?.warningMatched) {
@@ -1535,6 +1535,12 @@ app.post("/signal", async (req, res) => {
       }
     });
 
+    console.log("[EVALUATE_DECISION_BREAKDOWN]", {
+      Action: evaluateResult.action,
+      reason: evaluateResult.reason,
+      evaluateResult
+    });
+
     let mainUserRecentPerformance = null;
     let mainUserAdaptiveProfile = null;
 
@@ -1572,7 +1578,7 @@ app.post("/signal", async (req, res) => {
 
     try {
       if (Array.isArray(candles) && candles.length > 0) {
-        const contextCandles = candles.slice(-10).map((c) => ({
+        const contextCandles = candles.map((c) => ({
           time: c.time ? new Date(c.time) : null,
           open: Number(c.open || 0),
           high: Number(c.high || 0),
@@ -1597,29 +1603,29 @@ app.post("/signal", async (req, res) => {
       console.error("Error saving candle training data to MongoDB:", e);
     }
 
-    // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
-    // console.log(`Price: ${price}`);
-    // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
-    // if (pattern.structure) {
-    //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
-    //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
-    //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
-    // }
-    // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
-    // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
-    // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
-    // console.log(`--------------------------------------\n`);
+    console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
+    console.log(`Price: ${price}`);
+    console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
+    if (pattern.structure) {
+      console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
+      console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
+      console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
+    }
+    console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
+    console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
+    console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
+    console.log(`--------------------------------------\n`);
 
-    // console.log("[DECISION_BREAKDOWN]", {
-    //   symbol,
-    //   mode: evaluateResult.mode,
-    //   trend: evaluateResult.trend,
-    //   score: evaluateResult.score,
-    //   adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
-    //   historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
-    //   thresholdContext: evaluateResult.thresholdContext,
-    //   finalDecision
-    // });
+    console.log("[DECISION_BREAKDOWN]", {
+      symbol,
+      mode: evaluateResult.mode,
+      trend: evaluateResult.trend,
+      score: evaluateResult.score,
+      adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+      historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+      thresholdContext: evaluateResult.thresholdContext,
+      finalDecision
+    });
 
     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
@@ -1810,12 +1816,6 @@ app.post("/signal", async (req, res) => {
       activeCfg,
     });
 
-    // if (rawLotCap > 0 && Number(trade_setup?.recommended_lot || 0) > rawLotCap) {
-    //   trade_setup.recommended_lot = Number(rawLotCap.toFixed(2));
-    //   if (trade_setup.recommended_lot < 0.01) {
-    //     trade_setup.recommended_lot = 0.01;
-    //   }
-    // }
     if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
       trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
       if (trade_setup.recommended_lot < 0.01) {
@@ -1852,6 +1852,22 @@ app.post("/signal", async (req, res) => {
         totalClosedTrades,
       });
     }
+
+    console.log("[FINAL_REPONSE_BREAKDOWN]", {
+      decision: finalDecision,
+      score: score,
+      firebaseUserId: resolvedUserId,
+      mode: evaluateResult.mode || "NORMAL",
+      trend: evaluateResult.trend || "NEUTRAL",
+      pattern: pattern,
+      historicalVolume: historicalVolume,
+      defensiveFlags: defensiveFlags,
+      trade_setup,
+      cold_start_profile: coldStartProfile,
+      user_adaptive_profile: mainUserAdaptiveProfile,
+      recent_performance: mainUserRecentPerformance,
+      totalClosedTrades,
+    });
 
     return res.json({
       decision: finalDecision,

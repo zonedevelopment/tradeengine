@@ -1125,84 +1125,84 @@ async function evaluateDecision({
         };
     }
 
-    const failedRule = await findFailedPatternRule({
-        userId: market?.userId || null,
-        accountId: market?.accountId || null,
-        symbol: market?.symbol || "XAUUSD",
-        timeframe,
-        side,
-        mode: tradeMode,
-        pattern,
-        market,
-    });
+    // const failedRule = await findFailedPatternRule({
+    //     userId: market?.userId || null,
+    //     accountId: market?.accountId || null,
+    //     symbol: market?.symbol || "XAUUSD",
+    //     timeframe,
+    //     side,
+    //     mode: tradeMode,
+    //     pattern,
+    //     market,
+    // });
 
-    if (failedRule) {
-        const failedAction = String(
-            failedRule.effective_action || failedRule.suggested_action || ""
-        ).toUpperCase();
+    // if (failedRule) {
+    //     const failedAction = String(
+    //         failedRule.effective_action || failedRule.suggested_action || ""
+    //     ).toUpperCase();
 
-        const effectiveScorePenalty = clamp(
-            Number(failedRule.effective_score_penalty || failedRule.score_penalty || 0),
-            0,
-            1.5
-        );
+    //     const effectiveScorePenalty = clamp(
+    //         Number(failedRule.effective_score_penalty || failedRule.score_penalty || 0),
+    //         0,
+    //         1.5
+    //     );
 
-        const effectiveRiskMultiplier = clamp(
-            Number(failedRule.effective_risk_multiplier || failedRule.risk_multiplier || 1),
-            0.3,
-            1
-        );
+    //     const effectiveRiskMultiplier = clamp(
+    //         Number(failedRule.effective_risk_multiplier || failedRule.risk_multiplier || 1),
+    //         0.3,
+    //         1
+    //     );
 
-        if (failedAction === "BLOCK_TRADE") {
-            return {
-                action: "NO_TRADE",
-                reason: "AVOIDING_KNOWN_FAILURE_PATTERN",
-                score: 0,
-                mode: tradeMode,
-                trend: trendContext.overallTrend,
-                defensiveFlags: {
-                    ...defensiveFlags,
-                    warningMatched: true,
-                    lotMultiplier: effectiveRiskMultiplier,
-                    tpMultiplier: effectiveRiskMultiplier,
-                    scorePenalty: effectiveScorePenalty,
-                    failedPatternAction: failedAction,
-                    matchLevel: failedRule.match_level || null,
-                    reason: "KNOWN_FAILURE_PATTERN_BLOCK",
-                },
-                adaptiveScoreDelta: 0,
-                historicalVolumeSignal,
-                thresholdContext: getDynamicThresholdContext({
-                    mode: tradeMode,
-                    trend: trendContext.overallTrend,
-                    adaptiveScoreDelta: 0,
-                    historicalVolumeSignal,
-                    defensiveFlags: {
-                        ...defensiveFlags,
-                        warningMatched: true,
-                    },
-                    symbol: market?.symbol,
-                    regimeQuality: regimeContext.quality,
-                    hierarchical,
-                }),
-                scoreBreakdown: null,
-                regimeContext,
-                hierarchical,
-            };
-        }
+    //     if (failedAction === "BLOCK_TRADE") {
+    //         return {
+    //             action: "NO_TRADE",
+    //             reason: "AVOIDING_KNOWN_FAILURE_PATTERN",
+    //             score: 0,
+    //             mode: tradeMode,
+    //             trend: trendContext.overallTrend,
+    //             defensiveFlags: {
+    //                 ...defensiveFlags,
+    //                 warningMatched: true,
+    //                 lotMultiplier: effectiveRiskMultiplier,
+    //                 tpMultiplier: effectiveRiskMultiplier,
+    //                 scorePenalty: effectiveScorePenalty,
+    //                 failedPatternAction: failedAction,
+    //                 matchLevel: failedRule.match_level || null,
+    //                 reason: "KNOWN_FAILURE_PATTERN_BLOCK",
+    //             },
+    //             adaptiveScoreDelta: 0,
+    //             historicalVolumeSignal,
+    //             thresholdContext: getDynamicThresholdContext({
+    //                 mode: tradeMode,
+    //                 trend: trendContext.overallTrend,
+    //                 adaptiveScoreDelta: 0,
+    //                 historicalVolumeSignal,
+    //                 defensiveFlags: {
+    //                     ...defensiveFlags,
+    //                     warningMatched: true,
+    //                 },
+    //                 symbol: market?.symbol,
+    //                 regimeQuality: regimeContext.quality,
+    //                 hierarchical,
+    //             }),
+    //             scoreBreakdown: null,
+    //             regimeContext,
+    //             hierarchical,
+    //         };
+    //     }
 
-        if (failedAction === "WARNING" || failedAction === "REDUCE_SCORE" || failedAction === "REDUCE_RISK") {
-            defensiveFlags = {
-                warningMatched: true,
-                lotMultiplier: effectiveRiskMultiplier,
-                tpMultiplier: Math.max(0.55, effectiveRiskMultiplier),
-                scorePenalty: effectiveScorePenalty,
-                failedPatternAction: failedAction,
-                matchLevel: failedRule.match_level || null,
-                reason: "KNOWN_FAILURE_PATTERN_WARNING",
-            };
-        }
-    }
+    //     if (failedAction === "WARNING" || failedAction === "REDUCE_SCORE" || failedAction === "REDUCE_RISK") {
+    //         defensiveFlags = {
+    //             warningMatched: true,
+    //             lotMultiplier: effectiveRiskMultiplier,
+    //             tpMultiplier: Math.max(0.55, effectiveRiskMultiplier),
+    //             scorePenalty: effectiveScorePenalty,
+    //             failedPatternAction: failedAction,
+    //             matchLevel: failedRule.match_level || null,
+    //             reason: "KNOWN_FAILURE_PATTERN_WARNING",
+    //         };
+    //     }
+    // }
 
     let adaptiveScoreDelta = 0;
     const sessionName = market?.sessionName || session?.name || null;

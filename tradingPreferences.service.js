@@ -113,7 +113,7 @@ function isOpenDecision(decision) {
 }
 
 function isTradingEngineEnabled(tradingPreferences) {
-  return Number(tradingPreferences?.engnine_enabled ?? 1) === 1;
+  return Number(tradingPreferences?.engine_enabled ?? 1) === 1;
 }
 
 module.exports = {
