@@ -2769,9 +2769,6 @@ app.get("/user-trade-history", async (req, res) => {
       accountId = null,
       startDate,
       endDate,
-      // symbol = null,
-      // mode = null,
-      // eventType = null,
       page = 1,
       limit = 100,
     } = req.query || {};
@@ -2784,19 +2781,6 @@ app.get("/user-trade-history", async (req, res) => {
 
     const safeStartDate = String(startDate || "").trim();
     const safeEndDate = String(endDate || "").trim();
-
-    // const safeSymbol =
-    //   symbol === undefined || symbol === null || String(symbol).trim() === ""
-    //     ? null
-    //     : String(symbol).trim();
-    // const safeMode =
-    //   mode === undefined || mode === null || String(mode).trim() === ""
-    //     ? null
-    //     : String(mode).trim().toUpperCase();
-    // const safeEventType =
-    //   eventType === undefined || eventType === null || String(eventType).trim() === ""
-    //     ? null
-    //     : String(eventType).trim().toUpperCase();
 
     const safePage = Math.max(1, parseInt(page, 10) || 1);
     const safeLimit = Math.max(1, Math.min(500, parseInt(limit, 10) || 100));
@@ -2818,6 +2802,7 @@ app.get("/user-trade-history", async (req, res) => {
 
     const where = [
       "firebase_user_id = ?",
+      "event_type = 'CLOSE_ORDER'",
       "DATE(COALESCE(event_time, created_at)) >= ?",
       "DATE(COALESCE(event_time, created_at)) <= ?",
     ];
@@ -2828,37 +2813,21 @@ app.get("/user-trade-history", async (req, res) => {
       params.push(safeAccountId);
     }
 
-    // if (safeSymbol) {
-    //   where.push("symbol = ?");
-    //   params.push(safeSymbol);
-    // }
-
-    // if (safeMode) {
-    //   where.push("mode = ?");
-    //   params.push(safeMode);
-    // }
-
-    // if (safeEventType) {
-    //   where.push("event_type = ?");
-    //   params.push(safeEventType);
-    // }
-
     const whereSql = where.join(" AND ");
 
     const summarySql = `
       SELECT
-        COUNT(*) AS totalEvents,
-        SUM(CASE WHEN event_type = 'WAIT_ORDER' THEN 1 ELSE 0 END) AS waitOrders,
-        SUM(CASE WHEN event_type = 'OPEN_ORDER' THEN 1 ELSE 0 END) AS openOrders,
-        SUM(CASE WHEN event_type = 'CLOSE_ORDER' THEN 1 ELSE 0 END) AS closeOrders,
-        SUM(CASE WHEN event_type = 'CANCEL_ORDER' THEN 1 ELSE 0 END) AS cancelOrders,
-        SUM(CASE WHEN event_type = 'CLOSE_EMERGENCY' THEN 1 ELSE 0 END) AS emergencyCloses,
-
-        SUM(CASE WHEN event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY') AND profit > 0 THEN 1 ELSE 0 END) AS winTrades,
-        SUM(CASE WHEN event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY') AND profit < 0 THEN 1 ELSE 0 END) AS lossTrades,
-        SUM(CASE WHEN event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY') THEN profit ELSE 0 END) AS netProfit,
-        SUM(CASE WHEN event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY') AND profit > 0 THEN profit ELSE 0 END) AS grossProfit,
-        SUM(CASE WHEN event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY') AND profit < 0 THEN profit ELSE 0 END) AS grossLoss
+        COUNT(*) AS closedTrades,
+        SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) AS winTrades,
+        SUM(CASE WHEN profit < 0 THEN 1 ELSE 0 END) AS lossTrades,
+        SUM(CASE WHEN profit = 0 THEN 1 ELSE 0 END) AS breakevenTrades,
+        SUM(profit) AS netProfit,
+        SUM(CASE WHEN profit > 0 THEN profit ELSE 0 END) AS grossProfit,
+        SUM(CASE WHEN profit < 0 THEN profit ELSE 0 END) AS grossLoss,
+        AVG(profit) AS avgProfit,
+        MAX(profit) AS bestTrade,
+        MIN(profit) AS worstTrade,
+        SUM(lot) AS totalLot
       FROM trade_history
       WHERE ${whereSql}
     `;
@@ -2903,42 +2872,36 @@ app.get("/user-trade-history", async (req, res) => {
 
     const summaryRow = summaryRows?.[0] || {};
     const total = Number(countRows?.[0]?.total || 0);
-
-    const closeTrades =
-      Number(summaryRow.winTrades || 0) + Number(summaryRow.lossTrades || 0);
+    const closedTrades = Number(summaryRow.closedTrades || 0);
+    const winTrades = Number(summaryRow.winTrades || 0);
+    const lossTrades = Number(summaryRow.lossTrades || 0);
 
     const winRate =
-      closeTrades > 0
-        ? Number(((Number(summaryRow.winTrades || 0) / closeTrades) * 100).toFixed(2))
+      closedTrades > 0
+        ? Number(((winTrades / closedTrades) * 100).toFixed(2))
         : 0;
 
     const data = Array.isArray(dataRows)
       ? dataRows.map((row) => {
-        const eventTypeUpper = String(row.eventType || "").toUpperCase();
         const profitNum = Number(row.profit || 0);
 
-        let status = "NEUTRAL";
-        if (eventTypeUpper === "WAIT_ORDER") status = "PENDING";
-        else if (eventTypeUpper === "OPEN_ORDER") status = "OPENED";
-        else if (eventTypeUpper === "CANCEL_ORDER") status = "CANCELLED";
-        else if (eventTypeUpper === "CLOSE_EMERGENCY") status = "EMERGENCY_CLOSED";
-        else if (eventTypeUpper === "CLOSE_ORDER" && profitNum > 0) status = "WIN";
-        else if (eventTypeUpper === "CLOSE_ORDER" && profitNum < 0) status = "LOSS";
-        else if (eventTypeUpper === "CLOSE_ORDER") status = "BREAKEVEN";
+        let status = "BREAKEVEN";
+        if (profitNum > 0) status = "WIN";
+        else if (profitNum < 0) status = "LOSS";
 
         return {
           id: Number(row.id || 0),
           firebaseUserId: row.firebaseUserId || "",
           accountId: row.accountId ?? null,
           ticketId: row.ticketId ?? null,
-          eventType: row.eventType || "",
+          eventType: row.eventType || "CLOSE_ORDER",
           symbol: row.symbol || "",
           side: row.side || "",
           lot: Number(row.lot || 0),
           price: Number(row.price || 0),
           sl: Number(row.sl || 0),
           tp: Number(row.tp || 0),
-          profit: Number(row.profit || 0),
+          profit: profitNum,
           mode: row.mode || "",
           status,
           eventTime: row.eventTime || null,
@@ -2955,24 +2918,21 @@ app.get("/user-trade-history", async (req, res) => {
         accountId: Number.isFinite(safeAccountId) ? safeAccountId : null,
         startDate: safeStartDate,
         endDate: safeEndDate,
-        // symbol: safeSymbol,
-        // mode: safeMode,
-        // eventType: safeEventType,
+        eventType: "CLOSE_ORDER",
       },
       summary: {
-        totalEvents: Number(summaryRow.totalEvents || 0),
-        waitOrders: Number(summaryRow.waitOrders || 0),
-        openOrders: Number(summaryRow.openOrders || 0),
-        closeOrders: Number(summaryRow.closeOrders || 0),
-        cancelOrders: Number(summaryRow.cancelOrders || 0),
-        emergencyCloses: Number(summaryRow.emergencyCloses || 0),
-        winTrades: Number(summaryRow.winTrades || 0),
-        lossTrades: Number(summaryRow.lossTrades || 0),
-        closedTrades: closeTrades,
+        closedTrades,
+        winTrades,
+        lossTrades,
+        breakevenTrades: Number(summaryRow.breakevenTrades || 0),
         winRate,
         netProfit: Number(summaryRow.netProfit || 0),
         grossProfit: Number(summaryRow.grossProfit || 0),
         grossLoss: Number(summaryRow.grossLoss || 0),
+        avgProfit: Number(summaryRow.avgProfit || 0),
+        bestTrade: Number(summaryRow.bestTrade || 0),
+        worstTrade: Number(summaryRow.worstTrade || 0),
+        totalLot: Number(summaryRow.totalLot || 0),
       },
       pagination: {
         total,
