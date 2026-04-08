@@ -534,6 +534,95 @@ function resolveConfidenceLevel({
   return level;
 }
 
+// function buildUserAdaptiveProfile({
+//   recentPerformance = null,
+//   mode = "NORMAL",
+// } = {}) {
+//   const normalizedMode = normalizeAdaptiveMode(mode);
+//   const isScalp = normalizedMode === "SCALP";
+//   const perf = recentPerformance && typeof recentPerformance === "object"
+//     ? recentPerformance
+//     : null;
+
+//   const sampleCount = Number(perf?.sampleCount || 0);
+//   const winRate = Number(perf?.winRate || 0);
+//   const netProfit = Number(perf?.netProfit || 0);
+//   const profitFactor = Number(perf?.profitFactor || 0);
+//   const lossStreak = Number(perf?.lossStreak || 0);
+//   const winStreak = Number(perf?.winStreak || 0);
+
+//   const profile = {
+//     enabled: false,
+//     stage: "NO_DATA",
+//     sampleCount,
+//     minScoreBoost: 0,
+//     lotMultiplier: 1,
+//     slMultiplier: 1,
+//     tpMultiplier: 1,
+//     retraceMultiplier: 1,
+//     reason: "NO_DATA",
+//   };
+
+//   if (sampleCount < 6) {
+//     return profile;
+//   }
+
+//   profile.enabled = true;
+//   profile.stage = "OBSERVE";
+//   profile.reason = "OBSERVE";
+
+//   // ฟอร์มแย่ -> ลด aggression แต่ยังไม่ hard stop
+//   if (
+//     lossStreak >= 4 ||
+//     (sampleCount >= 8 && profitFactor > 0 && profitFactor < 0.85 && netProfit < 0) ||
+//     (sampleCount >= 8 && winRate < 38 && netProfit < 0)
+//   ) {
+//     profile.stage = "DEFENSIVE";
+//     profile.reason = "RECENT_PERFORMANCE_WEAK";
+//     profile.minScoreBoost = isScalp ? 0.20 : 0.30;
+//     profile.lotMultiplier = isScalp ? 0.72 : 0.65;
+//     profile.slMultiplier = 1.03;
+//     profile.tpMultiplier = isScalp ? 0.93 : 0.90;
+//     profile.retraceMultiplier = isScalp ? 1.08 : 1.12;
+//     return profile;
+//   }
+
+//   // ฟอร์มอ่อนแบบไม่หนักมาก
+//   if (
+//     lossStreak >= 2 ||
+//     (sampleCount >= 8 && netProfit < 0) ||
+//     (sampleCount >= 8 && profitFactor > 0 && profitFactor < 1.0)
+//   ) {
+//     profile.stage = "CAUTIOUS";
+//     profile.reason = "RECENT_PERFORMANCE_SOFT";
+//     profile.minScoreBoost = isScalp ? 0.08 : 0.12;
+//     profile.lotMultiplier = isScalp ? 0.88 : 0.82;
+//     profile.slMultiplier = 1.01;
+//     profile.tpMultiplier = 0.97;
+//     profile.retraceMultiplier = 1.04;
+//     return profile;
+//   }
+
+//   // ฟอร์มดี -> เพิ่มได้แค่นิดเดียว เน้นรักษาพอร์ทก่อน
+//   if (
+//     sampleCount >= 8 &&
+//     winRate >= 60 &&
+//     netProfit > 0 &&
+//     (profitFactor === 99 || profitFactor >= 1.25)
+//   ) {
+//     profile.stage = "POSITIVE";
+//     profile.reason = "RECENT_PERFORMANCE_STRONG";
+//     profile.minScoreBoost = 0;
+//     profile.lotMultiplier = isScalp ? 1.05 : 1.08;
+//     profile.slMultiplier = 1.0;
+//     profile.tpMultiplier = isScalp ? 1.03 : 1.05;
+//     profile.retraceMultiplier = isScalp ? 0.97 : 0.95;
+//     return profile;
+//   }
+
+//   return profile;
+// }
+
 function buildUserAdaptiveProfile({
   recentPerformance = null,
   mode = "NORMAL",
@@ -571,23 +660,25 @@ function buildUserAdaptiveProfile({
   profile.stage = "OBSERVE";
   profile.reason = "OBSERVE";
 
-  // ฟอร์มแย่ -> ลด aggression แต่ยังไม่ hard stop
+  // ฟอร์มแย่มาก -> กดหนัก โดยเฉพาะ SCALP
   if (
-    lossStreak >= 4 ||
-    (sampleCount >= 8 && profitFactor > 0 && profitFactor < 0.85 && netProfit < 0) ||
-    (sampleCount >= 8 && winRate < 38 && netProfit < 0)
+    lossStreak >= (isScalp ? 3 : 4) ||
+    (sampleCount >= 8 && profitFactor > 0 && profitFactor < (isScalp ? 0.95 : 0.85) && netProfit < 0) ||
+    (sampleCount >= 8 && winRate < (isScalp ? 42 : 38) && netProfit < 0)
   ) {
     profile.stage = "DEFENSIVE";
     profile.reason = "RECENT_PERFORMANCE_WEAK";
-    profile.minScoreBoost = isScalp ? 0.20 : 0.30;
-    profile.lotMultiplier = isScalp ? 0.72 : 0.65;
-    profile.slMultiplier = 1.03;
-    profile.tpMultiplier = isScalp ? 0.93 : 0.90;
-    profile.retraceMultiplier = isScalp ? 1.08 : 1.12;
+
+    profile.minScoreBoost = isScalp ? 0.40 : 0.32;
+    profile.lotMultiplier = isScalp ? 0.58 : 0.68;
+    profile.slMultiplier = 0.96;
+    profile.tpMultiplier = isScalp ? 0.90 : 0.94;
+    profile.retraceMultiplier = isScalp ? 0.88 : 0.92;
+
     return profile;
   }
 
-  // ฟอร์มอ่อนแบบไม่หนักมาก
+  // ฟอร์มอ่อน -> กดระดับกลาง
   if (
     lossStreak >= 2 ||
     (sampleCount >= 8 && netProfit < 0) ||
@@ -595,15 +686,17 @@ function buildUserAdaptiveProfile({
   ) {
     profile.stage = "CAUTIOUS";
     profile.reason = "RECENT_PERFORMANCE_SOFT";
-    profile.minScoreBoost = isScalp ? 0.08 : 0.12;
-    profile.lotMultiplier = isScalp ? 0.88 : 0.82;
-    profile.slMultiplier = 1.01;
-    profile.tpMultiplier = 0.97;
-    profile.retraceMultiplier = 1.04;
+
+    profile.minScoreBoost = isScalp ? 0.18 : 0.12;
+    profile.lotMultiplier = isScalp ? 0.78 : 0.86;
+    profile.slMultiplier = 0.99;
+    profile.tpMultiplier = isScalp ? 0.95 : 0.98;
+    profile.retraceMultiplier = isScalp ? 0.94 : 0.98;
+
     return profile;
   }
 
-  // ฟอร์มดี -> เพิ่มได้แค่นิดเดียว เน้นรักษาพอร์ทก่อน
+  // ฟอร์มดี -> เพิ่มเล็กน้อยพอ
   if (
     sampleCount >= 8 &&
     winRate >= 60 &&
@@ -612,11 +705,13 @@ function buildUserAdaptiveProfile({
   ) {
     profile.stage = "POSITIVE";
     profile.reason = "RECENT_PERFORMANCE_STRONG";
+
     profile.minScoreBoost = 0;
-    profile.lotMultiplier = isScalp ? 1.05 : 1.08;
+    profile.lotMultiplier = isScalp ? 1.02 : 1.05;
     profile.slMultiplier = 1.0;
-    profile.tpMultiplier = isScalp ? 1.03 : 1.05;
-    profile.retraceMultiplier = isScalp ? 0.97 : 0.95;
+    profile.tpMultiplier = isScalp ? 1.02 : 1.04;
+    profile.retraceMultiplier = isScalp ? 0.96 : 0.95;
+
     return profile;
   }
 
