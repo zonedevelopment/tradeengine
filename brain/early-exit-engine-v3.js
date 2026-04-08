@@ -714,24 +714,38 @@ function getLowVolumeProfitHoldLimitMinutes({ mode = "NORMAL", symbol = "" }) {
 //     mins >= profile.scalpTimeoutLowVolumeMinutes &&
 //     profit > 0 &&
 //     progress.progressToTarget < profile.smallProfitMaxProgressToTarget &&
-//     profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak &&
+//     (
+//       profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak ||
+//       confirmation.level === "STRONG"
+//     )
+//   ) {
+//     return {
+//       action: "TAKE_SMALL_PROFIT",
+//       reason: "SCALP_TIMEOUT_LOW_VOLUME_FAST",
+//     };
+//   }
+
+//   if (
+//     mins >= profile.scalpTimeoutNoProgressMinutes &&
+//     profit > 0 &&
+//     progress.progressToTarget < 0.35 &&
 //     confirmation.level !== "NONE"
 //   ) {
 //     return {
 //       action: "TAKE_SMALL_PROFIT",
-//       reason: "SCALP_TIMEOUT_LOW_VOLUME_CONFIRMED",
+//       reason: "SCALP_TIMEOUT_STALLED_PROFIT",
 //     };
 //   }
 
 //   if (
 //     mins >= profile.scalpTimeoutNoProgressMinutes &&
 //     profit < 0 &&
-//     progress.progressToTarget < 0.18 &&
-//     confirmation.level === "STRONG"
+//     progress.progressToTarget < 0.22 &&
+//     confirmation.level !== "NONE"
 //   ) {
 //     return {
 //       action: "CUT_LOSS_NOW",
-//       reason: "SCALP_TIMEOUT_NO_PROGRESS_CONFIRMED",
+//       reason: "SCALP_TIMEOUT_NO_PROGRESS_FAST",
 //     };
 //   }
 
@@ -758,6 +772,22 @@ function shouldExitScalpTimeout({
   const confirmation = detectExitConfirmation(candles, side);
   const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
 
+  // บวกอยู่และเริ่มย่อกลับ หลังถือมาระยะหนึ่ง -> เก็บกำไร ไม่รอให้ย้อนลึก
+  if (
+    profit > 0 &&
+    mins >= Math.max(4, profile.scalpTimeoutLowVolumeMinutes - 2) &&
+    progress.progressToTarget >= 0.42 &&
+    (
+      profitRetractionRatio >= Math.max(0.16, profile.smallProfitMinPullbackFromPeak - 0.04) ||
+      confirmation.hasStructureBreak
+    )
+  ) {
+    return {
+      action: "TAKE_SMALL_PROFIT",
+      reason: "SCALP_PROFIT_RETRACTION_PROTECT",
+    };
+  }
+
   if (
     String(historicalVolumeSignal || "").toUpperCase() === "LOW_VOLUME" &&
     mins >= profile.scalpTimeoutLowVolumeMinutes &&
@@ -777,12 +807,25 @@ function shouldExitScalpTimeout({
   if (
     mins >= profile.scalpTimeoutNoProgressMinutes &&
     profit > 0 &&
-    progress.progressToTarget < 0.35 &&
+    progress.progressToTarget < 0.30 &&
     confirmation.level !== "NONE"
   ) {
     return {
       action: "TAKE_SMALL_PROFIT",
       reason: "SCALP_TIMEOUT_STALLED_PROFIT",
+    };
+  }
+
+  // ผิดทางเร็ว + มีสัญญาณยืนยัน -> cut เร็วขึ้น
+  if (
+    mins >= Math.max(4, profile.scalpTimeoutNoProgressMinutes - 4) &&
+    profit <= profile.scalpFailedContinuationLoss &&
+    progress.progressToTarget < 0.18 &&
+    confirmation.level !== "NONE"
+  ) {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: "SCALP_FAILED_CONTINUATION_EARLY",
     };
   }
 
@@ -813,8 +856,15 @@ function shouldExitScalpTimeout({
 //   if (normalizedMode !== "SCALP" && normalizedMode !== "MICRO_SCALP") return false;
 
 //   const profit = toNumber(currentProfit, 0);
-//   if (profit > -0.25) return false;
-//   if (toNumber(holdingMinutes, 0) < 8) return false;
+//   const mins = toNumber(holdingMinutes, 0);
+
+//   if (normalizedMode === "MICRO_SCALP") {
+//     if (profit > -0.12) return false;
+//     if (mins < 4) return false;
+//   } else {
+//     if (profit > -0.18) return false;
+//     if (mins < 5) return false;
+//   }
 
 //   const last = candles[candles.length - 1] || {};
 //   const prev = candles[candles.length - 2] || {};
@@ -824,11 +874,12 @@ function shouldExitScalpTimeout({
 //   const confirmation = detectExitConfirmation(candles, side);
 
 //   const weakMomentum =
-//     lastBody < avgB * 0.75 &&
-//     prevBody < avgB * 0.9;
+//     lastBody < avgB * 0.85 &&
+//     prevBody < avgB * 0.95;
 
-//   return weakMomentum && reversalScore >= 1.6 && confirmation.level === "STRONG";
+//   return weakMomentum && reversalScore >= 1.2 && confirmation.level !== "NONE";
 // }
+
 function shouldCutWeakScalpTrade({
   mode = "NORMAL",
   currentProfit = 0,
@@ -844,11 +895,11 @@ function shouldCutWeakScalpTrade({
   const mins = toNumber(holdingMinutes, 0);
 
   if (normalizedMode === "MICRO_SCALP") {
-    if (profit > -0.12) return false;
-    if (mins < 4) return false;
+    if (profit > -0.10) return false;
+    if (mins < 3) return false;
   } else {
-    if (profit > -0.18) return false;
-    if (mins < 5) return false;
+    if (profit > -0.15) return false;
+    if (mins < 4) return false;
   }
 
   const last = candles[candles.length - 1] || {};
@@ -859,10 +910,10 @@ function shouldCutWeakScalpTrade({
   const confirmation = detectExitConfirmation(candles, side);
 
   const weakMomentum =
-    lastBody < avgB * 0.85 &&
-    prevBody < avgB * 0.95;
+    lastBody < avgB * 0.82 &&
+    prevBody < avgB * 0.92;
 
-  return weakMomentum && reversalScore >= 1.2 && confirmation.level !== "NONE";
+  return weakMomentum && reversalScore >= 1.0 && confirmation.level !== "NONE";
 }
 
 function shouldTakeProfitOnLowVolume({
@@ -897,6 +948,40 @@ function shouldTakeProfitOnLowVolume({
   return true;
 }
 
+// function shouldTakeSmallProfitByDanger({
+//   profit = 0,
+//   profile,
+//   progress,
+//   riskLevel = "LOW",
+//   adjustedScore = 0,
+//   confirmation,
+//   openPosition = {},
+// }) {
+//   const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
+
+//   if (profit < profile.minProfitForHighRiskExit) return false;
+//   if (progress.progressToTarget >= 0.45) return false;
+//   if (confirmation.level === "NONE") return false;
+
+//   if (
+//     riskLevel === "CRITICAL" &&
+//     adjustedScore >= profile.strongReversalThresholdProfit &&
+//     profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak
+//   ) {
+//     return true;
+//   }
+
+//   if (
+//     riskLevel === "HIGH" &&
+//     adjustedScore >= profile.strongReversalThresholdProfit + 0.15 &&
+//     profitRetractionRatio >= profile.smallProfitMinPullbackFromPeak
+//   ) {
+//     return true;
+//   }
+
+//   return false;
+// }
+
 function shouldTakeSmallProfitByDanger({
   profit = 0,
   profile,
@@ -907,10 +992,31 @@ function shouldTakeSmallProfitByDanger({
   openPosition = {},
 }) {
   const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
+  const safeProgress = Number(progress?.progressToTarget || 0);
+  const safeConfirmation = confirmation || { level: "NONE", hasStructureBreak: false };
 
   if (profit < profile.minProfitForHighRiskExit) return false;
-  if (progress.progressToTarget >= 0.45) return false;
-  if (confirmation.level === "NONE") return false;
+  if (safeConfirmation.level === "NONE") return false;
+
+  // ไปได้ลึกมากแล้ว + เริ่มย่อกลับ = เก็บกำไรบางส่วน/ออกก่อน
+  if (
+    safeProgress >= 0.72 &&
+    profitRetractionRatio >= Math.max(0.18, profile.smallProfitMinPullbackFromPeak - 0.04)
+  ) {
+    return true;
+  }
+
+  // กำไรระดับกลาง แต่โครงสร้างเริ่มเสีย ให้เก็บได้
+  if (
+    safeProgress >= 0.48 &&
+    safeConfirmation.hasStructureBreak &&
+    profitRetractionRatio >= Math.max(0.16, profile.smallProfitMinPullbackFromPeak - 0.06)
+  ) {
+    return true;
+  }
+
+  // logic เดิม แต่ชะลอไม่ให้เก็บเร็วเกินไป
+  if (safeProgress >= 0.62) return false;
 
   if (
     riskLevel === "CRITICAL" &&
