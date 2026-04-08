@@ -284,7 +284,7 @@ function analyzeM5FourCandleFollow(candles = []) {
         };
     }
 
-    const last4 = candles.slice(-3);
+    const last4 = candles.slice(-4);
 
     let bullishCount = 0;
     let bearishCount = 0;
