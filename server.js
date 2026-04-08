@@ -388,6 +388,15 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function roundLot(value, step = 0.01) {
+  const n = toNum(value, 0);
+  return Number((Math.round(n / step) * step).toFixed(2));
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function getLastCandle(candles = [], indexFromEnd = 1) {
   if (!Array.isArray(candles) || candles.length < indexFromEnd) return null;
   return candles[candles.length - indexFromEnd] || null;
@@ -409,6 +418,120 @@ function normalizeAdaptiveMode(mode = "NORMAL") {
   const raw = String(mode || "NORMAL").trim().toUpperCase();
   if (raw === "MICRO_SCALP") return "SCALP";
   return raw || "NORMAL";
+}
+
+/**
+ * กติกา:
+ * 1) userBaseLot = lot ต่ำสุดเสมอ
+ * 2) balance <= 100 => ใช้ base lot
+ * 3) 100 < balance <= 200 => เพิ่มได้สูงสุด +0.02 ตามความมั่นใจ
+ * 4) balance > 200 => โตต่อแบบค่อยเป็นค่อยไป
+ * 5) ไม่แตะ sl/tp/retracement
+ */
+function calculateProgressiveLotSize({
+  userBaseLot = 0,
+  score,
+  confidenceLevel = "NORMAL",
+  balance,
+}) {
+  const safeConfiguredBaseLot = toNum(userBaseLot, 0);
+  const safeBalance = Math.max(0, toNum(balance, 0));
+  const safeScore = Math.abs(toNum(score, 0));
+  const level = String(confidenceLevel || "NORMAL").toUpperCase();
+
+  // ถ้าผู้ใช้ตั้ง base lot มา ใช้เป็น floor
+  // ถ้าไม่ได้ตั้งหรือเป็น 0.00 ให้ระบบเริ่มจาก 0.01
+  const baseLot =
+    safeConfiguredBaseLot > 0
+      ? Math.max(0.01, Number(safeConfiguredBaseLot.toFixed(2)))
+      : 0.01;
+
+  // เพดานการขยาย lot ตามยอดคงเหลือ
+  // <=100  => +0.02
+  // <=200  => +0.03
+  // <=300  => +0.04
+  // ...
+  let maxExtraLot = 0.02;
+  if (safeBalance > 100) {
+    maxExtraLot = 0.02 + Math.ceil((safeBalance - 100) / 100) * 0.01;
+  }
+  maxExtraLot = Number(maxExtraLot.toFixed(2));
+
+  // ต้องมั่นใจมากจริงก่อน lot ถึงจะขยายเยอะ
+  let scoreFactor = 0;
+  if (safeScore >= 4.0) scoreFactor = 1.0;
+  else if (safeScore >= 3.5) scoreFactor = 0.85;
+  else if (safeScore >= 3.0) scoreFactor = 0.65;
+  else if (safeScore >= 2.5) scoreFactor = 0.45;
+  else if (safeScore >= 2.0) scoreFactor = 0.25;
+  else scoreFactor = 0;
+
+  let confidenceFactor = 0.4;
+  if (level === "VERY_HIGH") confidenceFactor = 1.0;
+  else if (level === "HIGH") confidenceFactor = 0.8;
+  else if (level === "NORMAL") confidenceFactor = 0.6;
+  else confidenceFactor = 0.4;
+
+  let extraLot = maxExtraLot * scoreFactor * confidenceFactor;
+  extraLot = clamp(Number(extraLot.toFixed(2)), 0, maxExtraLot);
+
+  const systemLot = roundLot(baseLot + extraLot, 0.01);
+
+  return {
+    baseLot: roundLot(baseLot, 0.01),
+    extraLot: roundLot(extraLot, 0.01),
+    maxExtraLot: roundLot(maxExtraLot, 0.01),
+    systemLot,
+    scoreFactor: Number(scoreFactor.toFixed(2)),
+    confidenceFactor: Number(confidenceFactor.toFixed(2)),
+    confidenceLevel: level,
+    balance: safeBalance,
+    hasUserBaseLot: safeConfiguredBaseLot > 0,
+  };
+}
+
+function resolveConfidenceLevel({
+  score,
+  patternType = "",
+  historicalVolumeSignal = "",
+  trend = "",
+  mode = "",
+}) {
+  const safeScore = Math.abs(toNum(score, 0));
+  const pt = String(patternType || "").toUpperCase();
+  const volume = String(historicalVolumeSignal || "").toUpperCase();
+  const safeTrend = String(trend || "").toUpperCase();
+  const safeMode = String(mode || "").toUpperCase();
+
+  let level = "LOW";
+
+  if (safeScore >= 1.9) level = "NORMAL";
+  if (safeScore >= 2.3) level = "HIGH";
+  if (safeScore >= 2.9) level = "VERY_HIGH";
+
+  const strongPattern =
+    pt.includes("FIRST_LEG_BREAKOUT") ||
+    pt.includes("FIRST_LEG_BREAKDOWN") ||
+    pt.includes("ASCENDING_TRIANGLE_BREAKOUT") ||
+    pt.includes("DESCENDING_TRIANGLE_BREAKDOWN") ||
+    pt.includes("ROCKET_SURGE_CONTINUATION") ||
+    pt.includes("WATERFALL_DROP_CONTINUATION");
+
+  if (strongPattern && safeScore >= 2.2) {
+    if (level === "NORMAL") level = "HIGH";
+    else if (level === "HIGH") level = "VERY_HIGH";
+  }
+
+  if (volume === "LOW_VOLUME" && level === "VERY_HIGH") level = "HIGH";
+  if (volume === "LOW_VOLUME" && level === "HIGH") level = "NORMAL";
+
+  if (safeTrend === "NEUTRAL" && level === "VERY_HIGH") level = "HIGH";
+
+  if (safeMode === "SCALP" && safeScore < 2.4 && level === "VERY_HIGH") {
+    level = "HIGH";
+  }
+
+  return level;
 }
 
 function buildUserAdaptiveProfile({
@@ -538,19 +661,47 @@ function computeDynamicLotFromBalance(balance = 0) {
   return Math.max(0.01, dynamicLot);
 }
 
+// function resolveBaseLot({
+//   configuredLot = 0,
+//   balance = 0,
+// }) {
+//   const safeConfiguredLot = Number(configuredLot || 0);
+
+//   // ถ้าผู้ใช้ตั้ง lot > 0 ให้ใช้ค่าที่ตั้ง
+//   if (Number.isFinite(safeConfiguredLot) && safeConfiguredLot > 0) {
+//     return Math.max(0.01, Number(safeConfiguredLot.toFixed(2)));
+//   }
+
+//   // ถ้าตั้งเป็น 0.00 หรือไม่มีค่า ให้ใช้ dynamic lot ของระบบ
+//   return computeDynamicLotFromBalance(balance);
+// }
+
 function resolveBaseLot({
   configuredLot = 0,
   balance = 0,
 }) {
   const safeConfiguredLot = Number(configuredLot || 0);
 
-  // ถ้าผู้ใช้ตั้ง lot > 0 ให้ใช้ค่าที่ตั้ง
+  // ถ้าผู้ใช้ตั้ง lot > 0 ให้ใช้เป็น floor ขั้นต่ำ
   if (Number.isFinite(safeConfiguredLot) && safeConfiguredLot > 0) {
     return Math.max(0.01, Number(safeConfiguredLot.toFixed(2)));
   }
 
-  // ถ้าตั้งเป็น 0.00 หรือไม่มีค่า ให้ใช้ dynamic lot ของระบบ
-  return computeDynamicLotFromBalance(balance);
+  // ถ้าไม่ได้ตั้งหรือเป็น 0.00 แปลว่า "ไม่มี floor จาก user"
+  return 0;
+}
+
+function getMaxSystemLotByBalance(balance = 0) {
+  const safeBalance = Math.max(0, Number(balance || 0));
+
+  // <=100 => 0.02
+  // >100 <=200 => 0.03
+  // >200 <=300 => 0.04
+  // โตไปเรื่อย ๆ ตามช่วงละ 100
+  const band = Math.max(1, Math.ceil(safeBalance / 100));
+  const maxLot = 0.01 + (band * 0.01);
+
+  return Number(Math.max(0.02, maxLot).toFixed(2));
 }
 
 function applyUserAdaptiveProfileToTradeSetup({
@@ -752,78 +903,6 @@ function detectRetracementProfile({ side, candles = [], signalStrength = 0, mode
     slCapRatio: scalpMode ? 0.30 : 0.36,
   };
 }
-
-// function calculateAdaptiveRetracementPoints({
-//   side,
-//   candles = [],
-//   signalStrength = 0,
-//   mode = "NORMAL",
-//   avgRange = 0,
-//   slPoints = 0,
-//   pattern = {},
-//   defensiveFlags = {},
-//   pipMultiplier = 100,
-// }) {
-//   const scalpMode = String(mode || "").toUpperCase().includes("SCALP");
-//   const profile = detectRetracementProfile({ side, candles, signalStrength, mode });
-
-//   let retracePoints = Math.round(Number(avgRange || 0) * Number(profile.retraceMultiplier || 0));
-
-//   // impulse แรง -> ย่อตื้นลง
-//   if (profile.impulseCount >= 3) {
-//     retracePoints = Math.round(retracePoints * 0.90);
-//   } else if (profile.impulseCount === 0) {
-//     retracePoints = Math.round(retracePoints * 1.08);
-//   }
-
-//   // congestion มาก -> ย่อลึกขึ้น
-//   if (profile.congestionCount >= 3) {
-//     retracePoints = Math.round(retracePoints * 1.15);
-//   } else if (profile.congestionCount >= 2) {
-//     retracePoints = Math.round(retracePoints * 1.08);
-//   }
-
-//   // wick สวนทางเยอะ -> ต้องเผื่อย่อมากขึ้น
-//   if (profile.againstWickRatio >= 0.55) {
-//     retracePoints = Math.round(retracePoints * 1.10);
-//   }
-
-//   if (pattern?.isVolumeClimax) {
-//     retracePoints = Math.round(retracePoints * 0.82);
-//   }
-
-//   if (pattern?.isVolumeDrying) {
-//     retracePoints = Math.round(retracePoints * 1.10);
-//   }
-
-//   if (defensiveFlags?.warningMatched) {
-//     retracePoints = Math.round(retracePoints * 1.12);
-//   }
-
-//   const minR = scalpMode
-//     ? Math.round(10 * (pipMultiplier / 100))
-//     : Math.round(18 * (pipMultiplier / 100));
-
-//   const maxR = scalpMode
-//     ? Math.round(110 * (pipMultiplier / 100))
-//     : Math.round(190 * (pipMultiplier / 100));
-
-//   const slCapRatio = Number(profile.slCapRatio || (scalpMode ? 0.30 : 0.36));
-//   const maxRetraceBySL = Math.max(1, Math.round(Number(slPoints || 0) * slCapRatio));
-
-//   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
-//     retracePoints = minR;
-//   }
-
-//   if (retracePoints < minR) retracePoints = minR;
-//   if (retracePoints > maxR) retracePoints = maxR;
-//   if (retracePoints > maxRetraceBySL) retracePoints = maxRetraceBySL;
-
-//   return {
-//     retracePoints,
-//     retraceProfile: profile.profile,
-//   };
-// }
 
 function calculateAdaptiveRetracementPoints({
   side,
@@ -1255,89 +1334,128 @@ function buildTradeSetupFromPattern({
   // - ถ้าผู้ใช้ตั้ง lot > 0 ใช้ค่าที่ตั้ง
   // - ถ้าตั้ง 0.00 หรือไม่มีค่า ใช้ dynamic lot ของระบบ
   // -----------------------------
+  // const resolvedBaseLot = resolveBaseLot({
+  //   configuredLot: userMinLotFloor,
+  //   balance,
+  // });
+
+  // lotSize = resolvedBaseLot;
+
+  // // เผื่อกรณีมีการคำนวณเพี้ยนจาก flow อื่น
+  // if (!Number.isFinite(lotSize) || lotSize <= 0) {
+  //   lotSize = computeDynamicLotFromBalance(balance);
+  // }
+
+  // lotSize = Math.max(0.01, Number(lotSize.toFixed(2)));
+
+  // // -----------------------------
+  // // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
+  // // -----------------------------
+
+  // // retracePoints = retraceResult.retracePoints;
+  // const { retracePoints: adaptiveRetracePoints, retraceProfile } =
+  //   calculateAdaptiveRetracementPoints({
+  //     side,
+  //     candles,
+  //     signalStrength,
+  //     mode: detectedMode,
+  //     avgRange,
+  //     slPoints,
+  //     pattern,
+  //     defensiveFlags,
+  //     pipMultiplier: mult,
+  //     historicalVolumeSignal,
+  //     symbol,
+  //   });
+
+  // retracePoints = adaptiveRetracePoints;
+
+  // // -----------------------------
+  // // 4) คำนวณ lot จาก SL สุดท้าย
+  // // -----------------------------
+  // const modeBaseRisk = detectedMode === "SCALP" ? 1.2 : 2.0;
+  // if (balance && Number(balance) > 0) {
+  //   const riskPercent = calculateDynamicRisk(
+  //     signalStrength,
+  //     pattern?.type,
+  //     detectedMode,
+  //     modeBaseRisk
+  //   );
+
+  //   const riskAmount = Number(balance) * (riskPercent / 100);
+  //   let calculatedLot = riskAmount / slPoints;
+
+  //   if (signalStrength >= 6) {
+  //     calculatedLot *= 1.1;
+  //   } else if (signalStrength < 3) {
+  //     calculatedLot *= 0.75;
+  //   }
+
+  //   if (defensiveFlags?.warningMatched) {
+  //     const lotMultiplier = Number(defensiveFlags?.lotMultiplier || 1);
+  //     if (lotMultiplier > 0) {
+  //       calculatedLot *= lotMultiplier;
+  //     }
+  //   }
+
+  //   lotSize = Number(calculatedLot.toFixed(2));
+
+  //   if (!Number.isFinite(lotSize) || lotSize <= 0) lotSize = 0.01;
+  //   if (lotSize < 0.01) lotSize = 0.01;
+  //   if (lotSize > 5.0) lotSize = 5.0;
+  // }
+
+  // -----------------------------
+  // 4) Lot size ใหม่
+  // - ถ้าผู้ใช้ตั้ง base lot > 0 ใช้เป็น floor
+  // - ถ้า user ไม่ได้ตั้งหรือเป็น 0.00 ให้ใช้ lot ที่ระบบคำนวณได้
+  // - lot expansion ขึ้นกับ score/confidence + balance
+  // -----------------------------
   const resolvedBaseLot = resolveBaseLot({
     configuredLot: userMinLotFloor,
     balance,
   });
 
-  lotSize = resolvedBaseLot;
+  const confidenceLevel = resolveConfidenceLevel({
+    score: signalStrength,
+    patternType: pattern?.type || "",
+    historicalVolumeSignal: historicalVolumeSignal?.signal || historicalVolumeSignal || "",
+    trend: pattern?.structure?.microTrend || "",
+    mode: detectedMode,
+  });
 
-  // เผื่อกรณีมีการคำนวณเพี้ยนจาก flow อื่น
-  if (!Number.isFinite(lotSize) || lotSize <= 0) {
-    lotSize = computeDynamicLotFromBalance(balance);
+  const lotSizing = calculateProgressiveLotSize({
+    userBaseLot: userMinLotFloor,
+    score: signalStrength,
+    confidenceLevel,
+    balance: Number(balance || 0),
+  });
+
+  // lot ที่ระบบคำนวณได้
+  let calculatedLot = Number(lotSizing.systemLot || 0.01);
+
+  // defensiveFlags ยังมีผลลด/เพิ่ม lot ได้
+  if (defensiveFlags?.warningMatched) {
+    const lotMultiplier = Number(defensiveFlags?.lotMultiplier || 1);
+    if (lotMultiplier > 0) {
+      calculatedLot = Number((calculatedLot * lotMultiplier).toFixed(2));
+    }
   }
 
-  lotSize = Math.max(0.01, Number(lotSize.toFixed(2)));
-
-  // -----------------------------
-  // 3) Retracement ใช้ mode จริง + อิง SL สุดท้าย
-  // -----------------------------
-
-  // const retraceResult = calculateAdaptiveRetracementPoints({
-  //   side,
-  //   candles,
-  //   signalStrength,
-  //   mode: detectedMode,
-  //   avgRange,
-  //   slPoints,
-  //   pattern,
-  //   defensiveFlags,
-  //   pipMultiplier: mult,
-  // });
-
-  // retracePoints = retraceResult.retracePoints;
-  const { retracePoints: adaptiveRetracePoints, retraceProfile } =
-    calculateAdaptiveRetracementPoints({
-      side,
-      candles,
-      signalStrength,
-      mode: detectedMode,
-      avgRange,
-      slPoints,
-      pattern,
-      defensiveFlags,
-      pipMultiplier: mult,
-      historicalVolumeSignal,
-      symbol,
-    });
-
-  retracePoints = adaptiveRetracePoints;
-
-  // -----------------------------
-  // 4) คำนวณ lot จาก SL สุดท้าย
-  // -----------------------------
-  const modeBaseRisk = detectedMode === "SCALP" ? 1.2 : 2.0;
-  if (balance && Number(balance) > 0) {
-    const riskPercent = calculateDynamicRisk(
-      signalStrength,
-      pattern?.type,
-      detectedMode,
-      modeBaseRisk
-    );
-
-    const riskAmount = Number(balance) * (riskPercent / 100);
-    let calculatedLot = riskAmount / slPoints;
-
-    if (signalStrength >= 6) {
-      calculatedLot *= 1.1;
-    } else if (signalStrength < 3) {
-      calculatedLot *= 0.75;
-    }
-
-    if (defensiveFlags?.warningMatched) {
-      const lotMultiplier = Number(defensiveFlags?.lotMultiplier || 1);
-      if (lotMultiplier > 0) {
-        calculatedLot *= lotMultiplier;
-      }
-    }
-
-    lotSize = Number(calculatedLot.toFixed(2));
-
-    if (!Number.isFinite(lotSize) || lotSize <= 0) lotSize = 0.01;
-    if (lotSize < 0.01) lotSize = 0.01;
-    if (lotSize > 5.0) lotSize = 5.0;
+  if (!Number.isFinite(calculatedLot) || calculatedLot <= 0) {
+    calculatedLot = 0.01;
   }
 
+  // ถ้าผู้ใช้ตั้ง base lot มา ให้ใช้เป็น floor เท่านั้น
+  if (Number(userMinLotFloor || 0) > 0 && calculatedLot < resolvedBaseLot) {
+    lotSize = resolvedBaseLot;
+  } else {
+    lotSize = calculatedLot;
+  }
+
+  if (lotSize < 0.01) lotSize = 0.01;
+  if (lotSize > 5.0) lotSize = 5.0;
+  
   let tradeSetup = {
     recommended_lot: lotSize,
     sl_points: slPoints,
