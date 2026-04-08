@@ -184,50 +184,50 @@ function getSafeTrendContext(
 }
 
 function resolvePatternSide(pattern = {}) {
-  const rawPattern = String(pattern?.pattern || "").toUpperCase();
-  const rawType = String(pattern?.type || "").toUpperCase();
-  const bias = String(pattern?.bias || "").toUpperCase();
-  const structure = pattern?.structure || {};
+    const rawPattern = String(pattern?.pattern || "").toUpperCase();
+    const rawType = String(pattern?.type || "").toUpperCase();
+    const bias = String(pattern?.bias || "").toUpperCase();
+    const structure = pattern?.structure || {};
 
-  if (
-    rawPattern.includes("BUY") ||
-    rawType.includes("BULLISH") ||
-    rawType.includes("BREAKOUT") ||
-    bias === "BUY"
-  ) {
-    return "BUY";
-  }
+    if (
+        rawPattern.includes("BUY") ||
+        rawType.includes("BULLISH") ||
+        rawType.includes("BREAKOUT") ||
+        bias === "BUY"
+    ) {
+        return "BUY";
+    }
 
-  if (
-    rawPattern.includes("SELL") ||
-    rawType.includes("BEARISH") ||
-    rawType.includes("BREAKDOWN") ||
-    bias === "SELL"
-  ) {
-    return "SELL";
-  }
+    if (
+        rawPattern.includes("SELL") ||
+        rawType.includes("BEARISH") ||
+        rawType.includes("BREAKDOWN") ||
+        bias === "SELL"
+    ) {
+        return "SELL";
+    }
 
-  const microTrend = String(structure?.microTrend || "NEUTRAL").toUpperCase();
+    const microTrend = String(structure?.microTrend || "NEUTRAL").toUpperCase();
 
-  if (
-    structure?.firstLegBreakSell ||
-    structure?.isRetestingResistance ||
-    microTrend === "BEARISH" ||
-    microTrend === "BEARISH_REVERSAL"
-  ) {
-    return "SELL";
-  }
+    if (
+        structure?.firstLegBreakSell ||
+        structure?.isRetestingResistance ||
+        microTrend === "BEARISH" ||
+        microTrend === "BEARISH_REVERSAL"
+    ) {
+        return "SELL";
+    }
 
-  if (
-    structure?.firstLegBreakBuy ||
-    structure?.isRetestingSupport ||
-    microTrend === "BULLISH" ||
-    microTrend === "BULLISH_REVERSAL"
-  ) {
-    return "BUY";
-  }
+    if (
+        structure?.firstLegBreakBuy ||
+        structure?.isRetestingSupport ||
+        microTrend === "BULLISH" ||
+        microTrend === "BULLISH_REVERSAL"
+    ) {
+        return "BUY";
+    }
 
-  return "NEUTRAL";
+    return "NEUTRAL";
 }
 
 function getDirectionSign(side = "NEUTRAL") {
@@ -447,472 +447,472 @@ function getSwingZoneState(candles = [], lookback = 10, price = 0) {
 }
 
 function getLocationState(candles = [], lookback = 10) {
-  const sample = Array.isArray(candles) ? candles.slice(-(lookback + 1)) : [];
+    const sample = Array.isArray(candles) ? candles.slice(-(lookback + 1)) : [];
 
-  if (sample.length < 2) {
+    if (sample.length < 2) {
+        return {
+            state: "MID_RANGE",
+            priorHigh: 0,
+            priorLow: 0,
+            range: 0,
+            atTop: false,
+            atBottom: false,
+            isBreakoutUp: false,
+            isBreakdownDown: false,
+            isRetestBrokenHigh: false,
+            isRetestBrokenLow: false,
+        };
+    }
+
+    const current = getCandleDirection(sample[sample.length - 1] || {});
+    const base = sample.slice(0, -1);
+
+    const highs = base.map((c) => toNumber(c.high));
+    const lows = base.map((c) => toNumber(c.low));
+
+    const priorHigh = highs.length ? Math.max(...highs) : toNumber(current.high, 0);
+    const priorLow = lows.length ? Math.min(...lows) : toNumber(current.low, 0);
+    const range = Math.max(priorHigh - priorLow, 0.00001);
+
+    const close = toNumber(current.close, 0);
+    const high = toNumber(current.high, close);
+    const low = toNumber(current.low, close);
+
+    const nearPct = 0.18;
+    const retestBuffer = range * 0.06;
+
+    const isBreakoutUp = close > priorHigh;
+    const isBreakdownDown = close < priorLow;
+
+    const isRetestBrokenHigh =
+        close > priorHigh &&
+        low <= priorHigh + retestBuffer;
+
+    const isRetestBrokenLow =
+        close < priorLow &&
+        high >= priorLow - retestBuffer;
+
+    const atTop = !isBreakoutUp && close >= priorHigh - range * nearPct;
+    const atBottom = !isBreakdownDown && close <= priorLow + range * nearPct;
+
+    let state = "MID_RANGE";
+    if (isBreakoutUp) state = "BREAKOUT_UP";
+    else if (isBreakdownDown) state = "BREAKDOWN_DOWN";
+    else if (atTop) state = "AT_TOP";
+    else if (atBottom) state = "AT_BOTTOM";
+
     return {
-      state: "MID_RANGE",
-      priorHigh: 0,
-      priorLow: 0,
-      range: 0,
-      atTop: false,
-      atBottom: false,
-      isBreakoutUp: false,
-      isBreakdownDown: false,
-      isRetestBrokenHigh: false,
-      isRetestBrokenLow: false,
+        state,
+        priorHigh,
+        priorLow,
+        range,
+        atTop,
+        atBottom,
+        isBreakoutUp,
+        isBreakdownDown,
+        isRetestBrokenHigh,
+        isRetestBrokenLow,
     };
-  }
-
-  const current = getCandleDirection(sample[sample.length - 1] || {});
-  const base = sample.slice(0, -1);
-
-  const highs = base.map((c) => toNumber(c.high));
-  const lows = base.map((c) => toNumber(c.low));
-
-  const priorHigh = highs.length ? Math.max(...highs) : toNumber(current.high, 0);
-  const priorLow = lows.length ? Math.min(...lows) : toNumber(current.low, 0);
-  const range = Math.max(priorHigh - priorLow, 0.00001);
-
-  const close = toNumber(current.close, 0);
-  const high = toNumber(current.high, close);
-  const low = toNumber(current.low, close);
-
-  const nearPct = 0.18;
-  const retestBuffer = range * 0.06;
-
-  const isBreakoutUp = close > priorHigh;
-  const isBreakdownDown = close < priorLow;
-
-  const isRetestBrokenHigh =
-    close > priorHigh &&
-    low <= priorHigh + retestBuffer;
-
-  const isRetestBrokenLow =
-    close < priorLow &&
-    high >= priorLow - retestBuffer;
-
-  const atTop = !isBreakoutUp && close >= priorHigh - range * nearPct;
-  const atBottom = !isBreakdownDown && close <= priorLow + range * nearPct;
-
-  let state = "MID_RANGE";
-  if (isBreakoutUp) state = "BREAKOUT_UP";
-  else if (isBreakdownDown) state = "BREAKDOWN_DOWN";
-  else if (atTop) state = "AT_TOP";
-  else if (atBottom) state = "AT_BOTTOM";
-
-  return {
-    state,
-    priorHigh,
-    priorLow,
-    range,
-    atTop,
-    atBottom,
-    isBreakoutUp,
-    isBreakdownDown,
-    isRetestBrokenHigh,
-    isRetestBrokenLow,
-  };
 }
 
 function buildHierarchicalContext(candles = [], side = "NEUTRAL") {
-  const longWindow = getWindowState(candles, 20, side);
-  const mediumWindow = getWindowState(candles, 10, side);
-  const setupWindow = getWindowState(candles, 5, side);
-  const triggerWindow = getWindowState(candles, 3, side);
-  const structure10 = buildStructureState(candles, 10);
-  const swingZone10 = getSwingZoneState(candles, 10);
-  const location = getLocationState(candles, 10);
+    const longWindow = getWindowState(candles, 20, side);
+    const mediumWindow = getWindowState(candles, 10, side);
+    const setupWindow = getWindowState(candles, 5, side);
+    const triggerWindow = getWindowState(candles, 3, side);
+    const structure10 = buildStructureState(candles, 10);
+    const swingZone10 = getSwingZoneState(candles, 10);
+    const location = getLocationState(candles, 10);
 
-  const longAligned =
-    (side === "BUY" && longWindow.direction === "UP") ||
-    (side === "SELL" && longWindow.direction === "DOWN");
+    const longAligned =
+        (side === "BUY" && longWindow.direction === "UP") ||
+        (side === "SELL" && longWindow.direction === "DOWN");
 
-  const mediumAligned =
-    (side === "BUY" && mediumWindow.direction === "UP") ||
-    (side === "SELL" && mediumWindow.direction === "DOWN");
+    const mediumAligned =
+        (side === "BUY" && mediumWindow.direction === "UP") ||
+        (side === "SELL" && mediumWindow.direction === "DOWN");
 
-  const setupAligned =
-    (side === "BUY" && setupWindow.direction === "UP") ||
-    (side === "SELL" && setupWindow.direction === "DOWN");
+    const setupAligned =
+        (side === "BUY" && setupWindow.direction === "UP") ||
+        (side === "SELL" && setupWindow.direction === "DOWN");
 
-  const triggerAligned =
-    (side === "BUY" && triggerWindow.direction === "UP") ||
-    (side === "SELL" && triggerWindow.direction === "DOWN");
+    const triggerAligned =
+        (side === "BUY" && triggerWindow.direction === "UP") ||
+        (side === "SELL" && triggerWindow.direction === "DOWN");
 
-  let structureAligned = false;
-  let structureCounter = false;
+    let structureAligned = false;
+    let structureCounter = false;
 
-  if (side === "BUY") {
-    structureAligned =
-      structure10.structure === "HH_HL" ||
-      structure10.structure === "HL_ONLY";
+    if (side === "BUY") {
+        structureAligned =
+            structure10.structure === "HH_HL" ||
+            structure10.structure === "HL_ONLY";
 
-    structureCounter =
-      structure10.structure === "LH_LL" ||
-      structure10.structure === "LL_ONLY";
-  } else if (side === "SELL") {
-    structureAligned =
-      structure10.structure === "LH_LL" ||
-      structure10.structure === "LH_ONLY" ||
-      structure10.structure === "LL_ONLY";
+        structureCounter =
+            structure10.structure === "LH_LL" ||
+            structure10.structure === "LL_ONLY";
+    } else if (side === "SELL") {
+        structureAligned =
+            structure10.structure === "LH_LL" ||
+            structure10.structure === "LH_ONLY" ||
+            structure10.structure === "LL_ONLY";
 
-    structureCounter =
-      structure10.structure === "HH_HL" ||
-      structure10.structure === "HH_ONLY";
-  }
+        structureCounter =
+            structure10.structure === "HH_HL" ||
+            structure10.structure === "HH_ONLY";
+    }
 
-  let score = 0;
-  const reasons = [];
+    let score = 0;
+    const reasons = [];
 
-  if (longAligned) {
-    score += 0.42;
-    reasons.push("L20_ALIGNED");
-  } else if (longWindow.direction !== "NEUTRAL") {
-    score -= 0.50;
-    reasons.push("L20_COUNTER");
-  }
+    if (longAligned) {
+        score += 0.42;
+        reasons.push("L20_ALIGNED");
+    } else if (longWindow.direction !== "NEUTRAL") {
+        score -= 0.50;
+        reasons.push("L20_COUNTER");
+    }
 
-  if (mediumAligned) {
-    score += 0.22;
-    reasons.push("L10_DIR_ALIGNED");
-  } else if (mediumWindow.direction !== "NEUTRAL") {
-    score -= 0.26;
-    reasons.push("L10_DIR_COUNTER");
-  }
+    if (mediumAligned) {
+        score += 0.22;
+        reasons.push("L10_DIR_ALIGNED");
+    } else if (mediumWindow.direction !== "NEUTRAL") {
+        score -= 0.26;
+        reasons.push("L10_DIR_COUNTER");
+    }
 
-  if (structureAligned) {
-    score += 0.34;
-    reasons.push("L10_STRUCTURE_ALIGNED");
-  } else if (structureCounter) {
-    score -= 0.40;
-    reasons.push("L10_STRUCTURE_COUNTER");
-  }
+    if (structureAligned) {
+        score += 0.34;
+        reasons.push("L10_STRUCTURE_ALIGNED");
+    } else if (structureCounter) {
+        score -= 0.40;
+        reasons.push("L10_STRUCTURE_COUNTER");
+    }
 
-  if (setupAligned) {
-    score += 0.16;
-    reasons.push("L5_SETUP_OK");
-  } else if (setupWindow.direction !== "NEUTRAL") {
-    score -= 0.22;
-    reasons.push("L5_SETUP_COUNTER");
-  }
+    if (setupAligned) {
+        score += 0.16;
+        reasons.push("L5_SETUP_OK");
+    } else if (setupWindow.direction !== "NEUTRAL") {
+        score -= 0.22;
+        reasons.push("L5_SETUP_COUNTER");
+    }
 
-  if (triggerAligned) {
-    score += 0.12;
-    reasons.push("L3_TRIGGER_OK");
-  } else if (triggerWindow.direction !== "NEUTRAL") {
-    score -= 0.16;
-    reasons.push("L3_TRIGGER_COUNTER");
-  }
+    if (triggerAligned) {
+        score += 0.12;
+        reasons.push("L3_TRIGGER_OK");
+    } else if (triggerWindow.direction !== "NEUTRAL") {
+        score -= 0.16;
+        reasons.push("L3_TRIGGER_COUNTER");
+    }
 
-  if (side === "BUY" && location.isBreakoutUp) {
-    score += 0.72;
-    reasons.push("LOCATION_BREAKOUT_UP");
-  }
+    if (side === "BUY" && location.isBreakoutUp) {
+        score += 0.72;
+        reasons.push("LOCATION_BREAKOUT_UP");
+    }
 
-  if (side === "SELL" && location.isBreakdownDown) {
-    score += 0.82;
-    reasons.push("LOCATION_BREAKDOWN_DOWN");
-  }
+    if (side === "SELL" && location.isBreakdownDown) {
+        score += 0.82;
+        reasons.push("LOCATION_BREAKDOWN_DOWN");
+    }
 
-  if (side === "BUY" && location.isRetestBrokenHigh) {
-    score += 0.24;
-    reasons.push("LOCATION_RETEST_BROKEN_HIGH");
-  }
+    if (side === "BUY" && location.isRetestBrokenHigh) {
+        score += 0.24;
+        reasons.push("LOCATION_RETEST_BROKEN_HIGH");
+    }
 
-  if (side === "SELL" && location.isRetestBrokenLow) {
-    score += 0.28;
-    reasons.push("LOCATION_RETEST_BROKEN_LOW");
-  }
+    if (side === "SELL" && location.isRetestBrokenLow) {
+        score += 0.28;
+        reasons.push("LOCATION_RETEST_BROKEN_LOW");
+    }
 
-  const strongContinuation =
-    (
-      longAligned &&
-      mediumAligned &&
-      structureAligned &&
-      longWindow.strength >= 2.0 &&
-      mediumWindow.impulseCount >= 2
-    ) ||
-    (
-      side === "BUY" &&
-      location.isBreakoutUp &&
-      mediumAligned &&
-      (setupAligned || triggerAligned)
-    ) ||
-    (
-      side === "SELL" &&
-      location.isBreakdownDown &&
-      mediumAligned &&
-      (setupAligned || triggerAligned)
-    );
+    const strongContinuation =
+        (
+            longAligned &&
+            mediumAligned &&
+            structureAligned &&
+            longWindow.strength >= 2.0 &&
+            mediumWindow.impulseCount >= 2
+        ) ||
+        (
+            side === "BUY" &&
+            location.isBreakoutUp &&
+            mediumAligned &&
+            (setupAligned || triggerAligned)
+        ) ||
+        (
+            side === "SELL" &&
+            location.isBreakdownDown &&
+            mediumAligned &&
+            (setupAligned || triggerAligned)
+        );
 
-  const possibleReversal =
-    !longAligned &&
-    mediumAligned &&
-    triggerAligned &&
-    !structureCounter &&
-    (
-      (side === "BUY" && location.atBottom) ||
-      (side === "SELL" && location.atTop)
-    );
+    const possibleReversal =
+        !longAligned &&
+        mediumAligned &&
+        triggerAligned &&
+        !structureCounter &&
+        (
+            (side === "BUY" && location.atBottom) ||
+            (side === "SELL" && location.atTop)
+        );
 
-  const noisySetup =
-    setupWindow.isCompression &&
-    triggerWindow.direction === "NEUTRAL";
+    const noisySetup =
+        setupWindow.isCompression &&
+        triggerWindow.direction === "NEUTRAL";
 
-  const bullishContinuationBlock =
-    side === "SELL" &&
-    longWindow.direction === "UP" &&
-    mediumWindow.direction === "UP" &&
-    (setupWindow.direction === "UP" || triggerWindow.direction === "UP") &&
-    !structureCounter &&
-    !possibleReversal &&
-    !location.isBreakdownDown;
+    const bullishContinuationBlock =
+        side === "SELL" &&
+        longWindow.direction === "UP" &&
+        mediumWindow.direction === "UP" &&
+        (setupWindow.direction === "UP" || triggerWindow.direction === "UP") &&
+        !structureCounter &&
+        !possibleReversal &&
+        !location.isBreakdownDown;
 
-  const bearishContinuationBlock =
-    side === "BUY" &&
-    longWindow.direction === "DOWN" &&
-    mediumWindow.direction === "DOWN" &&
-    (setupWindow.direction === "DOWN" || triggerWindow.direction === "DOWN") &&
-    !structureCounter &&
-    !possibleReversal &&
-    !location.isBreakoutUp;
+    const bearishContinuationBlock =
+        side === "BUY" &&
+        longWindow.direction === "DOWN" &&
+        mediumWindow.direction === "DOWN" &&
+        (setupWindow.direction === "DOWN" || triggerWindow.direction === "DOWN") &&
+        !structureCounter &&
+        !possibleReversal &&
+        !location.isBreakoutUp;
 
-  const continuationBlockAgainstSide =
-    bullishContinuationBlock || bearishContinuationBlock;
+    const continuationBlockAgainstSide =
+        bullishContinuationBlock || bearishContinuationBlock;
 
-  if (strongContinuation) {
-    score += 0.28;
-    reasons.push("CONTINUATION_STACKED");
-  }
+    if (strongContinuation) {
+        score += 0.28;
+        reasons.push("CONTINUATION_STACKED");
+    }
 
-  if (possibleReversal) {
-    score += 0.08;
-    reasons.push("REVERSAL_EARLY_OK");
-  }
+    if (possibleReversal) {
+        score += 0.08;
+        reasons.push("REVERSAL_EARLY_OK");
+    }
 
-  if (noisySetup) {
-    score -= 0.12;
-    reasons.push("NOISY_TRIGGER");
-  }
+    if (noisySetup) {
+        score -= 0.12;
+        reasons.push("NOISY_TRIGGER");
+    }
 
-  if (continuationBlockAgainstSide) {
-    score -= 0.55;
-    reasons.push("COUNTER_CONTINUATION_BLOCK");
-  }
+    if (continuationBlockAgainstSide) {
+        score -= 0.55;
+        reasons.push("COUNTER_CONTINUATION_BLOCK");
+    }
 
-  if (side === "BUY" && location.atTop && !location.isBreakoutUp) {
-    score -= 0.42;
-    reasons.push("NEAR_SWING_HIGH_BLOCK");
-  }
+    if (side === "BUY" && location.atTop && !location.isBreakoutUp) {
+        score -= 0.42;
+        reasons.push("NEAR_SWING_HIGH_BLOCK");
+    }
 
-  if (side === "SELL" && location.atBottom && !location.isBreakdownDown) {
-    score -= 0.42;
-    reasons.push("NEAR_SWING_LOW_BLOCK");
-  }
+    if (side === "SELL" && location.atBottom && !location.isBreakdownDown) {
+        score -= 0.42;
+        reasons.push("NEAR_SWING_LOW_BLOCK");
+    }
 
-  return {
-    longWindow,
-    mediumWindow,
-    setupWindow,
-    triggerWindow,
-    structure10,
-    swingZone10,
-    location,
-    longAligned,
-    mediumAligned,
-    setupAligned,
-    triggerAligned,
-    structureAligned,
-    structureCounter,
-    strongContinuation,
-    possibleReversal,
-    noisySetup,
-    bullishContinuationBlock,
-    bearishContinuationBlock,
-    continuationBlockAgainstSide,
-    score: Number(score.toFixed(4)),
-    reasons,
-  };
+    return {
+        longWindow,
+        mediumWindow,
+        setupWindow,
+        triggerWindow,
+        structure10,
+        swingZone10,
+        location,
+        longAligned,
+        mediumAligned,
+        setupAligned,
+        triggerAligned,
+        structureAligned,
+        structureCounter,
+        strongContinuation,
+        possibleReversal,
+        noisySetup,
+        bullishContinuationBlock,
+        bearishContinuationBlock,
+        continuationBlockAgainstSide,
+        score: Number(score.toFixed(4)),
+        reasons,
+    };
 }
 
 function resolveTradeMode({
-  pattern = {},
-  trendContext = {},
-  trendFollow4 = {},
-  market = {},
-  hierarchical = null,
+    pattern = {},
+    trendContext = {},
+    trendFollow4 = {},
+    market = {},
+    hierarchical = null,
 }) {
-  const symbol = market?.symbol || "";
-  const gold = isGoldSymbol(symbol);
+    const symbol = market?.symbol || "";
+    const gold = isGoldSymbol(symbol);
 
-  const overallTrend = String(
-    trendContext?.overallTrend || "NEUTRAL"
-  ).toUpperCase();
+    const overallTrend = String(
+        trendContext?.overallTrend || "NEUTRAL"
+    ).toUpperCase();
 
-  const trendStrength = String(
-    trendContext?.trendStrength || "WEAK"
-  ).toUpperCase();
+    const trendStrength = String(
+        trendContext?.trendStrength || "WEAK"
+    ).toUpperCase();
 
-  const followDirection = String(
-    trendFollow4?.direction || "NEUTRAL"
-  ).toUpperCase();
+    const followDirection = String(
+        trendFollow4?.direction || "NEUTRAL"
+    ).toUpperCase();
 
-  const followVolumeConfirmed = Boolean(trendFollow4?.volumeConfirmed);
+    const followVolumeConfirmed = Boolean(trendFollow4?.volumeConfirmed);
 
-  let side = resolvePatternSide(pattern);
-  const reasons = [];
-
-  if (
-    hierarchical?.location?.isBreakdownDown &&
-    (side === "NEUTRAL" || side === "BUY") &&
-    overallTrend !== "BULLISH"
-  ) {
-    side = "SELL";
-    reasons.push("SIDE_OVERRIDE_BY_BREAKDOWN_LOCATION");
-  } else if (
-    hierarchical?.location?.isBreakoutUp &&
-    (side === "NEUTRAL" || side === "SELL") &&
-    overallTrend !== "BEARISH"
-  ) {
-    side = "BUY";
-    reasons.push("SIDE_OVERRIDE_BY_BREAKOUT_LOCATION");
-  }
-
-  const isMomentumPattern = new Set([
-    "WATERFALL_DROP_CONTINUATION",
-    "ROCKET_SURGE_CONTINUATION",
-    "DESCENDING_TRIANGLE_BREAKDOWN",
-    "ASCENDING_TRIANGLE_BREAKOUT",
-    "FIRST_LEG_BREAKDOWN",
-    "FIRST_LEG_BREAKOUT",
-  ]).has(String(pattern?.type || "").toUpperCase());
-
-  const hasRetestSupport = Boolean(pattern?.structure?.isRetestingSupport);
-  const hasRetestResistance = Boolean(pattern?.structure?.isRetestingResistance);
-  const isFailToHH = Boolean(pattern?.structure?.isFailToHH);
-  const isFailToLL = Boolean(pattern?.structure?.isFailToLL);
-
-  const trendAligned = isTrendAligned(side, overallTrend);
-  const trendCounter = isTrendCounter(side, overallTrend);
-
-  let mode = "NORMAL";
-  let regime = "BALANCED";
-  let quality = 0;
-
-  if (trendContext?.isRanging && !trendContext?.volumeConfirmed) {
-    mode = "SCALP";
-    regime = "RANGING";
-    quality -= 1;
-    reasons.push("RANGING_WITHOUT_HTF_VOLUME");
-  }
-
-  if (overallTrend === "MIXED") {
-    mode = "SCALP";
-    regime = "MIXED";
-    quality -= 1;
-    reasons.push("MIXED_HTF_TREND");
-  }
-
-  if (pattern?.isVolumeDrying) {
-    mode = "SCALP";
-    quality -= gold ? 0.5 : 1;
-    reasons.push("VOLUME_DRYING");
-  }
-
-  if (isFailToHH || isFailToLL) {
-    mode = "SCALP";
-    quality -= 1;
-    reasons.push("STRUCTURE_FAILURE");
-  }
-
-  if (trendCounter && trendStrength === "STRONG") {
-    mode = "SCALP";
-    quality -= 1;
-    reasons.push("COUNTER_STRONG_TREND");
-  }
-
-  if (
-    isMomentumPattern &&
-    trendAligned &&
-    (trendContext?.volumeConfirmed || followVolumeConfirmed)
-  ) {
-    mode = "NORMAL";
-    regime = "MOMENTUM_CONTINUATION";
-    quality += 2;
-    reasons.push("MOMENTUM_PATTERN_WITH_ALIGNMENT");
-  }
-
-  if ((hasRetestSupport || hasRetestResistance) && trendAligned) {
-    mode = "NORMAL";
-    regime = "STRUCTURE_RETEST";
-    quality += 2;
-    reasons.push("STRUCTURE_RETEST_ALIGNED");
-  }
-
-  if (followDirection === side && followVolumeConfirmed) {
-    quality += 1;
-    reasons.push("M5_DIRECTIONAL_CONFIRMATION");
-  } else if (followDirection !== "NEUTRAL" && followDirection !== side) {
-    quality -= 1;
-    reasons.push("M5_DIRECTIONAL_CONFLICT");
-  }
-
-  if (pattern?.isVolumeClimax && trendAligned) {
-    quality += 1;
-    reasons.push("VOLUME_CLIMAX_ALIGNED");
-  }
-
-  if (hierarchical) {
-    quality += hierarchical.score;
-    reasons.push(...hierarchical.reasons);
+    let side = resolvePatternSide(pattern);
+    const reasons = [];
 
     if (
-      hierarchical.strongContinuation &&
-      trendAligned
+        hierarchical?.location?.isBreakdownDown &&
+        (side === "NEUTRAL" || side === "BUY") &&
+        overallTrend !== "BULLISH"
     ) {
-      mode = "NORMAL";
-      regime = "HIERARCHICAL_CONTINUATION";
+        side = "SELL";
+        reasons.push("SIDE_OVERRIDE_BY_BREAKDOWN_LOCATION");
+    } else if (
+        hierarchical?.location?.isBreakoutUp &&
+        (side === "NEUTRAL" || side === "SELL") &&
+        overallTrend !== "BEARISH"
+    ) {
+        side = "BUY";
+        reasons.push("SIDE_OVERRIDE_BY_BREAKOUT_LOCATION");
+    }
+
+    const isMomentumPattern = new Set([
+        "WATERFALL_DROP_CONTINUATION",
+        "ROCKET_SURGE_CONTINUATION",
+        "DESCENDING_TRIANGLE_BREAKDOWN",
+        "ASCENDING_TRIANGLE_BREAKOUT",
+        "FIRST_LEG_BREAKDOWN",
+        "FIRST_LEG_BREAKOUT",
+    ]).has(String(pattern?.type || "").toUpperCase());
+
+    const hasRetestSupport = Boolean(pattern?.structure?.isRetestingSupport);
+    const hasRetestResistance = Boolean(pattern?.structure?.isRetestingResistance);
+    const isFailToHH = Boolean(pattern?.structure?.isFailToHH);
+    const isFailToLL = Boolean(pattern?.structure?.isFailToLL);
+
+    const trendAligned = isTrendAligned(side, overallTrend);
+    const trendCounter = isTrendCounter(side, overallTrend);
+
+    let mode = "NORMAL";
+    let regime = "BALANCED";
+    let quality = 0;
+
+    if (trendContext?.isRanging && !trendContext?.volumeConfirmed) {
+        mode = "SCALP";
+        regime = "RANGING";
+        quality -= 1;
+        reasons.push("RANGING_WITHOUT_HTF_VOLUME");
+    }
+
+    if (overallTrend === "MIXED") {
+        mode = "SCALP";
+        regime = "MIXED";
+        quality -= 1;
+        reasons.push("MIXED_HTF_TREND");
+    }
+
+    if (pattern?.isVolumeDrying) {
+        mode = "SCALP";
+        quality -= gold ? 0.5 : 1;
+        reasons.push("VOLUME_DRYING");
+    }
+
+    if (isFailToHH || isFailToLL) {
+        mode = "SCALP";
+        quality -= 1;
+        reasons.push("STRUCTURE_FAILURE");
+    }
+
+    if (trendCounter && trendStrength === "STRONG") {
+        mode = "SCALP";
+        quality -= 1;
+        reasons.push("COUNTER_STRONG_TREND");
     }
 
     if (
-      hierarchical.structureCounter &&
-      mode === "NORMAL" &&
-      !hierarchical.possibleReversal
+        isMomentumPattern &&
+        trendAligned &&
+        (trendContext?.volumeConfirmed || followVolumeConfirmed)
     ) {
-      mode = "SCALP";
-      quality -= 0.35;
-      reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
+        mode = "NORMAL";
+        regime = "MOMENTUM_CONTINUATION";
+        quality += 2;
+        reasons.push("MOMENTUM_PATTERN_WITH_ALIGNMENT");
     }
 
-    const nearSwingEdge =
-      (side === "BUY" && hierarchical.location?.atTop) ||
-      (side === "SELL" && hierarchical.location?.atBottom);
-
-    const continuationAllowed =
-      hierarchical.strongContinuation ||
-      (side === "BUY" && hierarchical.location?.isBreakoutUp) ||
-      (side === "SELL" && hierarchical.location?.isBreakdownDown);
-
-    if (nearSwingEdge && !continuationAllowed) {
-      mode = "SCALP";
-      quality -= 0.25;
-      reasons.push("PRICE_NEAR_SWING_EDGE");
+    if ((hasRetestSupport || hasRetestResistance) && trendAligned) {
+        mode = "NORMAL";
+        regime = "STRUCTURE_RETEST";
+        quality += 2;
+        reasons.push("STRUCTURE_RETEST_ALIGNED");
     }
-  }
 
-  if (mode === "NORMAL" && quality <= -2) {
-    mode = "SCALP";
-    reasons.push("DOWNGRADE_TO_SCALP_BY_QUALITY");
-  }
+    if (followDirection === side && followVolumeConfirmed) {
+        quality += 1;
+        reasons.push("M5_DIRECTIONAL_CONFIRMATION");
+    } else if (followDirection !== "NEUTRAL" && followDirection !== side) {
+        quality -= 1;
+        reasons.push("M5_DIRECTIONAL_CONFLICT");
+    }
 
-  return {
-    side,
-    mode,
-    regime,
-    quality,
-    reasons,
-  };
+    if (pattern?.isVolumeClimax && trendAligned) {
+        quality += 1;
+        reasons.push("VOLUME_CLIMAX_ALIGNED");
+    }
+
+    if (hierarchical) {
+        quality += hierarchical.score;
+        reasons.push(...hierarchical.reasons);
+
+        if (
+            hierarchical.strongContinuation &&
+            trendAligned
+        ) {
+            mode = "NORMAL";
+            regime = "HIERARCHICAL_CONTINUATION";
+        }
+
+        if (
+            hierarchical.structureCounter &&
+            mode === "NORMAL" &&
+            !hierarchical.possibleReversal
+        ) {
+            mode = "SCALP";
+            quality -= 0.35;
+            reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
+        }
+
+        const nearSwingEdge =
+            (side === "BUY" && hierarchical.location?.atTop) ||
+            (side === "SELL" && hierarchical.location?.atBottom);
+
+        const continuationAllowed =
+            hierarchical.strongContinuation ||
+            (side === "BUY" && hierarchical.location?.isBreakoutUp) ||
+            (side === "SELL" && hierarchical.location?.isBreakdownDown);
+
+        if (nearSwingEdge && !continuationAllowed) {
+            mode = "SCALP";
+            quality -= 0.25;
+            reasons.push("PRICE_NEAR_SWING_EDGE");
+        }
+    }
+
+    if (mode === "NORMAL" && quality <= -2) {
+        mode = "SCALP";
+        reasons.push("DOWNGRADE_TO_SCALP_BY_QUALITY");
+    }
+
+    return {
+        side,
+        mode,
+        regime,
+        quality,
+        reasons,
+    };
 }
 
 function applyLearnedPatternWeight(patternScore, learnedWeight) {
@@ -1487,6 +1487,281 @@ async function findFailedPatternRule({
     }
 }
 
+// async function evaluateDecision({
+//     pattern,
+//     candlesM15 = [],
+//     candlesM30 = [],
+//     candlesH1 = [],
+//     candlesH4 = [],
+//     trendFollow4 = {},
+//     market = {},
+//     news = null,
+//     session = null,
+//     ictContext = null,
+// }) {
+//     if (!pattern) {
+//         return {
+//             action: "NO_TRADE",
+//             reason: "NO_PATTERN",
+//             score: 0,
+//         };
+//     }
+
+//     const trendContext = getSafeTrendContext(market?.candlesM15, market?.candlesM30, market?.candlesH1, market?.candlesH4);
+//     const side = resolvePatternSide(pattern);
+
+//     if (side === "NEUTRAL") {
+//         return {
+//             action: "NO_TRADE",
+//             reason: "UNKNOWN_PATTERN_SIDE",
+//             score: 0,
+//         };
+//     }
+
+//     const timeframe = market?.timeframe || "M5";
+//     const hierarchical = buildHierarchicalContext(market?.candles || [], side);
+//     const regimeContext = resolveTradeMode({
+//         pattern,
+//         trendContext,
+//         trendFollow4,
+//         market,
+//         hierarchical,
+//     });
+
+//     let tradeMode = regimeContext.mode || "NORMAL";
+//     let defensiveFlags = {
+//         warningMatched: false,
+//         lotMultiplier: 1,
+//         tpMultiplier: 1,
+//         scorePenalty: 0,
+//         failedPatternAction: null,
+//         matchLevel: null,
+//         reason: null,
+//     };
+
+//     if (hierarchical?.continuationBlockAgainstSide) {
+//         return {
+//             action: "NO_TRADE",
+//             reason: "COUNTER_CONTINUATION_BLOCK",
+//             score: 0,
+//             mode: tradeMode,
+//             trend: trendContext.overallTrend,
+//             defensiveFlags,
+//             adaptiveScoreDelta: 0,
+//             historicalVolumeSignal: market?.historicalVolumeSignal || null,
+//             thresholdContext: getDynamicThresholdContext({
+//                 mode: tradeMode,
+//                 trend: trendContext.overallTrend,
+//                 adaptiveScoreDelta: 0,
+//                 historicalVolumeSignal: market?.historicalVolumeSignal || null,
+//                 defensiveFlags,
+//                 symbol: market?.symbol,
+//                 regimeQuality: regimeContext.quality,
+//                 hierarchical,
+//             }),
+//             scoreBreakdown: null,
+//             regimeContext,
+//             hierarchical,
+//         };
+//     }
+
+//     const historicalVolumeSignal = market?.historicalVolumeSignal || null;
+
+//     if (
+//         (side === "BUY" && hierarchical?.swingZone10?.nearTop && !hierarchical?.possibleReversal) ||
+//         (side === "SELL" && hierarchical?.swingZone10?.nearBottom && !hierarchical?.possibleReversal)
+//     ) {
+//         return {
+//             action: "NO_TRADE",
+//             reason: side === "BUY" ? "BUY_NEAR_SWING_HIGH" : "SELL_NEAR_SWING_LOW",
+//             score: 0,
+//             mode: tradeMode,
+//             trend: trendContext.overallTrend,
+//             defensiveFlags,
+//             adaptiveScoreDelta: 0,
+//             historicalVolumeSignal,
+//             thresholdContext: getDynamicThresholdContext({
+//                 mode: tradeMode,
+//                 trend: trendContext.overallTrend,
+//                 adaptiveScoreDelta: 0,
+//                 historicalVolumeSignal,
+//                 defensiveFlags,
+//                 symbol: market?.symbol,
+//                 regimeQuality: regimeContext.quality,
+//                 hierarchical,
+//             }),
+//             scoreBreakdown: null,
+//             regimeContext,
+//             hierarchical,
+//         };
+//     }
+
+//     let adaptiveScoreDelta = 0;
+//     const sessionName = market?.sessionName || session?.name || null;
+
+//     const adaptiveRule = await findAdaptiveScoreRule({
+//         firebaseUserId: market?.userId || null,
+//         accountId: market?.accountId || null,
+//         symbol: market?.symbol || "XAUUSDm",
+//         timeframe: market?.timeframe || "M5",
+//         patternType: pattern?.type || "Unknown",
+//         side,
+//         mode: tradeMode,
+//         sessionName,
+//         microTrend: pattern?.structure?.microTrend || null,
+//         volumeProfile: pattern?.volumeProfile || null,
+//         rangeState: pattern?.rangeState || null,
+//     });
+
+//     if (adaptiveRule) {
+//         adaptiveScoreDelta = Number(adaptiveRule.adaptive_score_delta || 0);
+//     }
+
+//     const learnedWeight = await getPatternWeight({
+//         firebaseUserId: market?.userId || null,
+//         accountId: market?.accountId || "",
+//         symbol: market?.symbol || "DEFAULT",
+//         patternName: pattern?.type || "",
+//     });
+
+//     const scoreContext = buildContextComponents({
+//         side,
+//         tradeMode,
+//         pattern,
+//         trendContext,
+//         trendFollow4,
+//         historicalVolumeSignal,
+//         defensiveFlags,
+//         market,
+//         news,
+//         learnedWeight,
+//         adaptiveScoreDelta,
+//         ictContext,
+//         hierarchical,
+//     });
+
+//     const score = Number(scoreContext.score.toFixed(4));
+
+//     if (defensiveFlags.warningMatched && tradeMode === "NORMAL" && score < 0) {
+//         tradeMode = "SCALP";
+//     }
+
+//     if (
+//         tradeMode === "NORMAL" &&
+//         regimeContext.quality <= -2 &&
+//         !isGoldSymbol(market?.symbol)
+//     ) {
+//         tradeMode = "SCALP";
+//     }
+
+//     if (market && market.portfolio) {
+//         const { currentPosition, count } = market.portfolio;
+//         const pyramidThreshold = tradeMode === "SCALP" ? 2.6 : 2.25;
+
+//         if (currentPosition !== "NONE") {
+//             if (currentPosition === "BUY" && score <= -2.15) {
+//                 return {
+//                     action: "NO_TRADE",
+//                     reason: "ANTI_HEDGE_BLOCK",
+//                     score: score,
+//                 };
+//             }
+
+//             if (currentPosition === "SELL" && score >= 2.15) {
+//                 return {
+//                     action: "NO_TRADE",
+//                     reason: "ANTI_HEDGE_BLOCK",
+//                     score: score,
+//                 };
+//             }
+
+//             if (currentPosition === "BUY" && score >= pyramidThreshold) {
+//                 if (count >= 3) {
+//                     return {
+//                         action: "NO_TRADE",
+//                         reason: "MAX_PYRAMID_ORDERS_REACHED",
+//                         score: score,
+//                     };
+//                 }
+
+//                 return {
+//                     action: "ALLOW_BUY_PYRAMID",
+//                     score,
+//                     mode: tradeMode,
+//                     trend: trendContext.overallTrend,
+//                     defensiveFlags,
+//                 };
+//             }
+
+//             if (currentPosition === "SELL" && score <= -pyramidThreshold) {
+//                 if (count >= 3) {
+//                     return {
+//                         action: "NO_TRADE",
+//                         reason: "MAX_PYRAMID_ORDERS_REACHED",
+//                         score: score,
+//                     };
+//                 }
+
+//                 return {
+//                     action: "ALLOW_SELL_PYRAMID",
+//                     score,
+//                     mode: tradeMode,
+//                     trend: trendContext.overallTrend,
+//                     defensiveFlags,
+//                 };
+//             }
+
+//             return {
+//                 action: "NO_TRADE",
+//                 reason: "SCORE_TOO_LOW_FOR_PYRAMIDING",
+//                 score: score,
+//             };
+//         }
+//     }
+
+//     const thresholdContext = getDynamicThresholdContext({
+//         mode: tradeMode,
+//         trend: trendContext.overallTrend,
+//         adaptiveScoreDelta,
+//         historicalVolumeSignal,
+//         defensiveFlags,
+//         symbol: market?.symbol,
+//         regimeQuality: regimeContext.quality,
+//         hierarchical,
+//     });
+
+//     console.log("[EVALUATE_BREAKDOWN]", {
+//         symbol: market?.symbol,
+//         mode: tradeMode,
+//         trend: trendContext?.overallTrend,
+//         patternType: pattern?.type || "Unknown",
+//         adaptiveScoreDelta,
+//         historicalVolumeSignal,
+//         warningMatched: defensiveFlags?.warningMatched,
+//         failedPatternAction: defensiveFlags?.failedPatternAction || null,
+//         failedPatternMatchLevel: defensiveFlags?.matchLevel || null,
+//         finalScore: score,
+//         thresholdContext,
+//         regimeContext,
+//         hierarchical,
+//         scoreBreakdown: scoreContext.components,
+//     });
+
+//     return {
+//         score,
+//         patternType: pattern ? pattern.type : "Unknown",
+//         trend: trendContext.overallTrend,
+//         mode: tradeMode,
+//         defensiveFlags,
+//         adaptiveScoreDelta,
+//         historicalVolumeSignal,
+//         thresholdContext,
+//         scoreBreakdown: scoreContext.components,
+//         regimeContext,
+//         hierarchical,
+//     };
+// }
+
 async function evaluateDecision({
     pattern,
     candlesM15 = [],
@@ -1507,10 +1782,16 @@ async function evaluateDecision({
         };
     }
 
-    const trendContext = getSafeTrendContext(market?.candlesM15, market?.candlesM30, market?.candlesH1, market?.candlesH4);
-    const side = resolvePatternSide(pattern);
+    const trendContext = getSafeTrendContext(
+        market?.candlesM15,
+        market?.candlesM30,
+        market?.candlesH1,
+        market?.candlesH4
+    );
 
-    if (side === "NEUTRAL") {
+    const baseSide = resolvePatternSide(pattern);
+
+    if (baseSide === "NEUTRAL") {
         return {
             action: "NO_TRADE",
             reason: "UNKNOWN_PATTERN_SIDE",
@@ -1519,14 +1800,30 @@ async function evaluateDecision({
     }
 
     const timeframe = market?.timeframe || "M5";
-    const hierarchical = buildHierarchicalContext(market?.candles || [], side);
-    const regimeContext = resolveTradeMode({
+    const marketCandles = Array.isArray(market?.candles) ? market.candles : [];
+
+    let hierarchical = buildHierarchicalContext(marketCandles, baseSide);
+    let regimeContext = resolveTradeMode({
         pattern,
         trendContext,
         trendFollow4,
         market,
         hierarchical,
     });
+
+    let effectiveSide = String(regimeContext?.side || baseSide).toUpperCase();
+
+    if (effectiveSide !== baseSide) {
+        hierarchical = buildHierarchicalContext(marketCandles, effectiveSide);
+        regimeContext = resolveTradeMode({
+            pattern,
+            trendContext,
+            trendFollow4,
+            market,
+            hierarchical,
+        });
+        effectiveSide = String(regimeContext?.side || effectiveSide).toUpperCase();
+    }
 
     let tradeMode = regimeContext.mode || "NORMAL";
     let defensiveFlags = {
@@ -1539,11 +1836,12 @@ async function evaluateDecision({
         reason: null,
     };
 
-    if (hierarchical?.continuationBlockAgainstSide) {
+    if (hierarchical?.continuationBlockAgainstSide && !hierarchical?.strongContinuation) {
         return {
             action: "NO_TRADE",
             reason: "COUNTER_CONTINUATION_BLOCK",
             score: 0,
+            side: effectiveSide,
             mode: tradeMode,
             trend: trendContext.overallTrend,
             defensiveFlags,
@@ -1568,13 +1866,27 @@ async function evaluateDecision({
     const historicalVolumeSignal = market?.historicalVolumeSignal || null;
 
     if (
-        (side === "BUY" && hierarchical?.swingZone10?.nearTop && !hierarchical?.possibleReversal) ||
-        (side === "SELL" && hierarchical?.swingZone10?.nearBottom && !hierarchical?.possibleReversal)
+        (
+            effectiveSide === "BUY" &&
+            hierarchical?.location?.atTop &&
+            !hierarchical?.location?.isBreakoutUp &&
+            !hierarchical?.possibleReversal
+        ) ||
+        (
+            effectiveSide === "SELL" &&
+            hierarchical?.location?.atBottom &&
+            !hierarchical?.location?.isBreakdownDown &&
+            !hierarchical?.possibleReversal
+        )
     ) {
         return {
             action: "NO_TRADE",
-            reason: side === "BUY" ? "BUY_NEAR_SWING_HIGH" : "SELL_NEAR_SWING_LOW",
+            reason:
+                effectiveSide === "BUY"
+                    ? "BUY_NEAR_SWING_HIGH"
+                    : "SELL_NEAR_SWING_LOW",
             score: 0,
+            side: effectiveSide,
             mode: tradeMode,
             trend: trendContext.overallTrend,
             defensiveFlags,
@@ -1603,9 +1915,9 @@ async function evaluateDecision({
         firebaseUserId: market?.userId || null,
         accountId: market?.accountId || null,
         symbol: market?.symbol || "XAUUSDm",
-        timeframe: market?.timeframe || "M5",
+        timeframe: timeframe,
         patternType: pattern?.type || "Unknown",
-        side,
+        side: effectiveSide,
         mode: tradeMode,
         sessionName,
         microTrend: pattern?.structure?.microTrend || null,
@@ -1625,7 +1937,7 @@ async function evaluateDecision({
     });
 
     const scoreContext = buildContextComponents({
-        side,
+        side: effectiveSide,
         tradeMode,
         pattern,
         trendContext,
@@ -1663,7 +1975,8 @@ async function evaluateDecision({
                 return {
                     action: "NO_TRADE",
                     reason: "ANTI_HEDGE_BLOCK",
-                    score: score,
+                    score,
+                    side: effectiveSide,
                 };
             }
 
@@ -1671,7 +1984,8 @@ async function evaluateDecision({
                 return {
                     action: "NO_TRADE",
                     reason: "ANTI_HEDGE_BLOCK",
-                    score: score,
+                    score,
+                    side: effectiveSide,
                 };
             }
 
@@ -1680,13 +1994,15 @@ async function evaluateDecision({
                     return {
                         action: "NO_TRADE",
                         reason: "MAX_PYRAMID_ORDERS_REACHED",
-                        score: score,
+                        score,
+                        side: effectiveSide,
                     };
                 }
 
                 return {
                     action: "ALLOW_BUY_PYRAMID",
                     score,
+                    side: effectiveSide,
                     mode: tradeMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
@@ -1698,13 +2014,15 @@ async function evaluateDecision({
                     return {
                         action: "NO_TRADE",
                         reason: "MAX_PYRAMID_ORDERS_REACHED",
-                        score: score,
+                        score,
+                        side: effectiveSide,
                     };
                 }
 
                 return {
                     action: "ALLOW_SELL_PYRAMID",
                     score,
+                    side: effectiveSide,
                     mode: tradeMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
@@ -1714,7 +2032,8 @@ async function evaluateDecision({
             return {
                 action: "NO_TRADE",
                 reason: "SCORE_TOO_LOW_FOR_PYRAMIDING",
-                score: score,
+                score,
+                side: effectiveSide,
             };
         }
     }
@@ -1732,6 +2051,7 @@ async function evaluateDecision({
 
     console.log("[EVALUATE_BREAKDOWN]", {
         symbol: market?.symbol,
+        side: effectiveSide,
         mode: tradeMode,
         trend: trendContext?.overallTrend,
         patternType: pattern?.type || "Unknown",
@@ -1749,6 +2069,7 @@ async function evaluateDecision({
 
     return {
         score,
+        side: effectiveSide,
         patternType: pattern ? pattern.type : "Unknown",
         trend: trendContext.overallTrend,
         mode: tradeMode,
