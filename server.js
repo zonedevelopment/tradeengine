@@ -2955,9 +2955,9 @@ app.get("/user-trade-history", async (req, res) => {
         accountId: Number.isFinite(safeAccountId) ? safeAccountId : null,
         startDate: safeStartDate,
         endDate: safeEndDate,
-        symbol: safeSymbol,
-        mode: safeMode,
-        eventType: safeEventType,
+        // symbol: safeSymbol,
+        // mode: safeMode,
+        // eventType: safeEventType,
       },
       summary: {
         totalEvents: Number(summaryRow.totalEvents || 0),
