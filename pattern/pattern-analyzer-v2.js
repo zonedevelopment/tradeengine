@@ -127,93 +127,215 @@ function getSoftPatternContext(candles = [], higherTfContext = {}) {
             toNumSafe(last.close) < toNumSafe(prev.low)
         );
 
-    const firstLegBreakBuy =
-        isBull(last) &&
-        lastBody >= Math.max(1.2, avgBody * 1.10) &&
-        toNumSafe(last.close) > toNumSafe(prev.high);
+    // const firstLegBreakBuy =
+    //     isBull(last) &&
+    //     lastBody >= Math.max(1.2, avgBody * 1.10) &&
+    //     toNumSafe(last.close) > toNumSafe(prev.high);
 
-    const firstLegBreakSell =
-        isBear(last) &&
-        lastBody >= Math.max(1.2, avgBody * 1.10) &&
-        toNumSafe(last.close) < toNumSafe(prev.low);
+    // const firstLegBreakSell =
+    //     isBear(last) &&
+    //     lastBody >= Math.max(1.2, avgBody * 1.10) &&
+    //     toNumSafe(last.close) < toNumSafe(prev.low);
 
-    const microBull2 =
-        isBull(last) &&
-        isBull(prev) &&
-        toNumSafe(last.close) > toNumSafe(prev.close);
+    // const microBull2 =
+    //     isBull(last) &&
+    //     isBull(prev) &&
+    //     toNumSafe(last.close) > toNumSafe(prev.close);
 
-    const microBear2 =
-        isBear(last) &&
-        isBear(prev) &&
-        toNumSafe(last.close) < toNumSafe(prev.close);
+    // const microBear2 =
+    //     isBear(last) &&
+    //     isBear(prev) &&
+    //     toNumSafe(last.close) < toNumSafe(prev.close);
 
-    const htfBuy = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "BUY";
-    const htfSell = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "SELL";
+    // const htfBuy = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "BUY";
+    // const htfSell = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "SELL";
 
-    let score = 0;
-    let pattern = "NONE";
-    let type = "None";
-    let bias = "NEUTRAL";
-    let strength = 0;
+    // let score = 0;
+    // let pattern = "NONE";
+    // let type = "None";
+    // let bias = "NEUTRAL";
+    // let strength = 0;
 
-    if (bullishReversal) {
-        score += 1.15;
-        pattern = "CLAW_BUY";
-        type = "Soft_Bullish_Reversal";
-        bias = "BUY";
-        strength += 1;
+    // if (bullishReversal) {
+    //     score += 1.15;
+    //     pattern = "CLAW_BUY";
+    //     type = "Soft_Bullish_Reversal";
+    //     bias = "BUY";
+    //     strength += 1;
+    // }
+
+    // if (bearishReversal) {
+    //     score -= 1.15;
+    //     pattern = "CLAW_SELL";
+    //     type = "Soft_Bearish_Reversal";
+    //     bias = "SELL";
+    //     strength += 1;
+    // }
+
+    // if (firstLegBreakBuy) {
+    //     score += 0.65;
+    //     if (pattern === "NONE") {
+    //         pattern = "CLAW_BUY";
+    //         type = "First_Leg_Breakout";
+    //         bias = "BUY";
+    //     }
+    //     strength += 0.5;
+    // }
+
+    // if (firstLegBreakSell) {
+    //     score -= 0.65;
+    //     if (pattern === "NONE") {
+    //         pattern = "CLAW_SELL";
+    //         type = "First_Leg_Breakdown";
+    //         bias = "SELL";
+    //     }
+    //     strength += 0.5;
+    // }
+
+    // if (microBull2 && score > 0) {
+    //     score += 0.35;
+    //     strength += 0.3;
+    // }
+
+    // if (microBear2 && score < 0) {
+    //     score -= 0.35;
+    //     strength += 0.3;
+    // }
+
+    // if (isVolumeClimax && score > 0) score += 0.20;
+    // if (isVolumeClimax && score < 0) score -= 0.20;
+
+    // if (isVolumeDrying && score > 0) score -= 0.10;
+    // if (isVolumeDrying && score < 0) score += 0.10;
+
+    // if (htfBuy && score > 0) score += 0.20;
+    // if (htfSell && score < 0) score -= 0.20;
+
+    // if (htfSell && score > 0) score -= 0.15;
+    // if (htfBuy && score < 0) score += 0.15;
+
+      const structureCtx = last?.structure || {};
+  const microTrend = String(structureCtx?.microTrend || "NEUTRAL").toUpperCase();
+  const hasRetestSupport = Boolean(structureCtx?.isRetestingSupport);
+  const hasRetestResistance = Boolean(structureCtx?.isRetestingResistance);
+
+  const firstLegBreakBuy =
+    isBull(last) &&
+    lastBody >= Math.max(1.2, avgBody * 1.10) &&
+    toNumSafe(last.close) > toNumSafe(prev.high);
+
+  const firstLegBreakSell =
+    isBear(last) &&
+    lastBody >= Math.max(1.2, avgBody * 1.10) &&
+    toNumSafe(last.close) < toNumSafe(prev.low);
+
+  const microBull2 =
+    isBull(last) &&
+    isBull(prev) &&
+    toNumSafe(last.close) > toNumSafe(prev.close);
+
+  const microBear2 =
+    isBear(last) &&
+    isBear(prev) &&
+    toNumSafe(last.close) < toNumSafe(prev.close);
+
+  const htfBuy = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "BUY";
+  const htfSell = String(higherTfContext?.overallDirection || "NEUTRAL").toUpperCase() === "SELL";
+
+  const breakoutBuyContext =
+    microTrend === "BULLISH" ||
+    microTrend === "BULLISH_REVERSAL" ||
+    hasRetestSupport ||
+    recentMassiveBull ||
+    htfBuy;
+
+  const breakdownSellContext =
+    microTrend === "BEARISH" ||
+    microTrend === "BEARISH_REVERSAL" ||
+    hasRetestResistance ||
+    recentMassiveBear ||
+    htfSell;
+
+  let score = 0;
+  let pattern = "NONE";
+  let type = "None";
+  let bias = "NEUTRAL";
+  let strength = 0;
+
+  if (bullishReversal) {
+    score += 1.15;
+    pattern = "CLAW_BUY";
+    type = "Soft_Bullish_Reversal";
+    bias = "BUY";
+    strength += 1;
+  }
+
+  if (bearishReversal) {
+    score -= 1.15;
+    pattern = "CLAW_SELL";
+    type = "Soft_Bearish_Reversal";
+    bias = "SELL";
+    strength += 1;
+  }
+
+  if (firstLegBreakBuy) {
+    const breakoutScore = breakoutBuyContext ? 0.95 : 0.72;
+    score += breakoutScore;
+
+    if (pattern === "NONE") {
+      pattern = "CLAW_BUY";
+      type = "First_Leg_Breakout";
+      bias = "BUY";
     }
 
-    if (bearishReversal) {
-        score -= 1.15;
-        pattern = "CLAW_SELL";
-        type = "Soft_Bearish_Reversal";
-        bias = "SELL";
-        strength += 1;
+    strength += breakoutBuyContext ? 0.85 : 0.55;
+  }
+
+  if (firstLegBreakSell) {
+    const breakdownScore = breakdownSellContext ? 1.05 : 0.72;
+    score -= breakdownScore;
+
+    if (pattern === "NONE") {
+      pattern = "CLAW_SELL";
+      type = "First_Leg_Breakdown";
+      bias = "SELL";
     }
 
-    if (firstLegBreakBuy) {
-        score += 0.65;
-        if (pattern === "NONE") {
-            pattern = "CLAW_BUY";
-            type = "First_Leg_Breakout";
-            bias = "BUY";
-        }
-        strength += 0.5;
-    }
+    strength += breakdownSellContext ? 0.90 : 0.55;
+  }
 
-    if (firstLegBreakSell) {
-        score -= 0.65;
-        if (pattern === "NONE") {
-            pattern = "CLAW_SELL";
-            type = "First_Leg_Breakdown";
-            bias = "SELL";
-        }
-        strength += 0.5;
-    }
+  if (microBull2 && score > 0) {
+    score += 0.35;
+    strength += 0.3;
+  }
 
-    if (microBull2 && score > 0) {
-        score += 0.35;
-        strength += 0.3;
-    }
+  if (microBear2 && score < 0) {
+    score -= 0.35;
+    strength += 0.3;
+  }
 
-    if (microBear2 && score < 0) {
-        score -= 0.35;
-        strength += 0.3;
-    }
+  if (firstLegBreakBuy && breakoutBuyContext && score > 0) {
+    score += 0.18;
+    strength += 0.15;
+  }
 
-    if (isVolumeClimax && score > 0) score += 0.20;
-    if (isVolumeClimax && score < 0) score -= 0.20;
+  if (firstLegBreakSell && breakdownSellContext && score < 0) {
+    score -= 0.22;
+    strength += 0.18;
+  }
 
-    if (isVolumeDrying && score > 0) score -= 0.10;
-    if (isVolumeDrying && score < 0) score += 0.10;
+  if (isVolumeClimax && score > 0) score += 0.20;
+  if (isVolumeClimax && score < 0) score -= 0.20;
 
-    if (htfBuy && score > 0) score += 0.20;
-    if (htfSell && score < 0) score -= 0.20;
+  if (isVolumeDrying && score > 0) score -= 0.10;
+  if (isVolumeDrying && score < 0) score += 0.10;
 
-    if (htfSell && score > 0) score -= 0.15;
-    if (htfBuy && score < 0) score += 0.15;
+  if (htfBuy && score > 0) score += 0.20;
+  if (htfSell && score < 0) score -= 0.20;
 
+  if (htfSell && score > 0) score -= 0.15;
+  if (htfBuy && score < 0) score += 0.15;
+    
     const structure = {
         ...(last?.structure || {}),
         bullishReversal,
