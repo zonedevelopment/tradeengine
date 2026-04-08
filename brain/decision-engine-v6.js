@@ -563,38 +563,104 @@ function buildHierarchicalContext(candles = [], side = "NEUTRAL") {
         reasons.push("COUNTER_CONTINUATION_BLOCK");
     }
 
-    if (side === "BUY" && swingZone10.nearTop) {
-        score -= 0.42;
-        reasons.push("NEAR_SWING_HIGH_BLOCK");
-    }
+    // if (side === "BUY" && swingZone10.nearTop) {
+    //     score -= 0.42;
+    //     reasons.push("NEAR_SWING_HIGH_BLOCK");
+    // }
 
-    if (side === "SELL" && swingZone10.nearBottom) {
-        score -= 0.42;
-        reasons.push("NEAR_SWING_LOW_BLOCK");
-    }
+    // if (side === "SELL" && swingZone10.nearBottom) {
+    //     score -= 0.42;
+    //     reasons.push("NEAR_SWING_LOW_BLOCK");
+    // }
 
-    return {
-        longWindow,
-        mediumWindow,
-        setupWindow,
-        triggerWindow,
-        structure10,
-        swingZone10,
-        longAligned,
-        mediumAligned,
-        setupAligned,
-        triggerAligned,
-        structureAligned,
-        structureCounter,
-        strongContinuation,
-        possibleReversal,
-        noisySetup,
-        bullishContinuationBlock,
-        bearishContinuationBlock,
-        continuationBlockAgainstSide,
-        score: Number(score.toFixed(4)),
-        reasons,
-    };
+    // return {
+    //     longWindow,
+    //     mediumWindow,
+    //     setupWindow,
+    //     triggerWindow,
+    //     structure10,
+    //     swingZone10,
+    //     longAligned,
+    //     mediumAligned,
+    //     setupAligned,
+    //     triggerAligned,
+    //     structureAligned,
+    //     structureCounter,
+    //     strongContinuation,
+    //     possibleReversal,
+    //     noisySetup,
+    //     bullishContinuationBlock,
+    //     bearishContinuationBlock,
+    //     continuationBlockAgainstSide,
+    //     score: Number(score.toFixed(4)),
+    //     reasons,
+    // };
+      if (continuationBlockAgainstSide) {
+    score -= 0.55;
+    reasons.push("COUNTER_CONTINUATION_BLOCK");
+  }
+
+  const allowSwingEdgeContinuation =
+    strongContinuation &&
+    structureAligned &&
+    (
+      (side === "BUY" &&
+        (setupWindow.direction === "UP" || triggerWindow.direction === "UP")) ||
+      (side === "SELL" &&
+        (setupWindow.direction === "DOWN" || triggerWindow.direction === "DOWN"))
+    );
+
+  const allowSwingEdgeReversal =
+    possibleReversal &&
+    triggerAligned &&
+    !noisySetup;
+
+  if (side === "BUY" && swingZone10.nearTop) {
+    if (allowSwingEdgeContinuation) {
+      reasons.push("NEAR_SWING_HIGH_ALLOWED_BY_CONTINUATION");
+    } else if (allowSwingEdgeReversal) {
+      score -= 0.10;
+      reasons.push("NEAR_SWING_HIGH_SOFT_REVERSAL_CAUTION");
+    } else {
+      score -= 0.42;
+      reasons.push("NEAR_SWING_HIGH_BLOCK");
+    }
+  }
+
+  if (side === "SELL" && swingZone10.nearBottom) {
+    if (allowSwingEdgeContinuation) {
+      reasons.push("NEAR_SWING_LOW_ALLOWED_BY_CONTINUATION");
+    } else if (allowSwingEdgeReversal) {
+      score -= 0.10;
+      reasons.push("NEAR_SWING_LOW_SOFT_REVERSAL_CAUTION");
+    } else {
+      score -= 0.42;
+      reasons.push("NEAR_SWING_LOW_BLOCK");
+    }
+  }
+
+  return {
+    longWindow,
+    mediumWindow,
+    setupWindow,
+    triggerWindow,
+    structure10,
+    swingZone10,
+    longAligned,
+    mediumAligned,
+    setupAligned,
+    triggerAligned,
+    structureAligned,
+    structureCounter,
+    strongContinuation,
+    possibleReversal,
+    noisySetup,
+    bullishContinuationBlock,
+    bearishContinuationBlock,
+    continuationBlockAgainstSide,
+    score: Number(score.toFixed(4)),
+    reasons,
+  };
 }
 
 function resolveTradeMode({
@@ -704,34 +770,70 @@ function resolveTradeMode({
         reasons.push("VOLUME_CLIMAX_ALIGNED");
     }
 
-    if (hierarchical) {
-        quality += hierarchical.score;
-        reasons.push(...hierarchical.reasons);
+    // if (hierarchical) {
+    //     quality += hierarchical.score;
+    //     reasons.push(...hierarchical.reasons);
 
-        if (hierarchical.strongContinuation && trendAligned) {
-            mode = "NORMAL";
-            regime = "HIERARCHICAL_CONTINUATION";
-        }
+    //     if (hierarchical.strongContinuation && trendAligned) {
+    //         mode = "NORMAL";
+    //         regime = "HIERARCHICAL_CONTINUATION";
+    //     }
 
-        if (
-            hierarchical.structureCounter &&
-            mode === "NORMAL" &&
-            !hierarchical.possibleReversal
-        ) {
-            mode = "SCALP";
-            quality -= 0.35;
-            reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
-        }
+    //     if (
+    //         hierarchical.structureCounter &&
+    //         mode === "NORMAL" &&
+    //         !hierarchical.possibleReversal
+    //     ) {
+    //         mode = "SCALP";
+    //         quality -= 0.35;
+    //         reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
+    //     }
 
-        if (
-            (side === "BUY" && hierarchical.swingZone10.nearTop) ||
-            (side === "SELL" && hierarchical.swingZone10.nearBottom)
-        ) {
-            mode = "SCALP";
-            quality -= 0.25;
-            reasons.push("PRICE_NEAR_SWING_EDGE");
-        }
+    //     if (
+    //         (side === "BUY" && hierarchical.swingZone10.nearTop) ||
+    //         (side === "SELL" && hierarchical.swingZone10.nearBottom)
+    //     ) {
+    //         mode = "SCALP";
+    //         quality -= 0.25;
+    //         reasons.push("PRICE_NEAR_SWING_EDGE");
+    //     }
+    // }
+      if (hierarchical) {
+    quality += hierarchical.score;
+    reasons.push(...hierarchical.reasons);
+
+    if (hierarchical.strongContinuation && trendAligned) {
+      mode = "NORMAL";
+      regime = "HIERARCHICAL_CONTINUATION";
     }
+
+    if (
+      hierarchical.structureCounter &&
+      mode === "NORMAL" &&
+      !hierarchical.possibleReversal
+    ) {
+      mode = "SCALP";
+      quality -= 0.35;
+      reasons.push("DOWNGRADE_BY_STRUCTURE_COUNTER");
+    }
+
+    const nearSwingEdge =
+      (side === "BUY" && hierarchical.swingZone10.nearTop) ||
+      (side === "SELL" && hierarchical.swingZone10.nearBottom);
+
+    if (nearSwingEdge) {
+      if (hierarchical.strongContinuation) {
+        reasons.push("PRICE_NEAR_SWING_EDGE_ALLOWED_BY_CONTINUATION");
+      } else if (hierarchical.possibleReversal) {
+        quality -= 0.08;
+        reasons.push("PRICE_NEAR_SWING_EDGE_SOFT_REVERSAL_CAUTION");
+      } else {
+        mode = "SCALP";
+        quality -= 0.25;
+        reasons.push("PRICE_NEAR_SWING_EDGE");
+      }
+    }
+  }
 
     if (mode === "NORMAL" && quality <= -2) {
         mode = "SCALP";
