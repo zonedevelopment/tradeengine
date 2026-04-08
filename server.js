@@ -121,10 +121,10 @@ const MICRO_SCALP_CONFIG = {
 
 const symbolConfig = {
   NORMAL: {
-    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
     "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
-    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 990, maxSL: 1280, minTP: 1150, maxTP: 1660 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
+    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
     "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
