@@ -1455,7 +1455,7 @@ function buildTradeSetupFromPattern({
 
   if (lotSize < 0.01) lotSize = 0.01;
   if (lotSize > 5.0) lotSize = 5.0;
-  
+
   let tradeSetup = {
     recommended_lot: lotSize,
     sl_points: slPoints,
@@ -2758,6 +2758,123 @@ app.get("/trade-history/:firebaseUserId", async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error"
+    });
+  }
+});
+
+app.get("/user-trade-history", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId = null,
+      startDate,
+      endDate,
+      limit = 200,
+      page = 1,
+    } = req.query || {};
+
+    const safeFirebaseUserId = String(firebaseUserId || "").trim();
+    const safeAccountId =
+      accountId === undefined || accountId === null || String(accountId).trim() === ""
+        ? null
+        : String(accountId).trim();
+
+    const safeStartDate = String(startDate || "").trim();
+    const safeEndDate = String(endDate || "").trim();
+
+    const safeLimit = Math.max(1, Math.min(1000, parseInt(limit, 10) || 200));
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const offset = (safePage - 1) * safeLimit;
+
+    if (!safeFirebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required",
+      });
+    }
+
+    if (!safeStartDate || !safeEndDate) {
+      return res.status(400).json({
+        success: false,
+        error: "startDate and endDate are required",
+      });
+    }
+
+    const where = [
+      "firebase_user_id = ?",
+      "DATE(event_time) >= ?",
+      "DATE(event_time) <= ?",
+    ];
+
+    const params = [safeFirebaseUserId, safeStartDate, safeEndDate];
+
+    if (safeAccountId) {
+      where.push("account_id = ?");
+      params.push(safeAccountId);
+    }
+
+    const whereSql = where.join(" AND ");
+
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM trade_history
+      WHERE ${whereSql}
+    `;
+
+    const dataSql = `
+      SELECT
+        id,
+        firebase_user_id AS firebaseUserId,
+        account_id AS accountId,
+        ticket_id AS ticketId,
+        event_type AS eventType,
+        symbol,
+        side,
+        lot,
+        price,
+        close_price AS closePrice,
+        sl,
+        tp,
+        profit,
+        mode,
+        event_time AS eventTime,
+        created_at AS createdAt
+      FROM trade_history
+      WHERE ${whereSql}
+      ORDER BY event_time DESC, id DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const countRows = await query(countSql, params, { retries: 2 });
+    const total = Number(countRows?.[0]?.total || 0);
+
+    const dataRows = await query(
+      dataSql,
+      [...params, safeLimit, offset],
+      { retries: 2 }
+    );
+
+    return res.json({
+      success: true,
+      filters: {
+        firebaseUserId: safeFirebaseUserId,
+        accountId: safeAccountId,
+        startDate: safeStartDate,
+        endDate: safeEndDate,
+      },
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+      data: Array.isArray(dataRows) ? dataRows : [],
+    });
+  } catch (error) {
+    console.error("trade-history query error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
     });
   }
 });
