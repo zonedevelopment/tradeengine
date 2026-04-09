@@ -155,7 +155,7 @@ const symbolConfig = {
 const app = express();
 app.use(express.json());
 
-const whiteList = ['https://tradeengine.zonedevnode.com'];
+const whiteList = ['https://koomport.com'];
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions;
   if (whiteList.indexOf(req.header('Origin')) !== -1) {
