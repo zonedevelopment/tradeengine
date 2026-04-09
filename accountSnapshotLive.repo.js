@@ -162,7 +162,7 @@ async function getAggregatedLiveAccountSnapshotByUser(firebaseUserId) {
 
     const docs = await getAllLiveAccountSnapshotsByUser(safeFirebaseUserId);
 
-    const accounts = docs.map((doc) => ({
+    const accounts = docs.filter(item => item.firebaseUserId === safeFirebaseUserId).map((doc) => ({
         _id: doc._id,
         firebaseUserId: doc.firebaseUserId,
         accountId: doc.accountId || "",
