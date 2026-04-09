@@ -2435,17 +2435,17 @@ app.post("/trade-event", async (req, res) => {
     message = `🚨 ปิดออเดอร์หนี (${mode})\nSide: ${side}\nProfit: ${profit}`;
   }
 
-  try {
-    if (message) {
-      await sendTelegram(
-        process.env.TELEGRAM_BOT_TOKEN,
-        process.env.TELEGRAM_CHAT_ID,
-        message
-      );
-    }
-  } catch (telegramError) {
-    console.error("Telegram send error:", telegramError.message);
-  }
+  // try {
+  //   if (message) {
+  //     await sendTelegram(
+  //       process.env.TELEGRAM_BOT_TOKEN,
+  //       process.env.TELEGRAM_CHAT_ID,
+  //       message
+  //     );
+  //   }
+  // } catch (telegramError) {
+  //   console.error("Telegram send error:", telegramError.message);
+  // }
 
   try {
     const dataPath = ensureDataDir();
@@ -3180,7 +3180,7 @@ app.get("/active-positions/stream", async (req, res) => {
   }
 
   const origin = req.headers.origin;
-  if (origin === "https://tradeengine.zonedevnode.com") {
+  if (origin === "https://koomport.com") {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
 

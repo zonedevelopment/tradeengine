@@ -51,7 +51,7 @@ function initSseHeaders(res) {
         "Cache-Control": "no-cache, no-transform",
         "Connection": "keep-alive",
         "X-Accel-Buffering": "no",
-        "Access-Control-Allow-Origin": "https://tradeengine.zonedevnode.com"
+        "Access-Control-Allow-Origin": "https://koomport.com"
     });
 }
 
