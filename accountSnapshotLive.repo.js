@@ -10,10 +10,10 @@ function normalizeString(value, fallback = "") {
     return String(value).trim();
 }
 
-function pickLatestRecord(records = []) {
+function pickLatestRecord(records = [], firebaseUserId = "") {
     if (!records.length) return null;
 
-    return records
+    return records.filter(item => item.firebaseUserId === firebaseUserId)
         .slice()
         .sort((a, b) => {
             const aTime = new Date(a.updatedAt || a.eventTime || a.createdAt || 0).getTime();
@@ -188,7 +188,7 @@ async function getAggregatedLiveAccountSnapshotByUser(firebaseUserId) {
     }));
 
     const summary = buildSummaryFromAccounts(accounts);
-    const latest = pickLatestRecord(accounts);
+    const latest = pickLatestRecord(accounts, safeFirebaseUserId);
 
     return {
         firebaseUserId: safeFirebaseUserId,
