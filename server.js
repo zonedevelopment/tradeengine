@@ -3929,8 +3929,7 @@ app.get("/trading-preferences", async (req, res) => {
         base_lot_size AS baseLotSize,
         updated_at AS updatedAt
       FROM user_trading_preferences
-      WHERE firebase_user_id = ?
-        AND (account_id <=> ? OR account_id IS NULL)
+      WHERE firebase_user_id = ? AND account_id = ?
       ORDER BY
         CASE
           WHEN account_id <=> ? THEN 0
