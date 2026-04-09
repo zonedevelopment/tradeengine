@@ -13,7 +13,7 @@ function normalizeString(value, fallback = "") {
 function pickLatestRecord(records = [], firebaseUserId = "") {
     if (!records.length) return null;
 
-    return records.filter(item => item.firebaseUserId === firebaseUserId)
+    return records
         .slice()
         .sort((a, b) => {
             const aTime = new Date(a.updatedAt || a.eventTime || a.createdAt || 0).getTime();
@@ -146,7 +146,7 @@ async function getLiveAccountSnapshotByUserAndAccount(firebaseUserId, accountId 
 }
 
 async function getAllLiveAccountSnapshotsByUser(firebaseUserId) {
-    return await AccountSnapshotLive.find({
+    return await AccountSnapshotLive.findOne({
         firebaseUserId: normalizeString(firebaseUserId)
     })
         .sort({ updatedAt: -1, createdAt: -1 })
@@ -162,7 +162,7 @@ async function getAggregatedLiveAccountSnapshotByUser(firebaseUserId) {
 
     const docs = await getAllLiveAccountSnapshotsByUser(safeFirebaseUserId);
 
-    const accounts = docs.filter(item => item.firebaseUserId === safeFirebaseUserId).map((doc) => ({
+    const accounts = docs.map((doc) => ({
         _id: doc._id,
         firebaseUserId: doc.firebaseUserId,
         accountId: doc.accountId || "",
