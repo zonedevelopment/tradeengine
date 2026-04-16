@@ -8017,5 +8017,304 @@
       "side": "BUY"
     },
     "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T17:23:17.136Z",
+    "type": "trade_result",
+    "ticket_id": 1608645507,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -6.14,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-04-15T17:36:52.706Z",
+    "type": "trade_result",
+    "ticket_id": 1608723591,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.77,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T17:57:52.229Z",
+    "type": "trade_result",
+    "ticket_id": 1608820546,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.5,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T18:18:53.867Z",
+    "type": "trade_result",
+    "ticket_id": 1608916620,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.25,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T18:55:56.420Z",
+    "type": "trade_result",
+    "ticket_id": 1609012272,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 2.97,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T18:59:56.268Z",
+    "type": "trade_result",
+    "ticket_id": 1609020756,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 2.73,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T19:08:58.935Z",
+    "type": "trade_result",
+    "ticket_id": 1609044666,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 2.27,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T19:13:57.701Z",
+    "type": "trade_result",
+    "ticket_id": 1609053238,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.11,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T19:57:03.666Z",
+    "type": "trade_result",
+    "ticket_id": 1609154047,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -6.2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-04-15T20:02:18.578Z",
+    "type": "trade_result",
+    "ticket_id": 1609167725,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -6.2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-04-15T22:12:52.932Z",
+    "type": "trade_result",
+    "ticket_id": 1609283062,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -6.2,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-04-15T22:23:01.950Z",
+    "type": "trade_result",
+    "ticket_id": 1609304515,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 4.9,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T22:27:14.722Z",
+    "type": "trade_result",
+    "ticket_id": 1609311360,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 2.16,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T22:35:16.582Z",
+    "type": "trade_result",
+    "ticket_id": 1609326840,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 1.14,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-15T22:51:25.655Z",
+    "type": "trade_result",
+    "ticket_id": 1609355813,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "SL",
+    "pnl_pips": -7.78,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade failed. Need to review entry condition or market session."
+  },
+  {
+    "timestamp": "2026-04-15T23:17:35.649Z",
+    "type": "trade_result",
+    "ticket_id": 1609412042,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 4.27,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T00:01:57.264Z",
+    "type": "trade_result",
+    "ticket_id": 1609526220,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 6.8,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T00:33:26.299Z",
+    "type": "trade_result",
+    "ticket_id": 1609610685,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 6.54,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T00:55:21.334Z",
+    "type": "trade_result",
+    "ticket_id": 1609703838,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.01,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "BUY"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T01:13:09.806Z",
+    "type": "trade_result",
+    "ticket_id": 1609767159,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 1.4,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T01:21:09.943Z",
+    "type": "trade_result",
+    "ticket_id": 1609799770,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 1.02,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T01:22:09.567Z",
+    "type": "trade_result",
+    "ticket_id": 1609803237,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 0.62,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
+  },
+  {
+    "timestamp": "2026-04-16T01:35:24.451Z",
+    "type": "trade_result",
+    "ticket_id": 1609858926,
+    "firebaseUserId": "THqr21FLm5gR4lqCzyoagtuTzM52",
+    "result": "TP",
+    "pnl_pips": 9.5,
+    "market_conditions_at_entry": {
+      "symbol": "XAUUSDm",
+      "side": "SELL"
+    },
+    "lesson_learned": "Trade successful. Align with Mae Pla rules."
   }
 ]
