@@ -13,7 +13,7 @@ const { sendTelegram } = require("./telegram");
 const { analyzePerformance } = require("./performance/performance-analyzer");
 const { runDailyLearning } = require("./performance/daily-learner");
 // const { analyzeEarlyExit } = require("./brain/early-exit-engine");
-const { analyzeEarlyExit } = require("./brain/early-exit-engine-v3");
+const { analyzeEarlyExit } = require("./brain/early-exit-engine-v4");
 const {
   evaluateDecision,
   decision,
@@ -2897,7 +2897,7 @@ app.get("/user-trade-history", async (req, res) => {
 
     const where = [
       "firebase_user_id = ?",
-      "event_type = 'CLOSE_ORDER'",
+      "event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')",
       "DATE(COALESCE(event_time, created_at)) >= ?",
       "DATE(COALESCE(event_time, created_at)) <= ?",
     ];
