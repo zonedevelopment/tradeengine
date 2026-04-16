@@ -258,15 +258,22 @@ function getProfitRetractionRatio(openPosition = {}, currentProfit = 0) {
 }
 
 function getLossUsageRatio(openPosition = {}, currentProfit = 0, slPoints = 0) {
-    const slDistance = Math.abs(
-        toNumber(openPosition?.riskAmount, 0) || toNumber(slPoints, 0)
+    const riskAmountMoney = Math.abs(
+      toNumber(
+        openPosition?.riskAmount ??
+        openPosition?.risk_amount ??
+        0,
+        0
+      )
     );
-
-    if (!slDistance || slDistance <= 0) return 0;
-    if (currentProfit >= 0) return 0;
-
-    return Math.abs(currentProfit) / slDistance;
-}
+  
+    if (riskAmountMoney > 0) {
+      if (currentProfit >= 0) return 0;
+      return Math.abs(currentProfit) / riskAmountMoney;
+    }
+  
+    return 0;
+  }
 
 function shouldMoveToBreakeven(openPosition, currentProfit, side, tpPoints = 0, slPoints = 0, mode = "NORMAL") {
     const profile = getExitProfile(mode);

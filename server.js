@@ -128,33 +128,45 @@ const MICRO_SCALP_CONFIG = {
 
 const symbolConfig = {
   NORMAL: {
-    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 999, minTP: 1000, maxTP: 1250 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 999, minTP: 1000, maxTP: 1250 },
+    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 999, minTP: 1000, maxTP: 1250 },
+    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 999, minTP: 1000, maxTP: 1250 },
+    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 999, minTP: 1000, maxTP: 1250 },
     "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
-    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
-    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
-    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 860, maxSL: 1099, minTP: 950, maxTP: 1376 },
     "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
     "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 620, maxSL: 760, minTP: 680, maxTP: 890 },
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 680, maxTP: 890 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 680, maxTP: 890 },
+    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 680, maxTP: 890 },
+    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 680, maxTP: 890 },
+    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 680, maxTP: 890 },
     "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 620, maxSL: 760, minTP: 680, maxTP: 890 },
-    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 620, maxSL: 760, minTP: 680, maxTP: 890 },
-    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 620, maxSL: 760, minTP: 680, maxTP: 890 },
-    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 620, maxSL: 760, minTP: 680, maxTP: 890 },
     "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
     "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+    "BTCUSDc": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
+    "BTCUSDC": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
     "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
-  }
+  },
+  MICRO_SCALP: {
+    "XAUUSD": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 260, minTP: 100, maxTP: 200 },
+    "XAUUSDm": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 260, minTP: 100, maxTP: 200 },
+    "XAUUSDM": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 260, minTP: 100, maxTP: 200 },
+    "BTCUSD": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
+    "BTCUSDm": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
+    "BTCUSDM": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 100, maxSL: 250, minTP: 100, maxTP: 200 }
+  },
 };
+
 
 const app = express();
 app.use(express.json());
 
-const whiteList = ['https://koomport.com','https://tradeengine.zonedevnode.com'];
+const whiteList = ['https://koomport.com', 'https://tradeengine.zonedevnode.com'];
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions;
   if (whiteList.indexOf(req.header('Origin')) !== -1) {
@@ -357,6 +369,8 @@ function isPrimaryTradeDecision(decisionValue) {
     "ALLOW_SELL_SCALP",
     "ALLOW_BUY_PYRAMID",
     "ALLOW_SELL_PYRAMID",
+    "ALLOW_BUY_MICRO_SCALP",
+    "ALLOW_SELL_MICRO_SCALP"
   ].includes(String(decisionValue || "").toUpperCase());
 }
 
@@ -651,12 +665,202 @@ function resolveBaseLot({
   return 0;
 }
 
+function resolveMicroScalpStrength({
+  score = 0,
+  confidenceLevel = "LOW",
+  historicalVolumeSignal = "",
+  trend = "",
+  patternType = "",
+}) {
+  const safeScore = Math.abs(Number(score || 0));
+  const level = String(confidenceLevel || "LOW").toUpperCase();
+  const volume = String(historicalVolumeSignal || "").toUpperCase();
+  const safeTrend = String(trend || "").toUpperCase();
+  const pt = String(patternType || "").toUpperCase();
+
+  let points = 0;
+
+  if (safeScore >= 2.9) points += 2;
+  else if (safeScore >= 2.2) points += 1;
+
+  if (level === "VERY_HIGH") points += 2;
+  else if (level === "HIGH") points += 1;
+
+  if (volume === "ABOVE_AVERAGE" || volume === "HIGH_VOLUME") points += 1;
+
+  if (
+    safeTrend === "UP" ||
+    safeTrend === "DOWN" ||
+    safeTrend === "BULLISH" ||
+    safeTrend === "BEARISH"
+  ) {
+    points += 1;
+  }
+
+  if (
+    pt.includes("FIRST_LEG_BREAKOUT") ||
+    pt.includes("FIRST_LEG_BREAKDOWN") ||
+    pt.includes("ROCKET_SURGE_CONTINUATION") ||
+    pt.includes("WATERFALL_DROP_CONTINUATION")
+  ) {
+    points += 1;
+  }
+
+  return points >= 4 ? "STRONG" : "WEAK";
+}
+
+function resolveMicroScalpFixedTpPoints({
+  score = 0,
+  confidenceLevel = "LOW",
+  historicalVolumeSignal = "",
+  trend = "",
+  patternType = "",
+  activeCfg = null,
+}) {
+  const strength = resolveMicroScalpStrength({
+    score,
+    confidenceLevel,
+    historicalVolumeSignal,
+    trend,
+    patternType,
+  });
+
+  const pipMultiplier = Number(activeCfg?.pipMultiplier || 100);
+
+  return {
+    strength,
+    tpPoints: strength === "STRONG" ? pipMultiplier * 2 : pipMultiplier * 1,
+  };
+}
+
+function applyMicroScalpFixedTargetToTradeSetup({
+  tradeSetup,
+  mode = "NORMAL",
+  score = 0,
+  confidenceLevel = "LOW",
+  historicalVolumeSignal = "",
+  trend = "",
+  patternType = "",
+  activeCfg = null,
+}) {
+  if (!tradeSetup) return tradeSetup;
+
+  const safeMode = String(mode || "NORMAL").toUpperCase();
+  if (safeMode !== "MICRO_SCALP") return tradeSetup;
+
+  const resolved = resolveMicroScalpFixedTpPoints({
+    score,
+    confidenceLevel,
+    historicalVolumeSignal,
+    trend,
+    patternType,
+    activeCfg,
+  });
+
+  const safeTpPoints = Number(resolved.tpPoints || 100);
+
+  return {
+    ...tradeSetup,
+    tp_points: safeTpPoints,
+    retrace_points: Math.max(20, Math.round(safeTpPoints * 0.35)),
+    micro_scalp_strength: resolved.strength,
+    micro_scalp_fixed_target_usd: resolved.strength === "STRONG" ? 2 : 1,
+  };
+}
+
+// function applyUserAdaptiveProfileToTradeSetup({
+//   tradeSetup,
+//   userAdaptiveProfile,
+//   activeCfg,
+// }) {
+//   if (!tradeSetup || !userAdaptiveProfile?.enabled) {
+//     return tradeSetup;
+//   }
+
+//   let slPoints = Math.round(
+//     Number(tradeSetup.sl_points || 0) * Number(userAdaptiveProfile.slMultiplier || 1)
+//   );
+
+//   let tpPoints = Math.round(
+//     Number(tradeSetup.tp_points || 0) * Number(userAdaptiveProfile.tpMultiplier || 1)
+//   );
+
+//   const safeRetraceMultiplier = Math.min(
+//     1.0,
+//     Math.max(0.60, Number(userAdaptiveProfile.retraceMultiplier || 1))
+//   );
+
+//   let retracePoints = Math.round(
+//     Number(tradeSetup.retrace_points || 0) * safeRetraceMultiplier
+//   );
+
+//   const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
+
+//   let recommendedLot = Number(
+//     (
+//       (Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0 ? baseRecommendedLot : 0.01) *
+//       Number(userAdaptiveProfile.lotMultiplier || 1)
+//     ).toFixed(2)
+//   );
+
+//   const minSL = Number(activeCfg?.minSL || slPoints || 1);
+//   const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
+//   const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+//   const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
+
+//   slPoints = clampNumber(slPoints, minSL, maxSL);
+//   tpPoints = clampNumber(tpPoints, minTP, maxTP);
+
+//   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+//     retracePoints = Math.max(1, Math.round(minSL * 0.2));
+//   }
+
+//   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
+//     recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+//       ? Number(baseRecommendedLot.toFixed(2))
+//       : 0.01;
+//   }
+
+//   if (recommendedLot < 0.01) recommendedLot = 0.01;
+
+//   return {
+//     ...tradeSetup,
+//     recommended_lot: recommendedLot,
+//     sl_points: slPoints,
+//     tp_points: tpPoints,
+//     retrace_points: retracePoints,
+//   };
+// }
 function applyUserAdaptiveProfileToTradeSetup({
   tradeSetup,
   userAdaptiveProfile,
   activeCfg,
 }) {
-  if (!tradeSetup || !userAdaptiveProfile?.enabled) {
+  if (!tradeSetup) {
+    return tradeSetup;
+  }
+
+  const safeMode = String(tradeSetup.mode || "").toUpperCase();
+  const isMicroScalp = safeMode === "MICRO_SCALP";
+
+  if (!userAdaptiveProfile?.enabled) {
+    if (isMicroScalp) {
+      const minTP = Number(activeCfg?.minTP || 100);
+      const maxTP = Number(activeCfg?.maxTP || 200);
+
+      return {
+        ...tradeSetup,
+        tp_points: clampNumber(Number(tradeSetup.tp_points || minTP), minTP, maxTP),
+        retrace_points: Math.max(
+          20,
+          Number(
+            tradeSetup.retrace_points ||
+            Math.round(Number(tradeSetup.tp_points || minTP) * 0.35)
+          )
+        ),
+      };
+    }
+
     return tradeSetup;
   }
 
@@ -688,20 +892,31 @@ function applyUserAdaptiveProfileToTradeSetup({
 
   const minSL = Number(activeCfg?.minSL || slPoints || 1);
   const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
-  const minTP = Number(activeCfg?.minTP || tpPoints || 1);
-  const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
 
   slPoints = clampNumber(slPoints, minSL, maxSL);
-  tpPoints = clampNumber(tpPoints, minTP, maxTP);
 
-  if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
-    retracePoints = Math.max(1, Math.round(minSL * 0.2));
+  if (isMicroScalp) {
+    const microMinTP = Number(activeCfg?.minTP || 100);
+    const microMaxTP = Number(activeCfg?.maxTP || 200);
+
+    tpPoints = clampNumber(tpPoints, microMinTP, microMaxTP);
+    retracePoints = Math.max(20, Math.round(tpPoints * 0.35));
+  } else {
+    const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+    const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
+
+    tpPoints = clampNumber(tpPoints, minTP, maxTP);
+
+    if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+      retracePoints = Math.max(1, Math.round(minSL * 0.2));
+    }
   }
 
   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
-    recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
-      ? Number(baseRecommendedLot.toFixed(2))
-      : 0.01;
+    recommendedLot =
+      Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+        ? Number(baseRecommendedLot.toFixed(2))
+        : 0.01;
   }
 
   if (recommendedLot < 0.01) recommendedLot = 0.01;
@@ -1391,12 +1606,25 @@ function buildTradeSetupFromPattern({
     retrace_points: retracePoints
   };
 
+  tradeSetup = applyMicroScalpFixedTargetToTradeSetup({
+    tradeSetup: {
+      ...tradeSetup,
+      mode: detectedMode,
+    },
+    mode: detectedMode,
+    score: score,
+    confidenceLevel,
+    historicalVolumeSignal,
+    trend: pattern?.structure?.microTrend || "",
+    patternType: pattern?.type || "",
+    activeCfg,
+  });
+
   tradeSetup = applyColdStartProfileToTradeSetup({
     tradeSetup,
     coldStartProfile,
     activeCfg,
   });
-
 
   const safeUserMinLotFloor = Number(userMinLotFloor || 0);
   if (
@@ -1422,6 +1650,7 @@ function buildMicroFallbackResponse({
   tradingPreferences,
   totalClosedTrades = 0,
   userAdaptiveProfile = null,
+  symbol = "",
 }) {
   const side = String(reqBody.side || "").toUpperCase();
   const microSignal = String(microResult.signal || "").toUpperCase();
@@ -1498,6 +1727,19 @@ function buildMicroFallbackResponse({
     coldStartProfile,
     historicalVolumeSignal: historicalVolume,
     symbol,
+  });
+
+  trade_setup = {
+    ...trade_setup,
+    mode: "MICRO_SCALP",
+  };
+
+  trade_setup = applyMicroScalpFixedTargetToTradeSetup({
+    tradeSetup: trade_setup,
+    score,
+    historicalVolumeSignal: historicalVolume,
+    patternType: pattern?.type || pattern?.pattern || "",
+    activeCfg,
   });
 
   trade_setup = applyUserAdaptiveProfileToTradeSetup({
@@ -1965,16 +2207,18 @@ app.post("/signal", async (req, res) => {
           mode: "MICRO_SCALP",
         });
 
+        const microActiveCfg = getActiveSymbolConfig(symbol, "MICRO_SCALP");
         const microResponse = buildMicroFallbackResponse({
           microResult,
           reqBody: req.body,
           resolvedUserId,
           pattern,
           historicalVolume,
-          activeCfg,
+          activeCfg: microActiveCfg,
           tradingPreferences,
           totalClosedTrades,
           userAdaptiveProfile: microUserAdaptiveProfile,
+          symbol
         });
 
         if (microResponse) {
