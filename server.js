@@ -1920,88 +1920,89 @@ app.post("/signal", async (req, res) => {
     candles_h4,
     balance,
     overlapPips,
-  } = req.body;
+  } = req.body || {};
 
   const resolvedUserId = firebaseUserId || null;
-  const spreadPoints = req.body.spreadPoints || 0;
+  const resolvedSymbol = String(symbol || "").trim();
+  const requestSide = String(side || "").toUpperCase();
+  const spreadPoints = Number(req.body?.spreadPoints || 0);
 
-  const higherTf = resolveHigherTimeframes({
-    candles_m15,
-    candles_m30,
-    candles_h1,
-    candles_h4,
-  });
-
-  let tradingPreferences = normalizeTradingPreferences(null);
   try {
-    if (resolvedUserId) {
-      const rawTradingPreferences = await getUserTradingPreferences(
-        resolvedUserId,
-        accountId ?? null
+    const higherTf = resolveHigherTimeframes({
+      candles_m15,
+      candles_m30,
+      candles_h1,
+      candles_h4,
+    });
+
+    let tradingPreferences = normalizeTradingPreferences(null);
+    try {
+      if (resolvedUserId) {
+        const rawTradingPreferences = await getUserTradingPreferences(
+          resolvedUserId,
+          accountId ?? null
+        );
+
+        tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
+      }
+    } catch (prefError) {
+      console.error("Load trading preferences error:", prefError.message);
+    }
+
+    if (!isTradingEngineEnabled(tradingPreferences)) {
+      return res.json(
+        buildBlockedSignalResponse({
+          reason: "ENGINE_DISABLED",
+          score: 0,
+          firebaseUserId: resolvedUserId,
+          mode: "NORMAL",
+          trend: "NEUTRAL",
+          pattern: null,
+          historicalVolume: null,
+          defensiveFlags: null,
+          trade_setup: null,
+          currentOpenPositionsCount: 0,
+        })
       );
-
-      tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
     }
-  } catch (prefError) {
-    console.error("Load trading preferences error:", prefError.message);
-  }
 
-  if (!isTradingEngineEnabled(tradingPreferences)) {
-    return res.json(
-      buildBlockedSignalResponse({
-        reason: "ENGINE_DISABLED",
-        score: 0,
-        firebaseUserId: resolvedUserId,
-        mode: "NORMAL",
-        trend: "NEUTRAL",
-        pattern: null,
-        historicalVolume: null,
-        defensiveFlags: null,
-        trade_setup: null,
-        currentOpenPositionsCount: 0,
-      })
-    );
-  }
+    let totalClosedTrades = 0;
 
-  let totalClosedTrades = 0;
-
-  try {
-    if (resolvedUserId) {
-      totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
+    try {
+      if (resolvedUserId) {
+        totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
+      }
+    } catch (tradeCountError) {
+      console.error("Load trade count error:", tradeCountError.message);
     }
-  } catch (tradeCountError) {
-    console.error("Load trade count error:", tradeCountError.message);
-  }
 
-  try {
     const news = readFilter();
     const calendar = checkCalendar();
     const session = getSession();
     const risk = getRiskState();
 
     const pattern = await analyzePattern({
-      symbol: symbol,
-      candles: candles,
+      symbol: resolvedSymbol,
+      candles,
       candlesM15: higherTf.candlesM15,
       candlesM30: higherTf.candlesM30,
-      candlesH1: higherTf.candlesH1,
-      candlesH4: higherTf.candlesH4,
 
-      // ส่ง HTF หลักที่ระบบจะใช้จริง
+      // HTF จริงที่ใช้วิเคราะห์
       candlesTrendPrimary: higherTf.trendPrimaryCandles,
       candlesTrendSecondary: higherTf.trendSecondaryCandles,
 
-      // คงชื่อเดิมไว้ให้ flow เก่าทำงานต่อได้
+      // backward compatible ให้ flow เดิม
       candlesH1: higherTf.trendPrimaryCandles,
       candlesH4: higherTf.trendSecondaryCandles,
 
-      overlapPips: overlapPips,
+      overlapPips,
     });
 
     const ictContext = analyzeICT(candles);
-    const historicalVolume = evaluateCurrentVolumeAgainstHistory({
+
+    const historicalVolume = await evaluateCurrentVolumeAgainstHistory({
       firebaseUserId: resolvedUserId,
-      symbol,
+      symbol: resolvedSymbol,
       candles,
     });
 
@@ -2015,18 +2016,15 @@ app.post("/signal", async (req, res) => {
       historicalVolume,
       market: {
         userId: resolvedUserId,
-        symbol: symbol,
+        symbol: resolvedSymbol,
         timeframe: "M5",
-        price: price,
-        candles: candles,
+        price,
+        candles,
 
-        // เก็บทุก TF ไว้
         candlesM15: higherTf.candlesM15,
         candlesM30: higherTf.candlesM30,
-        candlesH1: higherTf.candlesH1,
-        candlesH4: higherTf.candlesH4,
 
-        // TF ที่ใช้เป็น HTF หลักจริง
+        // HTF หลักจริง
         trendPrimaryCandles: higherTf.trendPrimaryCandles,
         trendSecondaryCandles: higherTf.trendSecondaryCandles,
         trendPrimaryLabel: higherTf.trendPrimaryLabel,
@@ -2042,9 +2040,9 @@ app.post("/signal", async (req, res) => {
     });
 
     console.log("[EVALUATE_DECISION_BREAKDOWN]", {
-      Action: evaluateResult.finalDecision,
+      action: evaluateResult.finalDecision,
       reason: evaluateResult.reason,
-      evaluateResult
+      evaluateResult,
     });
 
     let mainUserRecentPerformance = null;
@@ -2055,7 +2053,7 @@ app.post("/signal", async (req, res) => {
         mainUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
           accountId,
-          symbol,
+          symbol: resolvedSymbol,
           mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
           limit: 18,
         });
@@ -2069,10 +2067,11 @@ app.post("/signal", async (req, res) => {
       mode: evaluateResult?.mode || "NORMAL",
     });
 
-    const score = evaluateResult.score || 0;
+    const score = Number(evaluateResult?.score || 0);
+
     const finalDecisionResult = resolveDecisionWithTradingPreferences(
       evaluateResult,
-      symbol,
+      resolvedSymbol,
       { tradingPreferences }
     );
 
@@ -2093,7 +2092,7 @@ app.post("/signal", async (req, res) => {
         await CandleTrainingData.create({
           firebaseUserId: resolvedUserId || "",
           accountId: accountId || "",
-          symbol: symbol || "",
+          symbol: resolvedSymbol || "",
           timeframe: "M5",
           eventTime: new Date(),
           price: Number(price || 0),
@@ -2106,32 +2105,21 @@ app.post("/signal", async (req, res) => {
       console.error("Error saving candle training data to MongoDB:", e);
     }
 
-    // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
-    // console.log(`Price: ${price}`);
-    // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
-    // if (pattern.structure) {
-    //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
-    //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
-    //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
-    // }
-    // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
-    // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
-    // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
-    // console.log(`--------------------------------------\n`);
-
     console.log("[DECISION_BREAKDOWN]", {
-      symbol,
+      symbol: resolvedSymbol,
       mode: evaluateResult.mode,
       trend: evaluateResult.trend,
       score: evaluateResult.score,
       adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
       historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
       thresholdContext: evaluateResult.thresholdContext,
-      finalDecision
+      finalDecision,
     });
 
-    // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
-    const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
+    const activeCfg = getActiveSymbolConfig(
+      resolvedSymbol,
+      evaluateResult.mode || "NORMAL"
+    );
 
     const coldStartProfile = buildColdStartProfile({
       closedTradesCount: totalClosedTrades,
@@ -2142,7 +2130,7 @@ app.post("/signal", async (req, res) => {
       isOpenDecision(finalDecision) &&
       coldStartProfile.enabled &&
       coldStartProfile.blockWeakSignals &&
-      Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
+      Math.abs(score) < Number(coldStartProfile.minRequiredStrength || 0)
     ) {
       return res.json({
         ...buildBlockedSignalResponse({
@@ -2162,33 +2150,12 @@ app.post("/signal", async (req, res) => {
       });
     }
 
-    if (finalDecision === "NO_TRADE" && finalDecisionReason) {
-      return res.json(
-        buildBlockedSignalResponse({
-          reason: finalDecisionReason,
-          score,
-          firebaseUserId: resolvedUserId,
-          mode: evaluateResult.mode || "NORMAL",
-          trend: evaluateResult.trend || "NEUTRAL",
-          pattern,
-          historicalVolume,
-          defensiveFlags: evaluateResult.defensiveFlags || {
-            warningMatched: false,
-            lotMultiplier: 1,
-            tpMultiplier: 1,
-            reason: null,
-          },
-          trade_setup: null,
-          currentOpenPositionsCount: 0,
-        })
-      );
-    }
-
     // ========= FALLBACK TO MICRO SCALP =========
+    // ต้องมาก่อน return NO_TRADE ปกติ
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.analyzeMicroScalp({
         candles: Array.isArray(candles) ? candles : [],
-        spread: Number(spreadPoints || 0),
+        spread: spreadPoints,
         openPositions: [],
         config: MICRO_SCALP_CONFIG,
       });
@@ -2197,7 +2164,7 @@ app.post("/signal", async (req, res) => {
         const microUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
           accountId,
-          symbol,
+          symbol: resolvedSymbol,
           mode: "SCALP",
           limit: 18,
         });
@@ -2207,7 +2174,8 @@ app.post("/signal", async (req, res) => {
           mode: "MICRO_SCALP",
         });
 
-        const microActiveCfg = getActiveSymbolConfig(symbol, "MICRO_SCALP");
+        const microActiveCfg = getActiveSymbolConfig(resolvedSymbol, "MICRO_SCALP");
+
         const microResponse = buildMicroFallbackResponse({
           microResult,
           reqBody: req.body,
@@ -2218,7 +2186,7 @@ app.post("/signal", async (req, res) => {
           tradingPreferences,
           totalClosedTrades,
           userAdaptiveProfile: microUserAdaptiveProfile,
-          symbol
+          symbol: resolvedSymbol,
         });
 
         if (microResponse) {
@@ -2252,7 +2220,7 @@ app.post("/signal", async (req, res) => {
             await countOpenPositionsByUserAccountAndSymbol({
               firebaseUserId: resolvedUserId,
               accountId,
-              symbol,
+              symbol: resolvedSymbol,
             });
 
           if (
@@ -2276,11 +2244,37 @@ app.post("/signal", async (req, res) => {
               })
             );
           }
-          console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
+
+          console.log(
+            `[MICRO_SCALP FALLBACK] symbol=${resolvedSymbol} side=${requestSide} score=${microResponse.score} decision=${microResponse.decision}`
+          );
 
           return res.json(microResponse);
         }
       }
+    }
+
+    // ถ้า main ไม่เปิด และ micro ก็ไม่ผ่าน ค่อย blocked ตรงนี้
+    if (finalDecision === "NO_TRADE" && finalDecisionReason) {
+      return res.json(
+        buildBlockedSignalResponse({
+          reason: finalDecisionReason,
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: evaluateResult.mode || "NORMAL",
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags: evaluateResult.defensiveFlags || {
+            warningMatched: false,
+            lotMultiplier: 1,
+            tpMultiplier: 1,
+            reason: null,
+          },
+          trade_setup: null,
+          currentOpenPositionsCount: 0,
+        })
+      );
     }
 
     const defensiveFlags = evaluateResult.defensiveFlags || {
@@ -2290,32 +2284,48 @@ app.post("/signal", async (req, res) => {
       reason: null,
     };
 
-    // const rawLotCap = Number(
-    //   tradingPreferences?.base_log_size ??
-    //   tradingPreferences?.base_lot_size ??
-    //   0
-    // );
     const rawLotFloor = Number(
       tradingPreferences?.base_log_size ??
       tradingPreferences?.base_lot_size ??
       0
     );
 
+    const resolvedTradeSide =
+      String(finalDecision || "").includes("BUY")
+        ? "BUY"
+        : String(finalDecision || "").includes("SELL")
+          ? "SELL"
+          : String(evaluateResult?.side || requestSide || "").toUpperCase();
+
     let trade_setup = buildTradeSetupFromPattern({
-      side,
+      side: resolvedTradeSide,
       price: Number(price || 0),
       pattern,
       candles,
       balance: Number(balance || 0),
-      spreadPoints: Number(spreadPoints || 0),
+      spreadPoints,
       activeCfg,
       score,
       defensiveFlags,
       userMinLotFloor: rawLotFloor,
       coldStartProfile,
       historicalVolumeSignal: historicalVolume,
-      symbol,
+      symbol: resolvedSymbol,
     });
+
+    if (String(evaluateResult.mode || "").toUpperCase() === "MICRO_SCALP") {
+      trade_setup = applyMicroScalpFixedTargetToTradeSetup({
+        tradeSetup: {
+          ...trade_setup,
+          mode: "MICRO_SCALP",
+        },
+        score,
+        historicalVolumeSignal:
+          historicalVolume?.signal || historicalVolume || "",
+        patternType: pattern?.type || pattern?.pattern || "",
+        activeCfg,
+      });
+    }
 
     trade_setup = applyUserAdaptiveProfileToTradeSetup({
       tradeSetup: trade_setup,
@@ -2338,7 +2348,7 @@ app.post("/signal", async (req, res) => {
 
     if (
       isOpenDecision(finalDecision) &&
-      Math.abs(Number(score || 0)) < adaptiveMinScore
+      Math.abs(score) < adaptiveMinScore
     ) {
       return res.json({
         ...buildBlockedSignalResponse({
@@ -2362,13 +2372,13 @@ app.post("/signal", async (req, res) => {
 
     console.log("[FINAL_REPONSE_BREAKDOWN]", {
       decision: finalDecision,
-      score: score,
+      score,
       firebaseUserId: resolvedUserId,
       mode: evaluateResult.mode || "NORMAL",
       trend: evaluateResult.trend || "NEUTRAL",
-      pattern: pattern,
-      historicalVolume: historicalVolume,
-      defensiveFlags: defensiveFlags,
+      pattern,
+      historicalVolume,
+      defensiveFlags,
       trade_setup,
       cold_start_profile: coldStartProfile,
       user_adaptive_profile: mainUserAdaptiveProfile,
@@ -2378,13 +2388,13 @@ app.post("/signal", async (req, res) => {
 
     return res.json({
       decision: finalDecision,
-      score: score,
+      score,
       firebaseUserId: resolvedUserId,
       mode: evaluateResult.mode || "NORMAL",
       trend: evaluateResult.trend || "NEUTRAL",
-      pattern: pattern,
-      historicalVolume: historicalVolume,
-      defensiveFlags: defensiveFlags,
+      pattern,
+      historicalVolume,
+      defensiveFlags,
       trade_setup,
       cold_start_profile: coldStartProfile,
       user_adaptive_profile: mainUserAdaptiveProfile,
@@ -2404,627 +2414,502 @@ app.post("/signal", async (req, res) => {
     });
   }
 });
+
 // app.post("/signal", async (req, res) => {
+//   const {
+//     symbol,
+//     firebaseUserId,
+//     accountId,
+//     side,
+//     price,
+//     candles,
+//     candles_m15,
+//     candles_m30,
+//     candles_h1,
+//     candles_h4,
+//     balance,
+//     overlapPips,
+//   } = req.body;
+
+//   const resolvedUserId = firebaseUserId || null;
+//   const spreadPoints = req.body.spreadPoints || 0;
+
+//   const higherTf = resolveHigherTimeframes({
+//     candles_m15,
+//     candles_m30,
+//     candles_h1,
+//     candles_h4,
+//   });
+
+//   let tradingPreferences = normalizeTradingPreferences(null);
 //   try {
-//     const body = req.body || {};
+//     if (resolvedUserId) {
+//       const rawTradingPreferences = await getUserTradingPreferences(
+//         resolvedUserId,
+//         accountId ?? null
+//       );
 
-//     const firebaseUserId = String(body.firebaseUserId || "").trim();
-//     const accountId = String(body.accountId || "").trim();
-//     const symbol = String(body.symbol || "").trim();
-//     const timeframe = String(body.timeframe || "M5").trim().toUpperCase();
-//     const mode = String(body.mode || "NORMAL").trim().toUpperCase();
-
-//     const candles = Array.isArray(body.candles) ? body.candles : [];
-//     const portfolio = normalizePortfolio(body.portfolio || {});
-//     const spread = toNum(body.spread, 0);
-//     const trend = String(body.trend || "").trim().toUpperCase();
-//     const currentPrice = toNum(body.currentPrice, 0);
-//     const balance = toNum(body.balance, 0);
-//     const equity = toNum(body.equity, 0);
-
-//     if (!firebaseUserId) {
-//       return res.status(400).json({
-//         decision: "NO_TRADE",
-//         reason: "MISSING_FIREBASE_USER_ID",
-//       });
+//       tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
 //     }
+//   } catch (prefError) {
+//     console.error("Load trading preferences error:", prefError.message);
+//   }
 
-//     if (!accountId) {
-//       return res.status(400).json({
-//         decision: "NO_TRADE",
-//         reason: "MISSING_ACCOUNT_ID",
-//       });
-//     }
-
-//     if (!symbol) {
-//       return res.status(400).json({
-//         decision: "NO_TRADE",
-//         reason: "MISSING_SYMBOL",
-//       });
-//     }
-
-//     if (!Array.isArray(candles) || candles.length < 6) {
-//       return res.status(400).json({
-//         decision: "NO_TRADE",
-//         reason: "INSUFFICIENT_CANDLES",
-//       });
-//     }
-
-//     const latestClosedCandle = candles[candles.length - 1] || null;
-//     const previousClosedCandle = candles[candles.length - 2] || null;
-
-//     if (!latestClosedCandle || !previousClosedCandle) {
-//       return res.status(400).json({
-//         decision: "NO_TRADE",
-//         reason: "INVALID_CANDLE_DATA",
-//       });
-//     }
-
-//     const activeCfg = getActiveSymbolConfig(symbol, mode);
-//     if (spread > Number(activeCfg?.maxSpread || 999999)) {
-//       return res.json({
-//         decision: "NO_TRADE",
-//         reason: "SPREAD_TOO_HIGH",
-//         symbol,
-//         mode,
-//         spread,
-//         maxSpread: activeCfg?.maxSpread || null,
-//       });
-//     }
-
-//     const contextFeatures = buildContextFeatures({
-//       symbol,
-//       timeframe,
-//       mode,
-//       trend,
-//       candles,
-//       spread,
-//       portfolio,
-//     });
-
-//     const contextHash = buildContextHashNew(contextFeatures);
-
-//     const historicalVolume = await evaluateCurrentVolumeAgainstHistory({
-//       firebaseUserId,
-//       symbol,
-//       timeframe,
-//       candles,
-//       mode,
-//     });
-
-//     const historicalVolumeSignal = String(
-//       historicalVolume?.signal || historicalVolume?.historicalVolumeSignal || "NORMAL_VOLUME"
-//     ).toUpperCase();
-
-//     const recentPerformance = await getRecentClosedTradePerformance({
-//       firebaseUserId,
-//       accountId,
-//       symbol,
-//       mode,
-//       limit: 12,
-//     });
-
-//     const userAdaptiveProfile = buildUserAdaptiveProfile({
-//       recentPerformance,
-//       mode,
-//     });
-
-//     const patternResult = await analyzePattern({
-//       candles,
-//       symbol,
-//       timeframe,
-//       mode,
-//       spread,
-//       portfolio,
-//       trend,
-//       historicalVolumeSignal,
-//       firebaseUserId,
-//       accountId,
-//     });
-
-//     const safePattern = patternResult && typeof patternResult === "object"
-//       ? patternResult
-//       : {
-//         signal: "NONE",
+//   if (!isTradingEngineEnabled(tradingPreferences)) {
+//     return res.json(
+//       buildBlockedSignalResponse({
+//         reason: "ENGINE_DISABLED",
 //         score: 0,
-//         pattern: "UNKNOWN",
-//         type: "UNKNOWN",
-//         reason: "PATTERN_RESULT_EMPTY",
-//       };
+//         firebaseUserId: resolvedUserId,
+//         mode: "NORMAL",
+//         trend: "NEUTRAL",
+//         pattern: null,
+//         historicalVolume: null,
+//         defensiveFlags: null,
+//         trade_setup: null,
+//         currentOpenPositionsCount: 0,
+//       })
+//     );
+//   }
 
-//     let signalDecision = await evaluateDecision({
-//       result: safePattern,
-//       candles,
-//       symbol,
-//       timeframe,
-//       mode,
-//       spread,
-//       portfolio,
-//       trend,
-//       historicalVolumeSignal,
-//       recentPerformance,
-//       firebaseUserId,
-//       accountId,
-//       contextHash,
+//   let totalClosedTrades = 0;
+
+//   try {
+//     if (resolvedUserId) {
+//       totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
+//     }
+//   } catch (tradeCountError) {
+//     console.error("Load trade count error:", tradeCountError.message);
+//   }
+
+//   try {
+//     const news = readFilter();
+//     const calendar = checkCalendar();
+//     const session = getSession();
+//     const risk = getRiskState();
+
+//     const pattern = await analyzePattern({
+//       symbol: symbol,
+//       candles: candles,
+//       candlesM15: higherTf.candlesM15,
+//       candlesM30: higherTf.candlesM30,
+//       candlesH1: higherTf.candlesH1,
+//       candlesH4: higherTf.candlesH4,
+
+//       // ส่ง HTF หลักที่ระบบจะใช้จริง
+//       candlesTrendPrimary: higherTf.trendPrimaryCandles,
+//       candlesTrendSecondary: higherTf.trendSecondaryCandles,
+
+//       // คงชื่อเดิมไว้ให้ flow เก่าทำงานต่อได้
+//       candlesH1: higherTf.trendPrimaryCandles,
+//       candlesH4: higherTf.trendSecondaryCandles,
+
+//       overlapPips: overlapPips,
 //     });
 
-//     if (!signalDecision || typeof signalDecision !== "object") {
-//       signalDecision = {
-//         decision: "NO_TRADE",
-//         score: 0,
-//         reason: "DECISION_ENGINE_EMPTY",
-//       };
+//     const ictContext = analyzeICT(candles);
+//     const historicalVolume = evaluateCurrentVolumeAgainstHistory({
+//       firebaseUserId: resolvedUserId,
+//       symbol,
+//       candles,
+//     });
+
+//     const evaluateResult = await evaluateDecision({
+//       news,
+//       calendar,
+//       session,
+//       risk,
+//       pattern,
+//       ictContext,
+//       historicalVolume,
+//       market: {
+//         userId: resolvedUserId,
+//         symbol: symbol,
+//         timeframe: "M5",
+//         price: price,
+//         candles: candles,
+
+//         // เก็บทุก TF ไว้
+//         candlesM15: higherTf.candlesM15,
+//         candlesM30: higherTf.candlesM30,
+//         candlesH1: higherTf.candlesH1,
+//         candlesH4: higherTf.candlesH4,
+
+//         // TF ที่ใช้เป็น HTF หลักจริง
+//         trendPrimaryCandles: higherTf.trendPrimaryCandles,
+//         trendSecondaryCandles: higherTf.trendSecondaryCandles,
+//         trendPrimaryLabel: higherTf.trendPrimaryLabel,
+//         trendSecondaryLabel: higherTf.trendSecondaryLabel,
+
+//         // backward compatible
+//         candlesH1: higherTf.trendPrimaryCandles,
+//         candlesH4: higherTf.trendSecondaryCandles,
+
+//         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
+//         sessionName: session.name,
+//       }
+//     });
+
+//     console.log("[EVALUATE_DECISION_BREAKDOWN]", {
+//       Action: evaluateResult.finalDecision,
+//       reason: evaluateResult.reason,
+//       evaluateResult
+//     });
+
+//     let mainUserRecentPerformance = null;
+//     let mainUserAdaptiveProfile = null;
+
+//     try {
+//       if (resolvedUserId) {
+//         mainUserRecentPerformance = await getRecentClosedTradePerformance({
+//           firebaseUserId: resolvedUserId,
+//           accountId,
+//           symbol,
+//           mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
+//           limit: 18,
+//         });
+//       }
+//     } catch (recentPerfError) {
+//       console.error("Load recent performance error:", recentPerfError.message);
 //     }
 
-//     const rawDecision = String(signalDecision.decision || "NO_TRADE").toUpperCase();
-//     const rawScore = toNum(signalDecision.score, 0);
-//     const signalSide =
-//       rawDecision.includes("BUY") ? "BUY" :
-//         rawDecision.includes("SELL") ? "SELL" :
-//           String(safePattern.signal || "").toUpperCase();
-
-//     const confidenceLevel = resolveConfidenceLevel({
-//       score: rawScore,
-//       patternType: safePattern?.type || safePattern?.pattern || "",
-//       historicalVolumeSignal,
-//       trend,
-//       mode,
+//     mainUserAdaptiveProfile = buildUserAdaptiveProfile({
+//       recentPerformance: mainUserRecentPerformance,
+//       mode: evaluateResult?.mode || "NORMAL",
 //     });
 
-//     const openCount = await countOpenPositionsByUserAccountAndSymbol(
-//       firebaseUserId,
-//       accountId,
-//       symbol
+//     const score = evaluateResult.score || 0;
+//     const finalDecisionResult = resolveDecisionWithTradingPreferences(
+//       evaluateResult,
+//       symbol,
+//       { tradingPreferences }
 //     );
 
-//     const resolvedDecision = await resolveDecisionWithTradingPreferences({
-//       firebaseUserId,
-//       accountId,
-//       symbol,
-//       mode,
-//       decisionPayload: signalDecision,
-//       openPositionCount: openCount,
-//       portfolio,
-//       balance,
-//     });
+//     const finalDecision = finalDecisionResult.decision;
+//     const finalDecisionReason = finalDecisionResult.reason || null;
 
-//     const finalDecision = String(resolvedDecision?.decision || rawDecision || "NO_TRADE").toUpperCase();
-//     const finalScore = toNum(resolvedDecision?.score, rawScore);
+//     try {
+//       if (Array.isArray(candles) && candles.length > 0) {
+//         const contextCandles = candles.map((c) => ({
+//           time: c.time ? new Date(c.time) : null,
+//           open: Number(c.open || 0),
+//           high: Number(c.high || 0),
+//           low: Number(c.low || 0),
+//           close: Number(c.close || 0),
+//           tickVolume: Number(c.tickVolume || c.tick_volume || 0),
+//         }));
 
-//     const shouldRequireNextCandleConfirmation = ({
-//       decision,
-//       confidenceLevel,
-//       patternType,
-//       trend,
-//       historicalVolumeSignal,
-//       mode,
-//       portfolio,
-//     }) => {
-//       if (!isPrimaryTradeDecision(decision)) return false;
-
-//       const safeMode = String(mode || "NORMAL").toUpperCase();
-//       const safeTrend = String(trend || "").toUpperCase();
-//       const safePatternType = String(patternType || "").toUpperCase();
-//       const safeVolume = String(historicalVolumeSignal || "").toUpperCase();
-//       const currentPosition = String(portfolio?.currentPosition || "NONE").toUpperCase();
-
-//       if (safeMode === "MICRO_SCALP") return false;
-//       if (confidenceLevel === "VERY_HIGH") return false;
-//       if (currentPosition === "BUY" || currentPosition === "SELL") return false;
-
-//       const waitPatterns = [
-//         "FIRST_LEG_BREAKOUT",
-//         "FIRST_LEG_BREAKDOWN",
-//         "REVERSAL",
-//         "BOUNCE",
-//         "REJECTION",
-//         "PULLBACK",
-//       ];
-
-//       const matchedWaitPattern = waitPatterns.some((x) => safePatternType.includes(x));
-
-//       if (matchedWaitPattern) return true;
-//       if (safeTrend === "NEUTRAL") return true;
-//       if (safeVolume === "LOW_VOLUME") return true;
-//       if (confidenceLevel === "NORMAL") return true;
-
-//       return false;
-//     };
-
-//     const evaluatePendingConfirmation = ({
-//       pendingSide,
-//       triggerCandle,
-//       confirmCandle,
-//       candles,
-//       trend,
-//       historicalVolumeSignal,
-//     }) => {
-//       const safeSide = String(pendingSide || "").toUpperCase();
-//       const trigger = triggerCandle || {};
-//       const confirm = confirmCandle || {};
-
-//       const triggerHigh = toNum(trigger.high, 0);
-//       const triggerLow = toNum(trigger.low, 0);
-//       const triggerOpen = toNum(trigger.open, 0);
-//       const triggerClose = toNum(trigger.close, 0);
-//       const confirmOpen = toNum(confirm.open, 0);
-//       const confirmClose = toNum(confirm.close, 0);
-//       const confirmHigh = toNum(confirm.high, 0);
-//       const confirmLow = toNum(confirm.low, 0);
-
-//       const triggerMid = (triggerHigh + triggerLow) / 2;
-//       const avgBody = average(
-//         candles.slice(-5).map((c) => getBodySize(c))
-//       ) || 0.0000001;
-//       const confirmBody = getBodySize(confirm);
-//       const confirmBodyRatio = confirmBody / Math.max(avgBody, 0.0000001);
-
-//       let score = 0;
-//       let failScore = 0;
-//       const reasons = [];
-
-//       if (safeSide === "BUY") {
-//         if (confirmClose > triggerClose) {
-//           score += 0.25;
-//           reasons.push("BUY_CLOSE_ABOVE_TRIGGER_CLOSE");
-//         } else {
-//           failScore += 0.15;
-//         }
-
-//         if (confirmClose > triggerMid) {
-//           score += 0.15;
-//           reasons.push("BUY_CLOSE_ABOVE_TRIGGER_MID");
-//         }
-
-//         if (confirmHigh > triggerHigh) {
-//           score += 0.20;
-//           reasons.push("BUY_BREAK_TRIGGER_HIGH");
-//         }
-
-//         if (confirmClose < triggerLow) {
-//           failScore += 0.50;
-//           reasons.push("BUY_CLOSE_BELOW_TRIGGER_LOW");
-//         }
-
-//         if (isBearish(confirm) && confirmClose < triggerOpen) {
-//           failScore += 0.30;
-//           reasons.push("BUY_BEARISH_CONFIRM");
-//         }
-//       }
-
-//       if (safeSide === "SELL") {
-//         if (confirmClose < triggerClose) {
-//           score += 0.25;
-//           reasons.push("SELL_CLOSE_BELOW_TRIGGER_CLOSE");
-//         } else {
-//           failScore += 0.15;
-//         }
-
-//         if (confirmClose < triggerMid) {
-//           score += 0.15;
-//           reasons.push("SELL_CLOSE_BELOW_TRIGGER_MID");
-//         }
-
-//         if (confirmLow < triggerLow) {
-//           score += 0.20;
-//           reasons.push("SELL_BREAK_TRIGGER_LOW");
-//         }
-
-//         if (confirmClose > triggerHigh) {
-//           failScore += 0.50;
-//           reasons.push("SELL_CLOSE_ABOVE_TRIGGER_HIGH");
-//         }
-
-//         if (isBullish(confirm) && confirmClose > triggerOpen) {
-//           failScore += 0.30;
-//           reasons.push("SELL_BULLISH_CONFIRM");
-//         }
-//       }
-
-//       if (confirmBodyRatio >= 0.60) {
-//         score += 0.10;
-//         reasons.push("BODY_ACCEPTABLE");
-//       }
-
-//       if (String(trend || "").toUpperCase() !== "NEUTRAL") {
-//         score += 0.05;
-//       }
-
-//       if (String(historicalVolumeSignal || "").toUpperCase() !== "LOW_VOLUME") {
-//         score += 0.05;
-//       }
-
-//       const finalScore = Number((score - failScore).toFixed(2));
-
-//       if (failScore >= 0.50 || finalScore < 0.20) {
-//         return {
-//           status: "CANCELLED",
-//           score: finalScore,
-//           reasons,
-//         };
-//       }
-
-//       if (finalScore >= 0.45) {
-//         return {
-//           status: "CONFIRMED",
-//           score: finalScore,
-//           reasons,
-//         };
-//       }
-
-//       return {
-//         status: "PENDING",
-//         score: finalScore,
-//         reasons,
-//       };
-//     };
-
-//     const pending = await getPendingTradeConfirmationByKey({
-//       firebaseUserId,
-//       accountId,
-//       symbol,
-//       timeframe,
-//       mode,
-//     });
-
-//     if (pending && String(pending.status).toUpperCase() === "PENDING") {
-//       const pendingTriggerTime = String(pending.trigger_candle_time || "");
-//       const latestClosedTime = String(latestClosedCandle.time || latestClosedCandle.timestamp || "");
-
-//       if (latestClosedTime && pendingTriggerTime && latestClosedTime !== pendingTriggerTime) {
-//         const confirmResult = evaluatePendingConfirmation({
-//           pendingSide: pending.side,
-//           triggerCandle: pending.trigger_candle_json || previousClosedCandle,
-//           confirmCandle: latestClosedCandle,
-//           candles,
-//           trend,
-//           historicalVolumeSignal,
+//         await CandleTrainingData.create({
+//           firebaseUserId: resolvedUserId || "",
+//           accountId: accountId || "",
+//           symbol: symbol || "",
+//           timeframe: "M5",
+//           eventTime: new Date(),
+//           price: Number(price || 0),
+//           candles: contextCandles,
+//           source: "signal",
+//           mode: evaluateResult.mode || "NORMAL",
 //         });
+//       }
+//     } catch (e) {
+//       console.error("Error saving candle training data to MongoDB:", e);
+//     }
 
-//         await appendPendingTradeConfirmationLog({
-//           pendingId: pending.id,
-//           logType: "CONFIRM_CHECK",
-//           payload: {
-//             confirmResult,
-//             latestClosedTime,
-//             pendingTriggerTime,
+//     // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
+//     // console.log(`Price: ${price}`);
+//     // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
+//     // if (pattern.structure) {
+//     //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
+//     //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
+//     //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
+//     // }
+//     // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
+//     // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
+//     // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
+//     // console.log(`--------------------------------------\n`);
+
+//     console.log("[DECISION_BREAKDOWN]", {
+//       symbol,
+//       mode: evaluateResult.mode,
+//       trend: evaluateResult.trend,
+//       score: evaluateResult.score,
+//       adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
+//       historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
+//       thresholdContext: evaluateResult.thresholdContext,
+//       finalDecision
+//     });
+
+//     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
+//     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
+
+//     const coldStartProfile = buildColdStartProfile({
+//       closedTradesCount: totalClosedTrades,
+//       mode: evaluateResult.mode || "NORMAL",
+//     });
+
+//     if (
+//       isOpenDecision(finalDecision) &&
+//       coldStartProfile.enabled &&
+//       coldStartProfile.blockWeakSignals &&
+//       Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
+//     ) {
+//       return res.json({
+//         ...buildBlockedSignalResponse({
+//           reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
+//           score,
+//           firebaseUserId: resolvedUserId,
+//           mode: evaluateResult.mode || "NORMAL",
+//           trend: evaluateResult.trend || "NEUTRAL",
+//           pattern,
+//           historicalVolume,
+//           defensiveFlags: evaluateResult.defensiveFlags || null,
+//           trade_setup: null,
+//           currentOpenPositionsCount: 0,
+//         }),
+//         cold_start_profile: coldStartProfile,
+//         totalClosedTrades,
+//       });
+//     }
+
+//     if (finalDecision === "NO_TRADE" && finalDecisionReason) {
+//       return res.json(
+//         buildBlockedSignalResponse({
+//           reason: finalDecisionReason,
+//           score,
+//           firebaseUserId: resolvedUserId,
+//           mode: evaluateResult.mode || "NORMAL",
+//           trend: evaluateResult.trend || "NEUTRAL",
+//           pattern,
+//           historicalVolume,
+//           defensiveFlags: evaluateResult.defensiveFlags || {
+//             warningMatched: false,
+//             lotMultiplier: 1,
+//             tpMultiplier: 1,
+//             reason: null,
 //           },
-//         });
-
-//         if (confirmResult.status === "CONFIRMED") {
-//           await updatePendingTradeConfirmationStatus({
-//             id: pending.id,
-//             status: "CONFIRMED",
-//             confirmedCandleTime: latestClosedTime,
-//             confirmationScore: confirmResult.score,
-//             resultJson: confirmResult,
-//           });
-
-//           const confirmedDecision =
-//             String(pending.side || "").toUpperCase() === "SELL"
-//               ? "ALLOW_SELL"
-//               : "ALLOW_BUY";
-
-//           const confirmedTradeSetup = buildTradeSetupFromPattern({
-//             pattern: safePattern,
-//             symbol,
-//             mode,
-//             score: finalScore,
-//             confidenceLevel,
-//             activeCfg,
-//             candles,
-//             balance,
-//           });
-
-//           const adaptiveTradeSetup = applyUserAdaptiveProfileToTradeSetup({
-//             tradeSetup: confirmedTradeSetup,
-//             userAdaptiveProfile,
-//             activeCfg,
-//           });
-
-//           return res.json({
-//             decision: confirmedDecision,
-//             score: finalScore,
-//             symbol,
-//             mode,
-//             firebaseUserId,
-//             accountId,
-//             trend,
-//             confidenceLevel,
-//             historicalVolumeSignal,
-//             pendingConfirmation: false,
-//             confirmedFromPending: true,
-//             pendingId: pending.id,
-//             pattern: safePattern,
-//             tradeSetup: adaptiveTradeSetup,
-//             confirmation: confirmResult,
-//           });
-//         }
-
-//         if (confirmResult.status === "CANCELLED") {
-//           await updatePendingTradeConfirmationStatus({
-//             id: pending.id,
-//             status: "CANCELLED",
-//             confirmedCandleTime: latestClosedTime,
-//             confirmationScore: confirmResult.score,
-//             resultJson: confirmResult,
-//           });
-
-//           return res.json({
-//             decision: "NO_TRADE",
-//             reason: "PENDING_CONFIRMATION_CANCELLED",
-//             symbol,
-//             mode,
-//             firebaseUserId,
-//             accountId,
-//             trend,
-//             confidenceLevel,
-//             historicalVolumeSignal,
-//             pendingConfirmation: false,
-//             confirmedFromPending: false,
-//             pendingId: pending.id,
-//             confirmation: confirmResult,
-//           });
-//         }
-
-//         return res.json({
-//           decision: "WAIT_CONFIRMATION",
-//           reason: "PENDING_CONFIRMATION_WAITING_NEXT_CLOSE",
-//           symbol,
-//           mode,
-//           firebaseUserId,
-//           accountId,
-//           trend,
-//           confidenceLevel,
-//           historicalVolumeSignal,
-//           pendingConfirmation: true,
-//           confirmedFromPending: false,
-//           pendingId: pending.id,
-//           confirmation: confirmResult,
-//         });
-//       }
-
-//       return res.json({
-//         decision: "WAIT_CONFIRMATION",
-//         reason: "PENDING_CONFIRMATION_SAME_CANDLE",
-//         symbol,
-//         mode,
-//         firebaseUserId,
-//         accountId,
-//         trend,
-//         confidenceLevel,
-//         historicalVolumeSignal,
-//         pendingConfirmation: true,
-//         confirmedFromPending: false,
-//         pendingId: pending.id,
-//       });
+//           trade_setup: null,
+//           currentOpenPositionsCount: 0,
+//         })
+//       );
 //     }
 
+//     // ========= FALLBACK TO MICRO SCALP =========
 //     if (!isPrimaryTradeDecision(finalDecision)) {
-//       return res.json({
-//         decision: finalDecision,
-//         score: finalScore,
-//         symbol,
-//         mode,
-//         firebaseUserId,
-//         accountId,
-//         trend,
-//         confidenceLevel,
-//         historicalVolumeSignal,
-//         pattern: safePattern,
-//         pendingConfirmation: false,
+//       const microResult = microScalpEngine.analyzeMicroScalp({
+//         candles: Array.isArray(candles) ? candles : [],
+//         spread: Number(spreadPoints || 0),
+//         openPositions: [],
+//         config: MICRO_SCALP_CONFIG,
 //       });
+
+//       if (microResult.allowOpen) {
+//         const microUserRecentPerformance = await getRecentClosedTradePerformance({
+//           firebaseUserId: resolvedUserId,
+//           accountId,
+//           symbol,
+//           mode: "SCALP",
+//           limit: 18,
+//         });
+
+//         const microUserAdaptiveProfile = buildUserAdaptiveProfile({
+//           recentPerformance: microUserRecentPerformance,
+//           mode: "MICRO_SCALP",
+//         });
+
+//         const microActiveCfg = getActiveSymbolConfig(symbol, "MICRO_SCALP");
+//         const microResponse = buildMicroFallbackResponse({
+//           microResult,
+//           reqBody: req.body,
+//           resolvedUserId,
+//           pattern,
+//           historicalVolume,
+//           activeCfg: microActiveCfg,
+//           tradingPreferences,
+//           totalClosedTrades,
+//           userAdaptiveProfile: microUserAdaptiveProfile,
+//           symbol
+//         });
+
+//         if (microResponse) {
+//           if (microResponse.decision === "NO_TRADE") {
+//             return res.json(microResponse);
+//           }
+
+//           const microDirectionResult = enforceDirectionBiasOnDecision(
+//             microResponse.decision,
+//             tradingPreferences
+//           );
+
+//           if (microDirectionResult.blocked) {
+//             return res.json(
+//               buildBlockedSignalResponse({
+//                 reason: microDirectionResult.reason,
+//                 score: microResponse.score || 0,
+//                 firebaseUserId: resolvedUserId,
+//                 mode: microResponse.mode || "MICRO_SCALP",
+//                 trend: microResponse.trend || "NEUTRAL",
+//                 pattern: microResponse.pattern || null,
+//                 historicalVolume: microResponse.historicalVolume || null,
+//                 defensiveFlags: microResponse.defensiveFlags || null,
+//                 trade_setup: null,
+//                 currentOpenPositionsCount: 0,
+//               })
+//             );
+//           }
+
+//           const currentOpenPositionsCount =
+//             await countOpenPositionsByUserAccountAndSymbol({
+//               firebaseUserId: resolvedUserId,
+//               accountId,
+//               symbol,
+//             });
+
+//           if (
+//             isMaxOpenPositionsReached(
+//               currentOpenPositionsCount,
+//               tradingPreferences.max_open_positions
+//             )
+//           ) {
+//             return res.json(
+//               buildBlockedSignalResponse({
+//                 reason: "MAX_OPEN_POSITIONS_REACHED",
+//                 score: microResponse.score || 0,
+//                 firebaseUserId: resolvedUserId,
+//                 mode: microResponse.mode || "MICRO_SCALP",
+//                 trend: microResponse.trend || "NEUTRAL",
+//                 pattern: microResponse.pattern || null,
+//                 historicalVolume: microResponse.historicalVolume || null,
+//                 defensiveFlags: microResponse.defensiveFlags || null,
+//                 trade_setup: null,
+//                 currentOpenPositionsCount,
+//               })
+//             );
+//           }
+//           console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
+
+//           return res.json(microResponse);
+//         }
+//       }
 //     }
 
-//     const needConfirmation = shouldRequireNextCandleConfirmation({
-//       decision: finalDecision,
-//       confidenceLevel,
-//       patternType: safePattern?.type || safePattern?.pattern || "",
-//       trend,
-//       historicalVolumeSignal,
-//       mode,
-//       portfolio,
-//     });
+//     const defensiveFlags = evaluateResult.defensiveFlags || {
+//       warningMatched: false,
+//       lotMultiplier: 1,
+//       tpMultiplier: 1,
+//       reason: null,
+//     };
 
-//     if (needConfirmation) {
-//       const pendingSide = finalDecision.includes("SELL") ? "SELL" : "BUY";
-//       const triggerCandleTime = String(latestClosedCandle.time || latestClosedCandle.timestamp || "");
+//     // const rawLotCap = Number(
+//     //   tradingPreferences?.base_log_size ??
+//     //   tradingPreferences?.base_lot_size ??
+//     //   0
+//     // );
+//     const rawLotFloor = Number(
+//       tradingPreferences?.base_log_size ??
+//       tradingPreferences?.base_lot_size ??
+//       0
+//     );
 
-//       const createdPending = await createPendingTradeConfirmation({
-//         firebaseUserId,
-//         accountId,
-//         symbol,
-//         timeframe,
-//         mode,
-//         side: pendingSide,
-//         status: "PENDING",
-//         decisionScore: finalScore,
-//         confidenceLevel,
-//         patternName: String(safePattern?.pattern || ""),
-//         patternType: String(safePattern?.type || ""),
-//         contextHash,
-//         triggerCandleTime,
-//         triggerPrice: currentPrice || toNum(latestClosedCandle.close, 0),
-//         triggerCandleJson: latestClosedCandle,
-//         metaJson: {
-//           trend,
-//           spread,
-//           historicalVolumeSignal,
-//           portfolio,
-//           pattern: safePattern,
-//         },
-//       });
-
-//       await appendPendingTradeConfirmationLog({
-//         pendingId: createdPending?.id || null,
-//         logType: "CREATED",
-//         payload: {
-//           decision: finalDecision,
-//           score: finalScore,
-//           confidenceLevel,
-//           triggerCandleTime,
-//         },
-//       });
-
-//       return res.json({
-//         decision: "WAIT_CONFIRMATION",
-//         reason: "NEXT_CANDLE_CONFIRMATION_REQUIRED",
-//         symbol,
-//         mode,
-//         firebaseUserId,
-//         accountId,
-//         trend,
-//         confidenceLevel,
-//         historicalVolumeSignal,
-//         score: finalScore,
-//         pendingConfirmation: true,
-//         confirmedFromPending: false,
-//         pendingId: createdPending?.id || null,
-//         pendingSide,
-//         triggerCandleTime,
-//         pattern: safePattern,
-//       });
-//     }
-
-//     const tradeSetup = buildTradeSetupFromPattern({
-//       pattern: safePattern,
-//       symbol,
-//       mode,
-//       score: finalScore,
-//       confidenceLevel,
-//       activeCfg,
+//     let trade_setup = buildTradeSetupFromPattern({
+//       side,
+//       price: Number(price || 0),
+//       pattern,
 //       candles,
-//       balance,
+//       balance: Number(balance || 0),
+//       spreadPoints: Number(spreadPoints || 0),
+//       activeCfg,
+//       score,
+//       defensiveFlags,
+//       userMinLotFloor: rawLotFloor,
+//       coldStartProfile,
+//       historicalVolumeSignal: historicalVolume,
+//       symbol,
 //     });
 
-//     const adaptiveTradeSetup = applyUserAdaptiveProfileToTradeSetup({
-//       tradeSetup,
-//       userAdaptiveProfile,
+//     trade_setup = applyUserAdaptiveProfileToTradeSetup({
+//       tradeSetup: trade_setup,
+//       userAdaptiveProfile: mainUserAdaptiveProfile,
 //       activeCfg,
+//     });
+
+//     if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
+//       trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
+//       if (trade_setup.recommended_lot < 0.01) {
+//         trade_setup.recommended_lot = 0.01;
+//       }
+//     }
+
+//     const adaptiveMinScore = getAdaptiveMinRequiredScore({
+//       baseScore: 0,
+//       coldStartProfile,
+//       userAdaptiveProfile: mainUserAdaptiveProfile,
+//     });
+
+//     if (
+//       isOpenDecision(finalDecision) &&
+//       Math.abs(Number(score || 0)) < adaptiveMinScore
+//     ) {
+//       return res.json({
+//         ...buildBlockedSignalResponse({
+//           reason: "USER_ADAPTIVE_MIN_SCORE",
+//           score,
+//           firebaseUserId: resolvedUserId,
+//           mode: evaluateResult.mode || "NORMAL",
+//           trend: evaluateResult.trend || "NEUTRAL",
+//           pattern,
+//           historicalVolume,
+//           defensiveFlags: evaluateResult.defensiveFlags || null,
+//           trade_setup: null,
+//           currentOpenPositionsCount: 0,
+//         }),
+//         cold_start_profile: coldStartProfile,
+//         user_adaptive_profile: mainUserAdaptiveProfile,
+//         recent_performance: mainUserRecentPerformance,
+//         totalClosedTrades,
+//       });
+//     }
+
+//     console.log("[FINAL_REPONSE_BREAKDOWN]", {
+//       decision: finalDecision,
+//       score: score,
+//       firebaseUserId: resolvedUserId,
+//       mode: evaluateResult.mode || "NORMAL",
+//       trend: evaluateResult.trend || "NEUTRAL",
+//       pattern: pattern,
+//       historicalVolume: historicalVolume,
+//       defensiveFlags: defensiveFlags,
+//       trade_setup,
+//       cold_start_profile: coldStartProfile,
+//       user_adaptive_profile: mainUserAdaptiveProfile,
+//       recent_performance: mainUserRecentPerformance,
+//       totalClosedTrades,
 //     });
 
 //     return res.json({
 //       decision: finalDecision,
-//       score: finalScore,
-//       symbol,
-//       mode,
-//       firebaseUserId,
-//       accountId,
-//       trend,
-//       confidenceLevel,
-//       historicalVolumeSignal,
-//       pattern: safePattern,
-//       tradeSetup: adaptiveTradeSetup,
-//       pendingConfirmation: false,
-//       confirmedFromPending: false,
+//       score: score,
+//       firebaseUserId: resolvedUserId,
+//       mode: evaluateResult.mode || "NORMAL",
+//       trend: evaluateResult.trend || "NEUTRAL",
+//       pattern: pattern,
+//       historicalVolume: historicalVolume,
+//       defensiveFlags: defensiveFlags,
+//       trade_setup,
+//       cold_start_profile: coldStartProfile,
+//       user_adaptive_profile: mainUserAdaptiveProfile,
+//       recent_performance: mainUserRecentPerformance,
+//       totalClosedTrades,
 //     });
-//   } catch (error) {
-//     console.error("[/signal] error:", error);
 
+//   } catch (error) {
+//     console.error("Signal processing error:", error);
 //     return res.status(500).json({
 //       decision: "NO_TRADE",
-//       reason: "SIGNAL_ROUTE_ERROR",
-//       message: error.message,
+//       score: 0,
+//       firebaseUserId: resolvedUserId,
+//       mode: "NORMAL",
+//       trend: "NEUTRAL",
+//       error: error.message || "Internal server error",
 //     });
 //   }
 // });
