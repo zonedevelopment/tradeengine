@@ -3284,10 +3284,26 @@ app.post("/check-exit-signal", async (req, res) => {
       overlapPips: 100,
     });
 
+    const normalizedOpenPosition = {
+      ...openPosition,
+      symbol: resolvedSymbol,
+      mode: resolvedMode,
+      currentPrice: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
+      current_price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
+      tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
+      tp_points: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
+      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      sl_points: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      holdingMinutes: Number.isFinite(resolvedHoldingMinutes) ? Math.max(0, resolvedHoldingMinutes) : 0,
+      holding_minutes: Number.isFinite(resolvedHoldingMinutes) ? Math.max(0, resolvedHoldingMinutes) : 0,
+      profit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
+      floatingProfit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
+    };
+
     const result = await analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
       symbol: resolvedSymbol,
-      openPosition,
+      openPosition: normalizedOpenPosition,
       currentProfit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
       candles,
       mode: resolvedMode,
