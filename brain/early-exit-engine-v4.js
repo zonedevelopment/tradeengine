@@ -97,33 +97,33 @@ function getExitProfile(mode = "NORMAL") {
 function getProgressToTarget(openPosition = {}, currentProfit = 0, tpPoints = 0, slPoints = 0) {
   const entryPrice = toNumber(
     openPosition.entryPrice ??
-    openPosition.entry ??
-    openPosition.openPrice ??
-    openPosition.price ??
-    0
+      openPosition.entry ??
+      openPosition.openPrice ??
+      openPosition.price ??
+      0
   );
 
   const currentPrice = toNumber(
     openPosition.currentPrice ??
-    openPosition.current_price ??
-    openPosition.marketPrice ??
-    openPosition.lastPrice ??
-    openPosition.price_now ??
-    0
+      openPosition.current_price ??
+      openPosition.marketPrice ??
+      openPosition.lastPrice ??
+      openPosition.price_now ??
+      0
   );
 
   const stopLossPrice = toNumber(
     openPosition.sl ??
-    openPosition.stopLoss ??
-    openPosition.stop_loss ??
-    0
+      openPosition.stopLoss ??
+      openPosition.stop_loss ??
+      0
   );
 
   const takeProfitPrice = toNumber(
     openPosition.tp ??
-    openPosition.takeProfit ??
-    openPosition.take_profit ??
-    0
+      openPosition.takeProfit ??
+      openPosition.take_profit ??
+      0
   );
 
   const side = String(openPosition.side || "").toUpperCase();
@@ -207,12 +207,22 @@ function detectReversalScore(candles = [], side = "", mode = "NORMAL") {
     if (isBear(last)) score += 0.9;
     if (isBear(last) && isBear(prev)) score += 0.8;
     if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) score += 1.2;
+    if (
+      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
+      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
+    ) {
+      score += 1.2;
+    }
   } else if (side === "SELL") {
     if (isBull(last)) score += 0.9;
     if (isBull(last) && isBull(prev)) score += 0.8;
     if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) score += 1.2;
+    if (
+      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
+      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
+    ) {
+      score += 1.2;
+    }
   }
 
   if (candleRange(last) > avgR * 1.1) score += 0.3;
@@ -241,14 +251,20 @@ function detectExitConfirmation(candles = [], side = "") {
   if (side === "BUY") {
     if (isBear(last)) score += 0.8;
     if (isBear(last) && isBear(prev)) score += 0.8;
-    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) {
+    if (
+      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
+      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
+    ) {
       score += 1.1;
       hasStructureBreak = true;
     }
   } else if (side === "SELL") {
     if (isBull(last)) score += 0.8;
     if (isBull(last) && isBull(prev)) score += 0.8;
-    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) {
+    if (
+      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
+      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
+    ) {
       score += 1.1;
       hasStructureBreak = true;
     }
@@ -304,6 +320,41 @@ function shouldSimpleCutLoss({
     return {
       action: "CUT_LOSS_NOW",
       reason: `${safeMode}_REVERSAL_DEFENSIVE_CUT`,
+    };
+  }
+
+  return null;
+}
+
+function shouldStructureBreakCut({
+  mode = "NORMAL",
+  currentProfit = 0,
+  confirmation = { hasStructureBreak: false, level: "NONE" },
+}) {
+  const safeMode = normalizeMode(mode);
+  const profit = Number(currentProfit || 0);
+
+  if (profit >= 0) return null;
+  if (!confirmation?.hasStructureBreak) return null;
+
+  if (safeMode === "MICRO_SCALP") {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: "MICRO_SCALP_STRUCTURE_BREAK_CUT",
+    };
+  }
+
+  if (safeMode === "SCALP") {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: "SCALP_STRUCTURE_BREAK_CUT",
+    };
+  }
+
+  if (confirmation.level === "MEDIUM" || confirmation.level === "STRONG") {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: "NORMAL_STRUCTURE_BREAK_CUT",
     };
   }
 
@@ -455,6 +506,21 @@ async function analyzeEarlyExit({
     return {
       action: simpleCut.action,
       reason: simpleCut.reason,
+      riskLevel: "HIGH",
+      score: adjustedScore,
+    };
+  }
+
+  const structureBreakCut = shouldStructureBreakCut({
+    mode: normalizedMode,
+    currentProfit: profit,
+    confirmation,
+  });
+
+  if (structureBreakCut) {
+    return {
+      action: structureBreakCut.action,
+      reason: structureBreakCut.reason,
       riskLevel: "HIGH",
       score: adjustedScore,
     };
