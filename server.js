@@ -2000,7 +2000,7 @@ app.post("/signal", async (req, res) => {
 
     const ictContext = analyzeICT(candles);
 
-    const historicalVolume = await evaluateCurrentVolumeAgainstHistory({
+    const historicalVolume = evaluateCurrentVolumeAgainstHistory({
       firebaseUserId: resolvedUserId,
       symbol: resolvedSymbol,
       candles,
@@ -2314,6 +2314,7 @@ app.post("/signal", async (req, res) => {
     });
 
     if (String(evaluateResult.mode || "").toUpperCase() === "MICRO_SCALP") {
+      const microActiveCfg = getActiveSymbolConfig(resolvedSymbol, "MICRO_SCALP");
       trade_setup = applyMicroScalpFixedTargetToTradeSetup({
         tradeSetup: {
           ...trade_setup,
@@ -2323,7 +2324,7 @@ app.post("/signal", async (req, res) => {
         historicalVolumeSignal:
           historicalVolume?.signal || historicalVolume || "",
         patternType: pattern?.type || pattern?.pattern || "",
-        activeCfg,
+        activeCfg: microActiveCfg,
       });
     }
 
