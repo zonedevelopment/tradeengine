@@ -39,110 +39,74 @@ function getExitProfile(mode = "NORMAL") {
 
     if (normalized === "MICRO_SCALP") {
         return {
-            // Stage 1: เพิ่งเข้าไม้ = รอ
-            warmupMinutes: 2,
-            warmupBars: 2,
+            armProfitMin: 0.35,
+            moveToBeMinProfit: 0.26,
+            takeProfitMinProfit: 0.42,
+            minPeakBeforeProtect: 0.45,
+            beMinRetraceRatio: 0.18,
+            tpMinRetraceRatio: 0.32,
 
-            // Cut loss เมื่อผิดทางจริง
+            simpleCutMinutes: 2,
+            simpleCutProfit: -0.18,
             strongCutProfit: -0.10,
-            simpleCutProfit: -0.14,
-            simpleCutMinutes: 3,
-            reversalCutScore: 1.75,
-            wrongWayContinuationBlock: 0.85,
+            reversalCutScore: 1.9,
 
-            // เริ่ม protect หลังมีกำไรจริง
-            minProfitToProtect: 0.12,
-            moveToBeMinProfit: 0.18,
-            takeProfitOnRetractionMinProfit: 0.28,
-            takeProfitHardProtectMinProfit: 0.40,
-
-            // ต้องย่อจริงก่อนถึงจะ protect
-            beRetractionRatioMin: 0.16,
-            tpRetractionRatioMin: 0.28,
-            hardProtectRetractionRatioMin: 0.36,
-
-            // ถ้ายัง continuation ดีอยู่ ห้าม protect
-            continuationHoldThreshold: 1.10,
-
-            // context score
-            beReversalScoreMin: 1.15,
-            tpReversalScoreMin: 1.65,
-
-            // failed pattern
-            failedPatternCutProfitMax: 0.06,
-            failedPatternMoveToBeProfit: 0.14,
-            failedPatternTakeProfitProfit: 0.24,
-
-            // low volume
-            useLowVolumeProtect: false,
             lowVolumeProfitMinutes: 5,
+            failedPatternCutProfit: 0.05,
+            failedPatternTakeProfitMin: 0.25,
+
+            weakStructureScore: 1.15,
+            strongStructureScore: 1.75,
         };
     }
 
     if (normalized === "SCALP") {
         return {
-            warmupMinutes: 3,
-            warmupBars: 2,
+            armProfitMin: 0.55,
+            moveToBeMinProfit: 0.35,
+            takeProfitMinProfit: 0.60,
+            minPeakBeforeProtect: 0.70,
+            beMinRetraceRatio: 0.16,
+            tpMinRetraceRatio: 0.28,
 
-            strongCutProfit: -0.12,
-            simpleCutProfit: -0.20,
             simpleCutMinutes: 4,
-            reversalCutScore: 2.00,
-            wrongWayContinuationBlock: 0.95,
+            simpleCutProfit: -0.24,
+            strongCutProfit: -0.14,
+            reversalCutScore: 2.15,
 
-            minProfitToProtect: 0.22,
-            moveToBeMinProfit: 0.30,
-            takeProfitOnRetractionMinProfit: 0.45,
-            takeProfitHardProtectMinProfit: 0.65,
-
-            beRetractionRatioMin: 0.18,
-            tpRetractionRatioMin: 0.30,
-            hardProtectRetractionRatioMin: 0.38,
-
-            continuationHoldThreshold: 1.15,
-
-            beReversalScoreMin: 1.35,
-            tpReversalScoreMin: 1.95,
-
-            failedPatternCutProfitMax: 0.10,
-            failedPatternMoveToBeProfit: 0.20,
-            failedPatternTakeProfitProfit: 0.36,
-
-            useLowVolumeProtect: false,
             lowVolumeProfitMinutes: 7,
+            failedPatternCutProfit: 0.08,
+            failedPatternTakeProfitMin: 0.35,
+
+            weakStructureScore: 1.20,
+            strongStructureScore: 1.90,
         };
     }
 
     return {
-        warmupMinutes: 5,
-        warmupBars: 2,
-
-        strongCutProfit: -0.18,
-        simpleCutProfit: -0.30,
-        simpleCutMinutes: 8,
-        reversalCutScore: 2.60,
-        wrongWayContinuationBlock: 1.00,
-
-        minProfitToProtect: 0.55,
+        armProfitMin: 1.10,
         moveToBeMinProfit: 0.75,
-        takeProfitOnRetractionMinProfit: 1.00,
-        takeProfitHardProtectMinProfit: 1.40,
+        takeProfitMinProfit: 1.20,
+        minPeakBeforeProtect: 1.35,
+        beMinRetraceRatio: 0.15,
+        tpMinRetraceRatio: 0.25,
 
-        beRetractionRatioMin: 0.16,
-        tpRetractionRatioMin: 0.26,
-        hardProtectRetractionRatioMin: 0.34,
+        simpleCutMinutes: 10,
+        simpleCutProfit: -0.35,
+        strongCutProfit: -0.22,
+        reversalCutScore: 2.6,
 
-        continuationHoldThreshold: 1.20,
+        normalFastCutMinutes: 3,
+        normalFastCutProfit: -0.08,
+        normalStructureBreakProfit: -0.03,
+        normalFastReversalScore: 1.6,
 
-        beReversalScoreMin: 1.70,
-        tpReversalScoreMin: 2.25,
+        lowVolumeProfitMinutes: 15,
+        failedPatternCutProfit: 0.12,
+        failedPatternTakeProfitMin: 0.65,
 
-        failedPatternCutProfitMax: 0.15,
-        failedPatternMoveToBeProfit: 0.35,
-        failedPatternTakeProfitProfit: 0.70,
-
-        useLowVolumeProtect: false,
-        lowVolumeProfitMinutes: 12,
+        weakStructureScore: 1.30,
+        strongStructureScore: 2.10,
     };
 }
 
@@ -197,8 +161,7 @@ function getProfitRetractionRatio(openPosition = {}, currentProfit = 0) {
     if (peakProfit <= 0) return 0;
     if (profit >= peakProfit) return 0;
 
-    const retraced = peakProfit - profit;
-    return clamp(retraced / peakProfit, 0, 1.5);
+    return clamp((peakProfit - profit) / peakProfit, 0, 1.5);
 }
 
 function getCandleBody(c = {}) {
@@ -225,7 +188,6 @@ function detectExitConfirmation(candles = [], side = "") {
     const s = normalizeSide(side);
     const last = candles[candles.length - 1] || {};
     const prev = candles[candles.length - 2] || {};
-
     let score = 0;
 
     const lastBody = getCandleBody(last);
@@ -234,16 +196,16 @@ function detectExitConfirmation(candles = [], side = "") {
     const bodyStrength = lastRange > 0 ? lastBody / lastRange : 0;
 
     if (s === "BUY") {
-        if (isBearish(last)) score += 0.9;
-        if (isBearish(last) && isBearish(prev)) score += 0.7;
+        if (isBearish(last)) score += 0.7;
+        if (isBearish(last) && isBearish(prev)) score += 0.6;
         if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.8;
     } else if (s === "SELL") {
-        if (isBullish(last)) score += 0.9;
-        if (isBullish(last) && isBullish(prev)) score += 0.7;
+        if (isBullish(last)) score += 0.7;
+        if (isBullish(last) && isBullish(prev)) score += 0.6;
         if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.8;
     }
 
-    if (bodyStrength >= 0.6) score += 0.4;
+    if (bodyStrength >= 0.6) score += 0.35;
     if (lastBody > prevBody && prevBody > 0) score += 0.2;
 
     if (score >= 1.8) return { level: "HIGH", score };
@@ -258,19 +220,18 @@ function detectReversalScore(candles = [], side = "", mode = "NORMAL") {
     const last = candles[candles.length - 1] || {};
     const prev = candles[candles.length - 2] || {};
     const prev2 = candles[candles.length - 3] || {};
-
     let score = 0;
 
     if (s === "BUY") {
-        if (isBearish(last)) score += 0.8;
-        if (isBearish(last) && isBearish(prev)) score += 0.9;
-        if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.7;
-        if (toNumber(prev.close, 0) < toNumber(prev2.low, 0)) score += 0.4;
+        if (isBearish(last)) score += 0.7;
+        if (isBearish(last) && isBearish(prev)) score += 0.8;
+        if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.8;
+        if (toNumber(prev.close, 0) < toNumber(prev2.low, 0)) score += 0.35;
     } else if (s === "SELL") {
-        if (isBullish(last)) score += 0.8;
-        if (isBullish(last) && isBullish(prev)) score += 0.9;
-        if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.7;
-        if (toNumber(prev.close, 0) > toNumber(prev2.high, 0)) score += 0.4;
+        if (isBullish(last)) score += 0.7;
+        if (isBullish(last) && isBullish(prev)) score += 0.8;
+        if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.8;
+        if (toNumber(prev.close, 0) > toNumber(prev2.high, 0)) score += 0.35;
     }
 
     if (normalizeMode(mode) === "MICRO_SCALP") return score * 0.95;
@@ -278,43 +239,48 @@ function detectReversalScore(candles = [], side = "", mode = "NORMAL") {
     return score * 1.05;
 }
 
-function detectContinuationScore(candles = [], side = "") {
-    if (!Array.isArray(candles) || candles.length < 2) return 0;
+function detectContinuationSignal(candles = [], side = "") {
+    if (!Array.isArray(candles) || candles.length < 3) {
+        return { continuation: false, strength: 0 };
+    }
+
+    const s = normalizeSide(side);
+    const last = candles[candles.length - 1] || {};
+    const prev = candles[candles.length - 2] || {};
+    const prev2 = candles[candles.length - 3] || {};
+
+    let strength = 0;
+
+    if (s === "BUY") {
+        if (isBullish(last)) strength += 0.8;
+        if (toNumber(last.close, 0) > toNumber(prev.high, 0)) strength += 0.9;
+        if (isBullish(prev2) && isBullish(last)) strength += 0.25;
+    } else if (s === "SELL") {
+        if (isBearish(last)) strength += 0.8;
+        if (toNumber(last.close, 0) < toNumber(prev.low, 0)) strength += 0.9;
+        if (isBearish(prev2) && isBearish(last)) strength += 0.25;
+    }
+
+    return {
+        continuation: strength >= 1.3,
+        strength,
+    };
+}
+
+function hasHardInvalidation(candles = [], side = "") {
+    if (!Array.isArray(candles) || candles.length < 2) return false;
 
     const s = normalizeSide(side);
     const last = candles[candles.length - 1] || {};
     const prev = candles[candles.length - 2] || {};
 
-    let score = 0;
-    const lastBody = getCandleBody(last);
-    const prevBody = getCandleBody(prev);
-    const lastRange = getCandleRange(last);
-    const bodyStrength = lastRange > 0 ? lastBody / lastRange : 0;
-
     if (s === "BUY") {
-        if (isBullish(last)) score += 0.8;
-        if (isBullish(last) && isBullish(prev)) score += 0.7;
-        if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.8;
-    } else if (s === "SELL") {
-        if (isBearish(last)) score += 0.8;
-        if (isBearish(last) && isBearish(prev)) score += 0.7;
-        if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.8;
+        return toNumber(last.close, 0) < toNumber(prev.low, 0);
     }
-
-    if (bodyStrength >= 0.6) score += 0.4;
-    if (lastBody > prevBody && prevBody > 0) score += 0.2;
-
-    return score;
-}
-
-function isWarmupStage({
-    holdingMinutes = 0,
-    candles = [],
-    mode = "NORMAL",
-}) {
-    const profile = getExitProfile(mode);
-    const bars = Array.isArray(candles) ? candles.length : 0;
-    return holdingMinutes < profile.warmupMinutes || bars < profile.warmupBars;
+    if (s === "SELL") {
+        return toNumber(last.close, 0) > toNumber(prev.high, 0);
+    }
+    return false;
 }
 
 function shouldTakeProfitOnLowVolume({
@@ -328,8 +294,6 @@ function shouldTakeProfitOnLowVolume({
     if (currentProfit <= 0) return false;
 
     const profile = getExitProfile(mode);
-    if (!profile.useLowVolumeProtect) return false;
-
     return holdingMinutes >= profile.lowVolumeProfitMinutes;
 }
 
@@ -337,29 +301,20 @@ function shouldSimpleWrongWayCut({
     currentProfit = 0,
     holdingMinutes = 0,
     reversalScore = 0,
-    continuationScore = 0,
     mode = "NORMAL",
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
 
-    if (
-        profit <= profile.strongCutProfit &&
-        reversalScore >= profile.reversalCutScore &&
-        continuationScore <= profile.wrongWayContinuationBlock
-    ) {
+    if (profit <= profile.strongCutProfit && reversalScore >= profile.reversalCutScore) {
         return {
             action: "CUT_LOSS_NOW",
             reason: `${normalizeMode(mode)}_STRONG_REVERSAL_CUT`,
         };
     }
 
-    if (
-        mins >= profile.simpleCutMinutes &&
-        profit <= profile.simpleCutProfit &&
-        continuationScore <= profile.wrongWayContinuationBlock
-    ) {
+    if (mins >= profile.simpleCutMinutes && profit <= profile.simpleCutProfit) {
         return {
             action: "CUT_LOSS_NOW",
             reason: `${normalizeMode(mode)}_TIME_BASED_WRONG_WAY_CUT`,
@@ -369,81 +324,108 @@ function shouldSimpleWrongWayCut({
     return null;
 }
 
-function shouldMoveToBE({
-    currentProfit = 0,
-    openPosition = {},
-    reversalScore = 0,
-    continuationScore = 0,
-    confirmation = { level: "LOW", score: 0 },
-    failedPatternRule = null,
+function shouldNormalFastWrongWayCut({
     mode = "NORMAL",
-}) {
-    const profile = getExitProfile(mode);
-    const profit = toNumber(currentProfit, 0);
-    const peakProfit = getPeakProfit(openPosition, profit);
-    const retractionRatio = getProfitRetractionRatio(openPosition, profit);
-
-    if (profit < profile.moveToBeMinProfit) return false;
-    if (profit < profile.minProfitToProtect) return false;
-    if (peakProfit <= profit) return false;
-    if (retractionRatio < profile.beRetractionRatioMin) return false;
-
-    if (continuationScore >= profile.continuationHoldThreshold && !failedPatternRule) {
-        return false;
-    }
-
-    const riskContext =
-        reversalScore >= profile.beReversalScoreMin ||
-        confirmation.level === "MEDIUM" ||
-        confirmation.level === "HIGH" ||
-        !!failedPatternRule;
-
-    if (!riskContext) return false;
-
-    return true;
-}
-
-function shouldTakeSmallProfit({
     currentProfit = 0,
-    openPosition = {},
+    holdingMinutes = 0,
     reversalScore = 0,
-    continuationScore = 0,
+    candles = [],
+    side = "",
     confirmation = { level: "LOW", score: 0 },
-    failedPatternRule = null,
-    mode = "NORMAL",
 }) {
-    const profile = getExitProfile(mode);
+    if (normalizeMode(mode) !== "NORMAL") return null;
+
+    const profile = getExitProfile("NORMAL");
     const profit = toNumber(currentProfit, 0);
-    const peakProfit = getPeakProfit(openPosition, profit);
-    const retractionRatio = getProfitRetractionRatio(openPosition, profit);
+    const mins = toNumber(holdingMinutes, 0);
+    const structureBreak = hasHardInvalidation(candles, side);
 
-    if (profit < profile.takeProfitOnRetractionMinProfit) return false;
-    if (peakProfit <= profit) return false;
-
-    if (continuationScore >= profile.continuationHoldThreshold && !failedPatternRule) {
-        return false;
+    if (
+        mins >= profile.normalFastCutMinutes &&
+        profit <= profile.normalStructureBreakProfit &&
+        structureBreak &&
+        confirmation.level !== "LOW"
+    ) {
+        return {
+            action: "CUT_LOSS_NOW",
+            reason: "NORMAL_STRUCTURE_BREAK_FAST_CUT",
+        };
     }
 
     if (
-        failedPatternRule &&
-        profit >= profile.failedPatternTakeProfitProfit &&
-        retractionRatio >= profile.beRetractionRatioMin
+        mins >= profile.normalFastCutMinutes &&
+        profit <= profile.normalFastCutProfit &&
+        reversalScore >= profile.normalFastReversalScore &&
+        structureBreak
     ) {
-        return true;
+        return {
+            action: "CUT_LOSS_NOW",
+            reason: "NORMAL_FAST_WRONG_WAY_CUT",
+        };
     }
+
+    return null;
+}
+
+function shouldEngineTakeSmallProfit({
+    currentProfit = 0,
+    openPosition = {},
+    reversalScore = 0,
+    confirmation = { level: "LOW", score: 0 },
+    continuation = { continuation: false, strength: 0 },
+    failedPatternRule = null,
+    mode = "NORMAL",
+}) {
+    const profile = getExitProfile(mode);
+    const profit = toNumber(currentProfit, 0);
+    const peakProfit = getPeakProfit(openPosition, profit);
+    const retraceRatio = getProfitRetractionRatio(openPosition, profit);
+
+    if (profit <= 0) return false;
+    if (continuation.continuation) return false;
+    if (peakProfit < profile.minPeakBeforeProtect) return false;
+    if (peakProfit < profile.armProfitMin) return false;
+    if (profit < profile.takeProfitMinProfit) return false;
+    if (retraceRatio < profile.tpMinRetraceRatio) return false;
+
+    if (failedPatternRule && profit >= profile.failedPatternTakeProfitMin) return true;
 
     const strongRisk =
-        reversalScore >= profile.tpReversalScoreMin ||
         confirmation.level === "HIGH" ||
-        (confirmation.level === "MEDIUM" && reversalScore >= profile.beReversalScoreMin + 0.35);
+        reversalScore >= profile.strongStructureScore;
 
-    if (!strongRisk) return false;
+    return strongRisk;
+}
 
-    if (peakProfit >= profile.takeProfitHardProtectMinProfit) {
-        return retractionRatio >= profile.hardProtectRetractionRatioMin;
-    }
+function shouldEngineMoveToBE({
+    currentProfit = 0,
+    openPosition = {},
+    reversalScore = 0,
+    confirmation = { level: "LOW", score: 0 },
+    continuation = { continuation: false, strength: 0 },
+    failedPatternRule = null,
+    mode = "NORMAL",
+}) {
+    const profile = getExitProfile(mode);
+    const profit = toNumber(currentProfit, 0);
+    const peakProfit = getPeakProfit(openPosition, profit);
+    const retraceRatio = getProfitRetractionRatio(openPosition, profit);
 
-    return retractionRatio >= profile.tpRetractionRatioMin;
+    if (profit <= 0) return false;
+    if (continuation.continuation) return false;
+    if (profit < profile.moveToBeMinProfit) return false;
+    if (peakProfit < profile.armProfitMin) return false;
+    if (peakProfit <= profit) return false;
+    if (retraceRatio < profile.beMinRetraceRatio) return false;
+    if (retraceRatio >= profile.tpMinRetraceRatio) return false;
+
+    const moderateRisk =
+        failedPatternRule ||
+        confirmation.level === "MEDIUM" ||
+        confirmation.level === "HIGH" ||
+        reversalScore >= profile.weakStructureScore;
+
+    return !!moderateRisk;
 }
 
 async function findFailedPatternRule({
@@ -517,9 +499,14 @@ async function analyzeEarlyExit({
 
     const holdingMinutes = getHoldingMinutes(openPosition);
     const confirmation = detectExitConfirmation(candles, side);
-    const reversalScore = detectReversalScore(candles, side, normalizedMode);
-    const continuationScore = detectContinuationScore(candles, side);
-    let adjustedScore = reversalScore + toNumber(confirmation.score, 0) * 0.35;
+    const continuation = detectContinuationSignal(candles, side);
+
+    let adjustedScore =
+        detectReversalScore(candles, side, normalizedMode) +
+        toNumber(confirmation.score, 0) * 0.25 -
+        toNumber(continuation.strength, 0) * 0.35;
+
+    if (!Number.isFinite(adjustedScore)) adjustedScore = 0;
 
     let riskLevel = "LOW";
 
@@ -537,164 +524,96 @@ async function analyzeEarlyExit({
 
     if (failedPatternRule) {
         riskLevel = "CRITICAL";
-        adjustedScore += 0.8;
+        adjustedScore += 0.65;
     } else if (adjustedScore >= profile.reversalCutScore) {
         riskLevel = "HIGH";
     } else if (adjustedScore >= profile.reversalCutScore * 0.7) {
         riskLevel = "MEDIUM";
     }
 
-    // Stage 5: ผิดทางจริง
-    if (
-        failedPatternRule &&
-        profit <= profile.failedPatternCutProfitMax &&
-        continuationScore <= profile.wrongWayContinuationBlock
-    ) {
+    // continuation ชัด = ยังไม่ protect / ยังไม่ cut กำไร
+    if (profit > 0 && continuation.continuation) {
+        return {
+            action: "HOLD",
+            reason: `${normalizedMode}_CONTINUATION_HOLD`,
+            riskLevel: "LOW",
+            score: adjustedScore,
+        };
+    }
+
+    // failed pattern + ยังไม่บวก => cut เร็ว
+    if (failedPatternRule && profit <= profile.failedPatternCutProfit) {
         return {
             action: "CUT_LOSS_NOW",
             reason: "FAILED_PATTERN_EARLY_EXIT",
             riskLevel: "CRITICAL",
             score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-            },
         };
     }
+
+    const structureBreak = hasHardInvalidation(candles, side);
 
     const simpleCut = shouldSimpleWrongWayCut({
         currentProfit: profit,
         holdingMinutes,
         reversalScore: adjustedScore,
-        continuationScore,
         mode: normalizedMode,
     });
 
-    if (simpleCut) {
+    if (simpleCut && structureBreak) {
         return {
             action: simpleCut.action,
             reason: simpleCut.reason,
             riskLevel: "HIGH",
             score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-            },
         };
     }
 
-    // Stage 1: เพิ่งเข้าไม้ = รออย่างเดียว
-    if (
-        isWarmupStage({
-            holdingMinutes,
-            candles,
-            mode: normalizedMode,
-        })
-    ) {
+    const normalFastCut = shouldNormalFastWrongWayCut({
+        mode: normalizedMode,
+        currentProfit: profit,
+        holdingMinutes,
+        reversalScore: adjustedScore,
+        candles,
+        side,
+        confirmation,
+    });
+
+    if (normalFastCut) {
         return {
-            action: "HOLD",
-            reason: `${normalizedMode}_WARMUP_HOLD`,
-            riskLevel,
+            action: normalFastCut.action,
+            reason: normalFastCut.reason,
+            riskLevel: "HIGH",
             score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-                peakProfit: getPeakProfit(openPosition, profit),
-                retractionRatio: getProfitRetractionRatio(openPosition, profit),
-            },
         };
     }
 
-    // ยังไม่มีกำไร = รอ
-    if (profit <= 0) {
-        return {
-            action: "HOLD",
-            reason: `${normalizedMode}_NO_PROFIT_HOLD`,
-            riskLevel,
-            score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-                peakProfit: getPeakProfit(openPosition, profit),
-                retractionRatio: getProfitRetractionRatio(openPosition, profit),
-            },
-        };
-    }
-
-    // continuation ดี = ถือ
-    if (continuationScore >= profile.continuationHoldThreshold && !failedPatternRule) {
-        return {
-            action: "HOLD",
-            reason: `${normalizedMode}_CONTINUATION_HOLD`,
-            riskLevel,
-            score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-                peakProfit: getPeakProfit(openPosition, profit),
-                retractionRatio: getProfitRetractionRatio(openPosition, profit),
-            },
-        };
-    }
-
-    // failed pattern + มีกำไร + เริ่มย่อ = กันทุน
-    if (
-        failedPatternRule &&
-        profit >= profile.failedPatternMoveToBeProfit &&
-        getPeakProfit(openPosition, profit) > profit &&
-        getProfitRetractionRatio(openPosition, profit) >= profile.beRetractionRatioMin
-    ) {
-        return {
-            action: "MOVE_TO_BE",
-            reason: `${normalizedMode}_FAILED_PATTERN_BREAKEVEN_PROTECT`,
-            riskLevel: "CRITICAL",
-            score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-                peakProfit: getPeakProfit(openPosition, profit),
-                retractionRatio: getProfitRetractionRatio(openPosition, profit),
-            },
-        };
-    }
-
+    // low volume แต่ต้องมี peak profit ก่อน ไม่ใช่บวกนิดเดียวก็ออก
     if (
         shouldTakeProfitOnLowVolume({
             historicalVolumeSignal,
             holdingMinutes,
             currentProfit: profit,
             mode: normalizedMode,
-        })
+        }) &&
+        getPeakProfit(openPosition, profit) >= profile.minPeakBeforeProtect &&
+        getProfitRetractionRatio(openPosition, profit) >= profile.beMinRetraceRatio
     ) {
         return {
             action: "TAKE_SMALL_PROFIT",
             reason: `${normalizedMode}_LOW_VOLUME_PROTECT`,
             riskLevel,
             score: adjustedScore,
-            meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
-                peakProfit: getPeakProfit(openPosition, profit),
-                retractionRatio: getProfitRetractionRatio(openPosition, profit),
-            },
         };
     }
 
-    // Stage 4: มีกำไรและย่อแรง = เก็บกำไร
     if (
-        shouldTakeSmallProfit({
+        shouldEngineTakeSmallProfit({
             currentProfit: profit,
             openPosition,
             reversalScore: adjustedScore,
-            continuationScore,
             confirmation,
+            continuation,
             failedPatternRule,
             mode: normalizedMode,
         })
@@ -705,23 +624,21 @@ async function analyzeEarlyExit({
             riskLevel,
             score: adjustedScore,
             meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
                 peakProfit: getPeakProfit(openPosition, profit),
                 retractionRatio: getProfitRetractionRatio(openPosition, profit),
+                confirmation: confirmation.level,
+                continuation: continuation.strength,
             },
         };
     }
 
-    // Stage 2: มีกำไรและเริ่มย่อ = กันทุน
     if (
-        shouldMoveToBE({
+        shouldEngineMoveToBE({
             currentProfit: profit,
             openPosition,
             reversalScore: adjustedScore,
-            continuationScore,
             confirmation,
+            continuation,
             failedPatternRule,
             mode: normalizedMode,
         })
@@ -732,27 +649,19 @@ async function analyzeEarlyExit({
             riskLevel,
             score: adjustedScore,
             meta: {
-                continuationScore,
-                reversalScore,
-                confirmation: confirmation.level,
                 peakProfit: getPeakProfit(openPosition, profit),
                 retractionRatio: getProfitRetractionRatio(openPosition, profit),
+                confirmation: confirmation.level,
+                continuation: continuation.strength,
             },
         };
     }
 
     return {
         action: "HOLD",
-        reason: `${normalizedMode}_PROFIT_CONTINUE_HOLD`,
+        reason: `No strong exit signal (score=${adjustedScore}, mode=${normalizedMode}, confirm=${confirmation.level})`,
         riskLevel,
         score: adjustedScore,
-        meta: {
-            continuationScore,
-            reversalScore,
-            confirmation: confirmation.level,
-            peakProfit: getPeakProfit(openPosition, profit),
-            retractionRatio: getProfitRetractionRatio(openPosition, profit),
-        },
     };
 }
 
