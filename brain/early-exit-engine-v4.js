@@ -16,44 +16,22 @@ function abs(v) {
 }
 
 function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
-}
-
-function candleBody(c = {}) {
-  return abs(toNumber(c.close) - toNumber(c.open));
-}
-
-function candleRange(c = {}) {
-  return abs(toNumber(c.high) - toNumber(c.low));
-}
-
-function isBull(c = {}) {
-  return toNumber(c.close) > toNumber(c.open);
-}
-
-function isBear(c = {}) {
-  return toNumber(c.close) < toNumber(c.open);
-}
-
-function avgBody(candles = [], length = 5) {
-  if (!Array.isArray(candles) || candles.length === 0) return 0;
-  const sample = candles.slice(-length);
-  if (!sample.length) return 0;
-  return sample.reduce((sum, c) => sum + candleBody(c), 0) / sample.length;
-}
-
-function avgRange(candles = [], length = 5) {
-  if (!Array.isArray(candles) || candles.length === 0) return 0;
-  const sample = candles.slice(-length);
-  if (!sample.length) return 0;
-  return sample.reduce((sum, c) => sum + candleRange(c), 0) / sample.length;
+  const n = toNumber(v, min);
+  return Math.max(min, Math.min(max, n));
 }
 
 function normalizeMode(mode = "NORMAL") {
-  const m = String(mode || "NORMAL").toUpperCase();
+  const m = String(mode || "NORMAL").trim().toUpperCase();
   if (m === "MICRO_SCALP") return "MICRO_SCALP";
   if (m === "SCALP") return "SCALP";
   return "NORMAL";
+}
+
+function normalizeSide(side = "") {
+  const s = String(side || "").trim().toUpperCase();
+  if (s === "BUY" || s === "LONG") return "BUY";
+  if (s === "SELL" || s === "SHORT") return "SELL";
+  return s;
 }
 
 function getExitProfile(mode = "NORMAL") {
@@ -61,284 +39,264 @@ function getExitProfile(mode = "NORMAL") {
 
   if (normalized === "MICRO_SCALP") {
     return {
-      minProfitToProtect: 0.10,
-      moveToBeMinProfit: 0.25,
-      takeProfitOnRetractionMinProfit: 0.30,
+      // ต้องมีกำไรก่อนถึงจะเริ่มพิจารณาป้องกัน
+      minProfitToProtect: 0.12,
+
+      // BE ของ engine จะไม่ยิงง่ายๆ ต้องมีกำไรขั้นต่ำก่อน
+      moveToBeMinProfit: 0.22,
+
+      // ปิดกำไรเล็กน้อยเมื่อเริ่มเห็นการย้อนจริง
+      takeProfitOnRetractionMinProfit: 0.14,
+      takeProfitHardProtectMinProfit: 0.24,
+
+      // cut loss ฝั่งผิดทาง
       simpleCutMinutes: 2,
       simpleCutProfit: -0.12,
       strongCutProfit: -0.08,
       reversalCutScore: 1.6,
+
+      // low volume
+      lowVolumeProfitMinutes: 4,
+
+      // เกณฑ์แยก BE กับ take profit
+      beMaxRetractionRatio: 0.22,
+      tpRetractionRatio: 0.30,
+
+      // reversal score
+      beReversalScoreMin: 1.05,
+      takeProfitReversalScoreMin: 1.45,
+
+      // confirmation
+      beAllowLowConfirmation: false,
+      protectOnFailedPatternProfit: 0.08,
     };
   }
 
   if (normalized === "SCALP") {
     return {
-      minProfitToProtect: 0.20,
-      moveToBeMinProfit: 0.40,
-      takeProfitOnRetractionMinProfit: 0.50,
+      minProfitToProtect: 0.28,
+      moveToBeMinProfit: 0.38,
+      takeProfitOnRetractionMinProfit: 0.24,
+      takeProfitHardProtectMinProfit: 0.42,
+
       simpleCutMinutes: 4,
       simpleCutProfit: -0.20,
       strongCutProfit: -0.12,
       reversalCutScore: 2.0,
+
+      lowVolumeProfitMinutes: 6,
+
+      beMaxRetractionRatio: 0.20,
+      tpRetractionRatio: 0.28,
+
+      beReversalScoreMin: 1.20,
+      takeProfitReversalScoreMin: 1.70,
+
+      beAllowLowConfirmation: false,
+      protectOnFailedPatternProfit: 0.12,
     };
   }
 
   return {
-    minProfitToProtect: 0.60,
+    minProfitToProtect: 0.75,
     moveToBeMinProfit: 0.90,
-    takeProfitOnRetractionMinProfit: 1.10,
+    takeProfitOnRetractionMinProfit: 0.70,
+    takeProfitHardProtectMinProfit: 1.00,
+
     simpleCutMinutes: 10,
     simpleCutProfit: -0.35,
     strongCutProfit: -0.20,
     reversalCutScore: 2.6,
 
-    // เพิ่มเฉพาะ NORMAL
     normalFastCutMinutes: 3,
     normalFastCutProfit: -0.08,
     normalStructureBreakProfit: -0.03,
     normalFastReversalScore: 1.6,
+
+    lowVolumeProfitMinutes: 15,
+
+    beMaxRetractionRatio: 0.18,
+    tpRetractionRatio: 0.25,
+
+    beReversalScoreMin: 1.35,
+    takeProfitReversalScoreMin: 1.95,
+
+    beAllowLowConfirmation: false,
+    protectOnFailedPatternProfit: 0.18,
   };
 }
 
-function getProgressToTarget(openPosition = {}, currentProfit = 0, tpPoints = 0, slPoints = 0) {
-  const entryPrice = toNumber(
-    openPosition.entryPrice ??
-      openPosition.entry ??
-      openPosition.openPrice ??
-      openPosition.price ??
-      0
+function getOpenTime(openPosition = {}) {
+  return (
+    openPosition.openTime ||
+    openPosition.open_time ||
+    openPosition.openedAt ||
+    openPosition.opened_at ||
+    openPosition.createdAt ||
+    openPosition.created_at ||
+    openPosition.time ||
+    null
   );
+}
 
-  const currentPrice = toNumber(
-    openPosition.currentPrice ??
-      openPosition.current_price ??
-      openPosition.marketPrice ??
-      openPosition.lastPrice ??
-      openPosition.price_now ??
-      0
-  );
+function getHoldingMinutes(openPosition = {}) {
+  const raw = getOpenTime(openPosition);
+  if (!raw) return 0;
 
-  const stopLossPrice = toNumber(
-    openPosition.sl ??
-      openPosition.stopLoss ??
-      openPosition.stop_loss ??
-      0
-  );
+  const ts = new Date(raw).getTime();
+  if (!Number.isFinite(ts) || ts <= 0) return 0;
 
-  const takeProfitPrice = toNumber(
-    openPosition.tp ??
-      openPosition.takeProfit ??
-      openPosition.take_profit ??
-      0
-  );
+  const diffMs = Date.now() - ts;
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return 0;
 
-  const side = String(openPosition.side || "").toUpperCase();
-
-  let profitDistance = 0;
-  let targetDistance = 0;
-  let riskDistance = 0;
-
-  if (!entryPrice || !currentPrice || !side) {
-    return {
-      progressToTarget: 0,
-      progressToRisk: 0,
-    };
-  }
-
-  if (side === "BUY") {
-    profitDistance = currentPrice - entryPrice;
-    targetDistance =
-      takeProfitPrice > entryPrice ? takeProfitPrice - entryPrice : toNumber(tpPoints, 0);
-    riskDistance =
-      stopLossPrice > 0 && stopLossPrice < entryPrice
-        ? entryPrice - stopLossPrice
-        : toNumber(slPoints, 0);
-  } else if (side === "SELL") {
-    profitDistance = entryPrice - currentPrice;
-    targetDistance =
-      takeProfitPrice > 0 && takeProfitPrice < entryPrice
-        ? entryPrice - takeProfitPrice
-        : toNumber(tpPoints, 0);
-    riskDistance =
-      stopLossPrice > entryPrice
-        ? stopLossPrice - entryPrice
-        : toNumber(slPoints, 0);
-  }
-
-  return {
-    progressToTarget:
-      targetDistance > 0 && profitDistance > 0 ? profitDistance / targetDistance : 0,
-    progressToRisk:
-      riskDistance > 0 && profitDistance > 0 ? profitDistance / riskDistance : 0,
-  };
+  return diffMs / 60000;
 }
 
 function getPeakProfit(openPosition = {}, currentProfit = 0) {
-  const rawPeak =
-    openPosition.maxProfit ??
-    openPosition.peakProfit ??
-    openPosition.maxFloatingProfit ??
-    openPosition.max_profit ??
-    null;
+  const candidates = [
+    openPosition.peakProfit,
+    openPosition.maxProfit,
+    openPosition.max_profit,
+    openPosition.bestProfit,
+    openPosition.best_profit,
+    openPosition.highestProfit,
+    openPosition.highest_profit,
+    currentProfit,
+  ].map((v) => toNumber(v, Number.NEGATIVE_INFINITY));
 
-  const peak = toNumber(rawPeak, toNumber(currentProfit, 0));
-  return Math.max(peak, toNumber(currentProfit, 0));
+  const valid = candidates.filter(Number.isFinite);
+  if (!valid.length) return Math.max(0, toNumber(currentProfit, 0));
+
+  return Math.max(...valid, toNumber(currentProfit, 0), 0);
 }
 
 function getProfitRetractionRatio(openPosition = {}, currentProfit = 0) {
   const peakProfit = getPeakProfit(openPosition, currentProfit);
   const profit = toNumber(currentProfit, 0);
 
-  if (peakProfit <= 0 || profit <= 0 || peakProfit <= profit) return 0;
-  return clamp((peakProfit - profit) / peakProfit, 0, 1);
+  if (peakProfit <= 0) return 0;
+  if (profit >= peakProfit) return 0;
+
+  const retraced = peakProfit - profit;
+  return clamp(retraced / peakProfit, 0, 1.5);
 }
 
-function shouldMoveToBreakeven(currentProfit = 0, mode = "NORMAL") {
+function shouldTakeProfitOnLowVolume({
+  historicalVolumeSignal = null,
+  holdingMinutes = 0,
+  currentProfit = 0,
+  mode = "NORMAL",
+}) {
+  const hv = String(historicalVolumeSignal || "").toUpperCase();
+  if (hv !== "LOW_VOLUME") return false;
+  if (currentProfit <= 0) return false;
+
   const profile = getExitProfile(mode);
-  return currentProfit >= profile.moveToBeMinProfit;
+  return holdingMinutes >= profile.lowVolumeProfitMinutes;
+}
+
+function getCandleBody(c = {}) {
+  return abs(toNumber(c.close, 0) - toNumber(c.open, 0));
+}
+
+function getCandleRange(c = {}) {
+  return abs(toNumber(c.high, 0) - toNumber(c.low, 0));
+}
+
+function isBullish(c = {}) {
+  return toNumber(c.close, 0) > toNumber(c.open, 0);
+}
+
+function isBearish(c = {}) {
+  return toNumber(c.close, 0) < toNumber(c.open, 0);
+}
+
+function detectExitConfirmation(candles = [], side = "") {
+  if (!Array.isArray(candles) || candles.length < 2) {
+    return { level: "LOW", score: 0 };
+  }
+
+  const s = normalizeSide(side);
+  const last = candles[candles.length - 1] || {};
+  const prev = candles[candles.length - 2] || {};
+
+  let score = 0;
+
+  const lastBody = getCandleBody(last);
+  const prevBody = getCandleBody(prev);
+  const lastRange = getCandleRange(last);
+  const bodyStrength = lastRange > 0 ? lastBody / lastRange : 0;
+
+  if (s === "BUY") {
+    if (isBearish(last)) score += 0.9;
+    if (isBearish(last) && isBearish(prev)) score += 0.7;
+    if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.8;
+  } else if (s === "SELL") {
+    if (isBullish(last)) score += 0.9;
+    if (isBullish(last) && isBullish(prev)) score += 0.7;
+    if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.8;
+  }
+
+  if (bodyStrength >= 0.6) score += 0.4;
+  if (lastBody > prevBody && prevBody > 0) score += 0.2;
+
+  if (score >= 1.8) return { level: "HIGH", score };
+  if (score >= 1.0) return { level: "MEDIUM", score };
+  return { level: "LOW", score };
 }
 
 function detectReversalScore(candles = [], side = "", mode = "NORMAL") {
   if (!Array.isArray(candles) || candles.length < 3) return 0;
 
-  let score = 0;
+  const s = normalizeSide(side);
   const last = candles[candles.length - 1] || {};
   const prev = candles[candles.length - 2] || {};
   const prev2 = candles[candles.length - 3] || {};
-  const avgB = avgBody(candles, 5) || candleBody(last) || 1;
-  const avgR = avgRange(candles, 5) || candleRange(last) || 1;
-  const normalizedMode = normalizeMode(mode);
 
-  if (side === "BUY") {
-    if (isBear(last)) score += 0.9;
-    if (isBear(last) && isBear(prev)) score += 0.8;
-    if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) score += 1.2;
-  } else if (side === "SELL") {
-    if (isBull(last)) score += 0.9;
-    if (isBull(last) && isBull(prev)) score += 0.8;
-    if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) score += 1.2;
-  }
-
-  if (candleRange(last) > avgR * 1.1) score += 0.3;
-
-  if (normalizedMode === "MICRO_SCALP") score *= 1.05;
-  if (normalizedMode === "NORMAL") score *= 0.95;
-
-  return Number(Math.max(0, score).toFixed(2));
-}
-
-function detectExitConfirmation(candles = [], side = "") {
-  if (!Array.isArray(candles) || candles.length < 3) {
-    return {
-      level: "NONE",
-      score: 0,
-      hasStructureBreak: false,
-    };
-  }
-
-  const last = candles[candles.length - 1] || {};
-  const prev = candles[candles.length - 2] || {};
-  const prev2 = candles[candles.length - 3] || {};
   let score = 0;
-  let hasStructureBreak = false;
 
-  if (side === "BUY") {
-    if (isBear(last)) score += 0.8;
-    if (isBear(last) && isBear(prev)) score += 0.8;
-    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) {
-      score += 1.1;
-      hasStructureBreak = true;
-    }
-  } else if (side === "SELL") {
-    if (isBull(last)) score += 0.8;
-    if (isBull(last) && isBull(prev)) score += 0.8;
-    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) {
-      score += 1.1;
-      hasStructureBreak = true;
-    }
+  if (s === "BUY") {
+    if (isBearish(last)) score += 0.8;
+    if (isBearish(last) && isBearish(prev)) score += 0.9;
+    if (toNumber(last.close, 0) < toNumber(prev.low, 0)) score += 0.7;
+    if (toNumber(prev.close, 0) < toNumber(prev2.low, 0)) score += 0.4;
+  } else if (s === "SELL") {
+    if (isBullish(last)) score += 0.8;
+    if (isBullish(last) && isBullish(prev)) score += 0.9;
+    if (toNumber(last.close, 0) > toNumber(prev.high, 0)) score += 0.7;
+    if (toNumber(prev.close, 0) > toNumber(prev2.high, 0)) score += 0.4;
   }
 
-  let level = "NONE";
-  if (score >= 1.8) level = "STRONG";
-  else if (score >= 1.0) level = "MEDIUM";
-  else if (score > 0) level = "LIGHT";
-
-  return {
-    level,
-    score: Number(score.toFixed(2)),
-    hasStructureBreak,
-  };
+  if (normalizeMode(mode) === "MICRO_SCALP") return score * 0.95;
+  if (normalizeMode(mode) === "SCALP") return score;
+  return score * 1.05;
 }
 
-function shouldSimpleCutLoss({
-  mode = "NORMAL",
+function shouldSimpleWrongWayCut({
   currentProfit = 0,
   holdingMinutes = 0,
   reversalScore = 0,
-  confirmation = { hasStructureBreak: false },
+  mode = "NORMAL",
 }) {
-  const safeMode = normalizeMode(mode);
-  const profit = Number(currentProfit || 0);
-  const mins = Number(holdingMinutes || 0);
-  const profile = getExitProfile(safeMode);
+  const profile = getExitProfile(mode);
+  const profit = toNumber(currentProfit, 0);
+  const mins = toNumber(holdingMinutes, 0);
 
-  if (profit >= 0) return null;
-
-  if (profit <= profile.simpleCutProfit) {
+  if (profit <= profile.strongCutProfit && reversalScore >= profile.reversalCutScore) {
     return {
       action: "CUT_LOSS_NOW",
-      reason: `${safeMode}_SIMPLE_PROFIT_THRESHOLD`,
+      reason: `${normalizeMode(mode)}_STRONG_REVERSAL_CUT`,
     };
   }
 
-  if (mins >= profile.simpleCutMinutes && profit < 0) {
+  if (mins >= profile.simpleCutMinutes && profit <= profile.simpleCutProfit) {
     return {
       action: "CUT_LOSS_NOW",
-      reason: `${safeMode}_SIMPLE_TIMEOUT_LOSS`,
-    };
-  }
-
-  if (
-    profit <= profile.strongCutProfit &&
-    (
-      reversalScore >= profile.reversalCutScore ||
-      confirmation.hasStructureBreak
-    )
-  ) {
-    return {
-      action: "CUT_LOSS_NOW",
-      reason: `${safeMode}_REVERSAL_DEFENSIVE_CUT`,
+      reason: `${normalizeMode(mode)}_TIME_BASED_WRONG_WAY_CUT`,
     };
   }
 
   return null;
-}
-
-// เพิ่มเฉพาะ NORMAL
-function detectNormalStructureBreakLoose(candles = [], side = "") {
-  if (!Array.isArray(candles) || candles.length < 3) return false;
-
-  const last = candles[candles.length - 1] || {};
-  const prev = candles[candles.length - 2] || {};
-  const prev2 = candles[candles.length - 3] || {};
-
-  if (side === "BUY") {
-    return (
-      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
-      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
-    );
-  }
-
-  if (side === "SELL") {
-    return (
-      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
-      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
-    );
-  }
-
-  return false;
 }
 
 function shouldNormalFastWrongWayCut({
@@ -348,21 +306,31 @@ function shouldNormalFastWrongWayCut({
   reversalScore = 0,
   candles = [],
   side = "",
-  confirmation = { hasStructureBreak: false, level: "NONE" },
+  confirmation = { level: "LOW", score: 0 },
 }) {
-  const safeMode = normalizeMode(mode);
-  if (safeMode !== "NORMAL") return null;
+  if (normalizeMode(mode) !== "NORMAL") return null;
 
-  const profit = Number(currentProfit || 0);
-  const mins = Number(holdingMinutes || 0);
   const profile = getExitProfile("NORMAL");
-  const looseStructureBreak = detectNormalStructureBreakLoose(candles, side);
+  const profit = toNumber(currentProfit, 0);
+  const mins = toNumber(holdingMinutes, 0);
 
-  if (profit >= 0) return null;
+  const last = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : {};
+  const prev = Array.isArray(candles) && candles.length > 1 ? candles[candles.length - 2] : {};
+  const s = normalizeSide(side);
+
+  let structureBreak = false;
+
+  if (s === "BUY") {
+    structureBreak = toNumber(last.close, 0) < toNumber(prev.low, 0);
+  } else if (s === "SELL") {
+    structureBreak = toNumber(last.close, 0) > toNumber(prev.high, 0);
+  }
 
   if (
+    mins >= profile.normalFastCutMinutes &&
     profit <= profile.normalStructureBreakProfit &&
-    (confirmation.hasStructureBreak || looseStructureBreak)
+    structureBreak &&
+    confirmation.level !== "LOW"
   ) {
     return {
       action: "CUT_LOSS_NOW",
@@ -384,139 +352,73 @@ function shouldNormalFastWrongWayCut({
   return null;
 }
 
-function detectRecoveryContinuation(candles = [], side = "", mode = "NORMAL") {
-  const safeMode = normalizeMode(mode);
-  if (safeMode === "MICRO_SCALP") {
-    return {
-      isStrongRecovery: false,
-      recoveryScore: 0,
-      sameDirectionBars: 0,
-      reclaimBreak: false,
-    };
-  }
-
-  if (!Array.isArray(candles) || candles.length < 4) {
-    return {
-      isStrongRecovery: false,
-      recoveryScore: 0,
-      sameDirectionBars: 0,
-      reclaimBreak: false,
-    };
-  }
-
-  const last = candles[candles.length - 1] || {};
-  const prev = candles[candles.length - 2] || {};
-  const prev2 = candles[candles.length - 3] || {};
-  const prev3 = candles[candles.length - 4] || {};
-
-  const avgB = avgBody(candles, 5) || 1;
-  const avgR = avgRange(candles, 5) || 1;
-
-  let score = 0;
-  let sameDirectionBars = 0;
-  let reclaimBreak = false;
-
-  if (side === "BUY") {
-    if (isBull(last)) sameDirectionBars += 1;
-    if (isBull(prev)) sameDirectionBars += 1;
-
-    if (isBull(last) && candleBody(last) >= avgB * 1.05) score += 0.8;
-    if (isBull(prev) && candleBody(prev) >= avgB * 0.95) score += 0.6;
-    if (toNumber(last.close) > Math.max(toNumber(prev2.high), toNumber(prev3.high))) {
-      score += 1.0;
-      reclaimBreak = true;
-    }
-    if (candleRange(last) >= avgR * 1.05) score += 0.3;
-  } else if (side === "SELL") {
-    if (isBear(last)) sameDirectionBars += 1;
-    if (isBear(prev)) sameDirectionBars += 1;
-
-    if (isBear(last) && candleBody(last) >= avgB * 1.05) score += 0.8;
-    if (isBear(prev) && candleBody(prev) >= avgB * 0.95) score += 0.6;
-    if (toNumber(last.close) < Math.min(toNumber(prev2.low), toNumber(prev3.low))) {
-      score += 1.0;
-      reclaimBreak = true;
-    }
-    if (candleRange(last) >= avgR * 1.05) score += 0.3;
-  }
-
-  const isStrongRecovery =
-    sameDirectionBars >= 2 &&
-    (score >= 1.6 || reclaimBreak);
-
-  return {
-    isStrongRecovery,
-    recoveryScore: Number(score.toFixed(2)),
-    sameDirectionBars,
-    reclaimBreak,
-  };
-}
-
-function shouldHoldRecoveryContinuation({
-  mode = "NORMAL",
+function shouldEngineMoveToBE({
   currentProfit = 0,
   openPosition = {},
-  candles = [],
-  side = "",
+  reversalScore = 0,
+  confirmation = { level: "LOW", score: 0 },
+  failedPatternRule = null,
+  mode = "NORMAL",
 }) {
-  const safeMode = normalizeMode(mode);
-  if (safeMode === "MICRO_SCALP") return false;
-  if (currentProfit <= 0) return false;
+  const profile = getExitProfile(mode);
+  const profit = toNumber(currentProfit, 0);
+  const peakProfit = getPeakProfit(openPosition, profit);
+  const retractionRatio = getProfitRetractionRatio(openPosition, profit);
 
-  const wasUnderwater =
-    toNumber(
-      openPosition.minProfit ??
-      openPosition.minFloatingProfit ??
-      openPosition.min_profit ??
-      0
-    ) < 0;
+  if (profit < profile.moveToBeMinProfit) return false;
 
-  if (!wasUnderwater) return false;
+  // Engine จะขยับ BE เฉพาะเมื่อ "เริ่มเสี่ยงย้อน"
+  const hasContextRisk =
+    reversalScore >= profile.beReversalScoreMin ||
+    confirmation.level === "MEDIUM" ||
+    confirmation.level === "HIGH" ||
+    !!failedPatternRule;
 
-  const recovery = detectRecoveryContinuation(candles, side, safeMode);
-  return recovery.isStrongRecovery;
+  if (!hasContextRisk) return false;
+
+  // ถ้าย่อแรงเกินไป ให้ไป TAKE_SMALL_PROFIT แทน
+  if (retractionRatio >= profile.beMaxRetractionRatio) return false;
+
+  // ต้องเคยมีกำไรมากกว่าตอนนี้พอสมควร หรือมี failed pattern ช่วยยืนยัน
+  if (!failedPatternRule && peakProfit <= profit) return false;
+
+  if (!profile.beAllowLowConfirmation && confirmation.level === "LOW" && !failedPatternRule) {
+    return false;
+  }
+
+  return true;
 }
 
-function shouldRecoveryMoveToBe({
-  mode = "NORMAL",
+function shouldEngineTakeSmallProfit({
   currentProfit = 0,
   openPosition = {},
-  candles = [],
-  side = "",
-}) {
-  const safeMode = normalizeMode(mode);
-  if (safeMode === "MICRO_SCALP") return false;
-  if (currentProfit <= 0) return false;
-
-  const wasUnderwater =
-    toNumber(
-      openPosition.minProfit ??
-      openPosition.minFloatingProfit ??
-      openPosition.min_profit ??
-      0
-    ) < 0;
-
-  if (!wasUnderwater) return false;
-
-  const recovery = detectRecoveryContinuation(candles, side, safeMode);
-  return recovery.isStrongRecovery && currentProfit >= getExitProfile(safeMode).minProfitToProtect;
-}
-
-function shouldTakeProfitOnLowVolume({
-  historicalVolumeSignal = null,
-  holdingMinutes = 0,
-  currentProfit = 0,
+  reversalScore = 0,
+  confirmation = { level: "LOW", score: 0 },
+  failedPatternRule = null,
   mode = "NORMAL",
 }) {
-  const hv = String(historicalVolumeSignal || "").toUpperCase();
-  if (hv !== "LOW_VOLUME") return false;
-  if (currentProfit <= 0) return false;
+  const profile = getExitProfile(mode);
+  const profit = toNumber(currentProfit, 0);
+  const peakProfit = getPeakProfit(openPosition, profit);
+  const retractionRatio = getProfitRetractionRatio(openPosition, profit);
 
-  const safeMode = normalizeMode(mode);
+  if (profit < profile.takeProfitOnRetractionMinProfit) return false;
 
-  if (safeMode === "MICRO_SCALP") return holdingMinutes >= 4;
-  if (safeMode === "SCALP") return holdingMinutes >= 6;
-  return holdingMinutes >= 15;
+  const strongContextRisk =
+    reversalScore >= profile.takeProfitReversalScoreMin ||
+    confirmation.level === "HIGH" ||
+    (confirmation.level === "MEDIUM" && reversalScore >= profile.beReversalScoreMin + 0.25) ||
+    !!failedPatternRule;
+
+  if (!strongContextRisk) return false;
+
+  if (failedPatternRule && profit >= profile.protectOnFailedPatternProfit) return true;
+
+  if (peakProfit >= profile.takeProfitHardProtectMinProfit && retractionRatio >= 0.22) return true;
+
+  if (peakProfit >= profile.minProfitToProtect && retractionRatio >= profile.tpRetractionRatio) return true;
+
+  return false;
 }
 
 async function findFailedPatternRule({
@@ -562,31 +464,20 @@ async function analyzeEarlyExit({
   candles = [],
   mode = "NORMAL",
   price,
-  tpPoints = 0,
-  slPoints = 0,
+  timeframe = "M5",
   historicalVolume = null,
-  holdingMinutes = 0,
-  pattern,
+  pattern = null,
+  accountId = null,
 }) {
-  if (!openPosition || !openPosition.side) {
-    return {
-      action: "HOLD",
-      reason: "Invalid position data",
-      riskLevel: "UNKNOWN",
-      score: 0,
-    };
-  }
+  openPosition = openPosition || {};
 
-  if (!candles || candles.length < 3) {
-    return {
-      action: "HOLD",
-      reason: "Not enough candles",
-      riskLevel: "UNKNOWN",
-      score: 0,
-    };
-  }
+  const side = normalizeSide(
+    openPosition.side ||
+      openPosition.type ||
+      openPosition.positionSide ||
+      ""
+  );
 
-  const side = String(openPosition.side || "").toUpperCase();
   const normalizedMode = normalizeMode(mode || openPosition.mode || "NORMAL");
   const profile = getExitProfile(normalizedMode);
   const profit = toNumber(currentProfit, 0);
@@ -599,19 +490,19 @@ async function analyzeEarlyExit({
     };
   }
 
+  const holdingMinutes = getHoldingMinutes(openPosition);
   const confirmation = detectExitConfirmation(candles, side);
-  const baseReversalScore = detectReversalScore(candles, side, normalizedMode);
-  const recoveryState = detectRecoveryContinuation(candles, side, normalizedMode);
+  let adjustedScore =
+    detectReversalScore(candles, side, normalizedMode) +
+    toNumber(confirmation.score, 0) * 0.35;
 
-  let adjustedScore = baseReversalScore;
   let riskLevel = "LOW";
-  let failRate = 0;
 
-  const failedPattern = await findFailedPatternRule({
-    userId: firebaseUserId || null,
-    accountId: openPosition?.accountId ?? null,
+  const failedPatternRule = await findFailedPatternRule({
+    userId: firebaseUserId,
+    accountId,
     symbol,
-    timeframe: "M5",
+    timeframe,
     side,
     mode: normalizedMode,
     pattern,
@@ -619,29 +510,30 @@ async function analyzeEarlyExit({
     candlesM: candles,
   });
 
-  if (failedPattern) {
-    failRate = parseFloat(failedPattern.fail_rate || 0);
-    if (failRate >= 0.8) {
-      riskLevel = "CRITICAL";
-      adjustedScore += 0.8;
-    } else if (failRate >= 0.6) {
-      riskLevel = "HIGH";
-      adjustedScore += 0.5;
-    } else if (failRate >= 0.45) {
-      riskLevel = "MEDIUM";
-      adjustedScore += 0.2;
-    }
+  if (failedPatternRule) {
+    riskLevel = "CRITICAL";
+    adjustedScore += 0.8;
+  } else if (adjustedScore >= profile.reversalCutScore) {
+    riskLevel = "HIGH";
+  } else if (adjustedScore >= profile.reversalCutScore * 0.7) {
+    riskLevel = "MEDIUM";
   }
 
-  adjustedScore += confirmation.score * 0.4;
-  adjustedScore = Number(adjustedScore.toFixed(2));
+  // ผิดทางตั้งแต่ต้นและมี failed pattern ชัด
+  if (failedPatternRule && profit <= 0.15) {
+    return {
+      action: "CUT_LOSS_NOW",
+      reason: "FAILED_PATTERN_EARLY_EXIT",
+      riskLevel,
+      score: adjustedScore,
+    };
+  }
 
-  const simpleCut = shouldSimpleCutLoss({
-    mode: normalizedMode,
+  const simpleCut = shouldSimpleWrongWayCut({
     currentProfit: profit,
     holdingMinutes,
     reversalScore: adjustedScore,
-    confirmation,
+    mode: normalizedMode,
   });
 
   if (simpleCut) {
@@ -672,50 +564,22 @@ async function analyzeEarlyExit({
     };
   }
 
+  // มี failed pattern + มีกำไรแล้ว => เก็บกำไรก่อน
   if (
     profit > 0 &&
-    shouldRecoveryMoveToBe({
-      mode: normalizedMode,
-      currentProfit: profit,
-      openPosition,
-      candles,
-      side,
-    })
+    failedPatternRule &&
+    profit >= profile.protectOnFailedPatternProfit
   ) {
     return {
-      action: "MOVE_TO_BE",
-      reason: `${normalizedMode}_RECOVERY_MOVE_TO_BE`,
-      riskLevel,
-      score: adjustedScore,
-      meta: {
-        recoveryScore: recoveryState.recoveryScore,
-        sameDirectionBars: recoveryState.sameDirectionBars,
-        reclaimBreak: recoveryState.reclaimBreak,
-      },
-    };
-  }
-
-  if (
-    profit > 0 &&
-    shouldMoveToBreakeven(profit, normalizedMode)
-  ) {
-    return {
-      action: "MOVE_TO_BE",
-      reason: "Price progressed enough, move SL to breakeven",
-      riskLevel,
+      action: "TAKE_SMALL_PROFIT",
+      reason: `${normalizedMode}_FAILED_PATTERN_PROFIT_PROTECT`,
+      riskLevel: "CRITICAL",
       score: adjustedScore,
     };
   }
 
+  // volume แผ่ว + ถือมาสักพัก + มีกำไร => เก็บกำไรก่อน
   if (
-    profit > 0 &&
-    !shouldHoldRecoveryContinuation({
-      mode: normalizedMode,
-      currentProfit: profit,
-      openPosition,
-      candles,
-      side,
-    }) &&
     shouldTakeProfitOnLowVolume({
       historicalVolumeSignal,
       holdingMinutes,
@@ -731,27 +595,51 @@ async function analyzeEarlyExit({
     };
   }
 
-  const profitRetractionRatio = getProfitRetractionRatio(openPosition, profit);
-  const progress = getProgressToTarget(openPosition, profit, tpPoints, slPoints);
-
+  // ถ้าบริบทเสี่ยงย้อนแรง ให้เก็บกำไรเลย
   if (
-    profit > 0 &&
-    !shouldHoldRecoveryContinuation({
-      mode: normalizedMode,
+    shouldEngineTakeSmallProfit({
       currentProfit: profit,
       openPosition,
-      candles,
-      side,
-    }) &&
-    profit >= profile.takeProfitOnRetractionMinProfit &&
-    progress.progressToTarget >= 0.40 &&
-    profitRetractionRatio >= 0.30
+      reversalScore: adjustedScore,
+      confirmation,
+      failedPatternRule,
+      mode: normalizedMode,
+    })
   ) {
     return {
       action: "TAKE_SMALL_PROFIT",
-      reason: `${normalizedMode}_PROFIT_RETRACTION_PROTECT`,
+      reason: `${normalizedMode}_REVERSAL_PROFIT_PROTECT`,
       riskLevel,
       score: adjustedScore,
+      meta: {
+        peakProfit: getPeakProfit(openPosition, profit),
+        retractionRatio: getProfitRetractionRatio(openPosition, profit),
+        confirmation: confirmation.level,
+      },
+    };
+  }
+
+  // ถ้าเริ่มมีสัญญาณย้อน แต่ยังไม่แรงพอจะปิดกำไร ให้แค่กันทุน
+  if (
+    shouldEngineMoveToBE({
+      currentProfit: profit,
+      openPosition,
+      reversalScore: adjustedScore,
+      confirmation,
+      failedPatternRule,
+      mode: normalizedMode,
+    })
+  ) {
+    return {
+      action: "MOVE_TO_BE",
+      reason: `${normalizedMode}_CONTEXTUAL_BREAKEVEN_PROTECT`,
+      riskLevel,
+      score: adjustedScore,
+      meta: {
+        peakProfit: getPeakProfit(openPosition, profit),
+        retractionRatio: getProfitRetractionRatio(openPosition, profit),
+        confirmation: confirmation.level,
+      },
     };
   }
 
