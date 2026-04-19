@@ -108,22 +108,28 @@ const {
 
 const MICRO_SCALP_CONFIG = {
   enabled: true,
-  minScore: 47,
-  minScoreGap: 9,
-  maxSpread: 18,
+
+  minScore: 42,
+  minScoreGap: 5,
+  maxSpread: 25,
+
   onePositionOnly: true,
-  maxHoldBars: 1,
-  maxLossUsd: 6,
-  minProfitToClose: 1.2,
+  maxHoldBars: 2,
+
+  maxLossUsd: 5,
+  minProfitToClose: 0.8,
+
   trendWeight: 1,
   momentumWeight: 1,
   entryWeight: 1,
   volumeWeight: 1,
   penaltyWeight: 1,
-  extremeBodyMultiplier: 2.5,
-  momentumBodyMultiplier: 1.15,
+
+  extremeBodyMultiplier: 2.2,
+  momentumBodyMultiplier: 1.10,
+
   useVolume: true,
-  minVolumeRatio: 1.03,
+  minVolumeRatio: 0.98,
 };
 
 const symbolConfig = {
