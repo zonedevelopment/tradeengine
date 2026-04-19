@@ -384,6 +384,124 @@ function shouldNormalFastWrongWayCut({
   return null;
 }
 
+function detectRecoveryContinuation(candles = [], side = "", mode = "NORMAL") {
+  const safeMode = normalizeMode(mode);
+  if (safeMode === "MICRO_SCALP") {
+    return {
+      isStrongRecovery: false,
+      recoveryScore: 0,
+      sameDirectionBars: 0,
+      reclaimBreak: false,
+    };
+  }
+
+  if (!Array.isArray(candles) || candles.length < 4) {
+    return {
+      isStrongRecovery: false,
+      recoveryScore: 0,
+      sameDirectionBars: 0,
+      reclaimBreak: false,
+    };
+  }
+
+  const last = candles[candles.length - 1] || {};
+  const prev = candles[candles.length - 2] || {};
+  const prev2 = candles[candles.length - 3] || {};
+  const prev3 = candles[candles.length - 4] || {};
+
+  const avgB = avgBody(candles, 5) || 1;
+  const avgR = avgRange(candles, 5) || 1;
+
+  let score = 0;
+  let sameDirectionBars = 0;
+  let reclaimBreak = false;
+
+  if (side === "BUY") {
+    if (isBull(last)) sameDirectionBars += 1;
+    if (isBull(prev)) sameDirectionBars += 1;
+
+    if (isBull(last) && candleBody(last) >= avgB * 1.05) score += 0.8;
+    if (isBull(prev) && candleBody(prev) >= avgB * 0.95) score += 0.6;
+    if (toNumber(last.close) > Math.max(toNumber(prev2.high), toNumber(prev3.high))) {
+      score += 1.0;
+      reclaimBreak = true;
+    }
+    if (candleRange(last) >= avgR * 1.05) score += 0.3;
+  } else if (side === "SELL") {
+    if (isBear(last)) sameDirectionBars += 1;
+    if (isBear(prev)) sameDirectionBars += 1;
+
+    if (isBear(last) && candleBody(last) >= avgB * 1.05) score += 0.8;
+    if (isBear(prev) && candleBody(prev) >= avgB * 0.95) score += 0.6;
+    if (toNumber(last.close) < Math.min(toNumber(prev2.low), toNumber(prev3.low))) {
+      score += 1.0;
+      reclaimBreak = true;
+    }
+    if (candleRange(last) >= avgR * 1.05) score += 0.3;
+  }
+
+  const isStrongRecovery =
+    sameDirectionBars >= 2 &&
+    (score >= 1.6 || reclaimBreak);
+
+  return {
+    isStrongRecovery,
+    recoveryScore: Number(score.toFixed(2)),
+    sameDirectionBars,
+    reclaimBreak,
+  };
+}
+
+function shouldHoldRecoveryContinuation({
+  mode = "NORMAL",
+  currentProfit = 0,
+  openPosition = {},
+  candles = [],
+  side = "",
+}) {
+  const safeMode = normalizeMode(mode);
+  if (safeMode === "MICRO_SCALP") return false;
+  if (currentProfit <= 0) return false;
+
+  const wasUnderwater =
+    toNumber(
+      openPosition.minProfit ??
+      openPosition.minFloatingProfit ??
+      openPosition.min_profit ??
+      0
+    ) < 0;
+
+  if (!wasUnderwater) return false;
+
+  const recovery = detectRecoveryContinuation(candles, side, safeMode);
+  return recovery.isStrongRecovery;
+}
+
+function shouldRecoveryMoveToBe({
+  mode = "NORMAL",
+  currentProfit = 0,
+  openPosition = {},
+  candles = [],
+  side = "",
+}) {
+  const safeMode = normalizeMode(mode);
+  if (safeMode === "MICRO_SCALP") return false;
+  if (currentProfit <= 0) return false;
+
+  const wasUnderwater =
+    toNumber(
+      openPosition.minProfit ??
+      openPosition.minFloatingProfit ??
+      openPosition.min_profit ??
+      0
+    ) < 0;
+
+  if (!wasUnderwater) return false;
+
+  const recovery = detectRecoveryContinuation(candles, side, safeMode);
+  return recovery.isStrongRecovery && currentProfit >= getExitProfile(safeMode).minProfitToProtect;
+}
+
 function shouldTakeProfitOnLowVolume({
   historicalVolumeSignal = null,
   holdingMinutes = 0,
@@ -483,6 +601,7 @@ async function analyzeEarlyExit({
 
   const confirmation = detectExitConfirmation(candles, side);
   const baseReversalScore = detectReversalScore(candles, side, normalizedMode);
+  const recoveryState = detectRecoveryContinuation(candles, side, normalizedMode);
 
   let adjustedScore = baseReversalScore;
   let riskLevel = "LOW";
@@ -555,6 +674,29 @@ async function analyzeEarlyExit({
 
   if (
     profit > 0 &&
+    shouldRecoveryMoveToBe({
+      mode: normalizedMode,
+      currentProfit: profit,
+      openPosition,
+      candles,
+      side,
+    })
+  ) {
+    return {
+      action: "MOVE_TO_BE",
+      reason: `${normalizedMode}_RECOVERY_MOVE_TO_BE`,
+      riskLevel,
+      score: adjustedScore,
+      meta: {
+        recoveryScore: recoveryState.recoveryScore,
+        sameDirectionBars: recoveryState.sameDirectionBars,
+        reclaimBreak: recoveryState.reclaimBreak,
+      },
+    };
+  }
+
+  if (
+    profit > 0 &&
     shouldMoveToBreakeven(profit, normalizedMode)
   ) {
     return {
@@ -567,6 +709,13 @@ async function analyzeEarlyExit({
 
   if (
     profit > 0 &&
+    !shouldHoldRecoveryContinuation({
+      mode: normalizedMode,
+      currentProfit: profit,
+      openPosition,
+      candles,
+      side,
+    }) &&
     shouldTakeProfitOnLowVolume({
       historicalVolumeSignal,
       holdingMinutes,
@@ -587,6 +736,13 @@ async function analyzeEarlyExit({
 
   if (
     profit > 0 &&
+    !shouldHoldRecoveryContinuation({
+      mode: normalizedMode,
+      currentProfit: profit,
+      openPosition,
+      candles,
+      side,
+    }) &&
     profit >= profile.takeProfitOnRetractionMinProfit &&
     progress.progressToTarget >= 0.40 &&
     profitRetractionRatio >= 0.30
