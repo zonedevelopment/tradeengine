@@ -91,6 +91,12 @@ function getExitProfile(mode = "NORMAL") {
     simpleCutProfit: -0.35,
     strongCutProfit: -0.20,
     reversalCutScore: 2.6,
+
+    // เพิ่มเฉพาะ NORMAL
+    normalFastCutMinutes: 3,
+    normalFastCutProfit: -0.08,
+    normalStructureBreakProfit: -0.03,
+    normalFastReversalScore: 1.6,
   };
 }
 
@@ -207,22 +213,12 @@ function detectReversalScore(candles = [], side = "", mode = "NORMAL") {
     if (isBear(last)) score += 0.9;
     if (isBear(last) && isBear(prev)) score += 0.8;
     if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (
-      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
-      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
-    ) {
-      score += 1.2;
-    }
+    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) score += 1.2;
   } else if (side === "SELL") {
     if (isBull(last)) score += 0.9;
     if (isBull(last) && isBull(prev)) score += 0.8;
     if (candleBody(last) > avgB * 1.1) score += 0.5;
-    if (
-      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
-      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
-    ) {
-      score += 1.2;
-    }
+    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) score += 1.2;
   }
 
   if (candleRange(last) > avgR * 1.1) score += 0.3;
@@ -251,20 +247,14 @@ function detectExitConfirmation(candles = [], side = "") {
   if (side === "BUY") {
     if (isBear(last)) score += 0.8;
     if (isBear(last) && isBear(prev)) score += 0.8;
-    if (
-      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
-      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
-    ) {
+    if (toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))) {
       score += 1.1;
       hasStructureBreak = true;
     }
   } else if (side === "SELL") {
     if (isBull(last)) score += 0.8;
     if (isBull(last) && isBull(prev)) score += 0.8;
-    if (
-      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
-      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
-    ) {
+    if (toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))) {
       score += 1.1;
       hasStructureBreak = true;
     }
@@ -326,35 +316,68 @@ function shouldSimpleCutLoss({
   return null;
 }
 
-function shouldStructureBreakCut({
+// เพิ่มเฉพาะ NORMAL
+function detectNormalStructureBreakLoose(candles = [], side = "") {
+  if (!Array.isArray(candles) || candles.length < 3) return false;
+
+  const last = candles[candles.length - 1] || {};
+  const prev = candles[candles.length - 2] || {};
+  const prev2 = candles[candles.length - 3] || {};
+
+  if (side === "BUY") {
+    return (
+      toNumber(last.low) < Math.min(toNumber(prev.low), toNumber(prev2.low)) ||
+      toNumber(last.close) < Math.min(toNumber(prev.low), toNumber(prev2.low))
+    );
+  }
+
+  if (side === "SELL") {
+    return (
+      toNumber(last.high) > Math.max(toNumber(prev.high), toNumber(prev2.high)) ||
+      toNumber(last.close) > Math.max(toNumber(prev.high), toNumber(prev2.high))
+    );
+  }
+
+  return false;
+}
+
+function shouldNormalFastWrongWayCut({
   mode = "NORMAL",
   currentProfit = 0,
+  holdingMinutes = 0,
+  reversalScore = 0,
+  candles = [],
+  side = "",
   confirmation = { hasStructureBreak: false, level: "NONE" },
 }) {
   const safeMode = normalizeMode(mode);
+  if (safeMode !== "NORMAL") return null;
+
   const profit = Number(currentProfit || 0);
+  const mins = Number(holdingMinutes || 0);
+  const profile = getExitProfile("NORMAL");
+  const looseStructureBreak = detectNormalStructureBreakLoose(candles, side);
 
   if (profit >= 0) return null;
-  if (!confirmation?.hasStructureBreak) return null;
 
-  if (safeMode === "MICRO_SCALP") {
+  if (
+    profit <= profile.normalStructureBreakProfit &&
+    (confirmation.hasStructureBreak || looseStructureBreak)
+  ) {
     return {
       action: "CUT_LOSS_NOW",
-      reason: "MICRO_SCALP_STRUCTURE_BREAK_CUT",
+      reason: "NORMAL_STRUCTURE_BREAK_FAST_CUT",
     };
   }
 
-  if (safeMode === "SCALP") {
+  if (
+    mins >= profile.normalFastCutMinutes &&
+    profit <= profile.normalFastCutProfit &&
+    reversalScore >= profile.normalFastReversalScore
+  ) {
     return {
       action: "CUT_LOSS_NOW",
-      reason: "SCALP_STRUCTURE_BREAK_CUT",
-    };
-  }
-
-  if (confirmation.level === "MEDIUM" || confirmation.level === "STRONG") {
-    return {
-      action: "CUT_LOSS_NOW",
-      reason: "NORMAL_STRUCTURE_BREAK_CUT",
+      reason: "NORMAL_FAST_WRONG_WAY_CUT",
     };
   }
 
@@ -511,16 +534,20 @@ async function analyzeEarlyExit({
     };
   }
 
-  const structureBreakCut = shouldStructureBreakCut({
+  const normalFastCut = shouldNormalFastWrongWayCut({
     mode: normalizedMode,
     currentProfit: profit,
+    holdingMinutes,
+    reversalScore: adjustedScore,
+    candles,
+    side,
     confirmation,
   });
 
-  if (structureBreakCut) {
+  if (normalFastCut) {
     return {
-      action: structureBreakCut.action,
-      reason: structureBreakCut.reason,
+      action: normalFastCut.action,
+      reason: normalFastCut.reason,
       riskLevel: "HIGH",
       score: adjustedScore,
     };
