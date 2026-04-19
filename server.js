@@ -1652,13 +1652,21 @@ function buildMicroFallbackResponse({
   userAdaptiveProfile = null,
   symbol = "",
 }) {
-  const side = String(reqBody.side || "").toUpperCase();
+  const requestSide = String(reqBody.side || "").toUpperCase();
   const microSignal = String(microResult.signal || "").toUpperCase();
 
-  if (microSignal !== side) {
+  // if (microSignal !== side) {
+  //   return null;
+  // }
+  if (!microSignal) {
     return null;
   }
 
+  if (requestSide && requestSide !== "ANY" && microSignal !== requestSide) {
+    return null;
+  }
+
+  const side = microSignal;
   const score = mapMicroScoreToMainScore(microResult.confidenceScore, side);
   const decision =
     side === "BUY" ? "ALLOW_BUY_SCALP" : "ALLOW_SELL_SCALP";
