@@ -18,11 +18,11 @@ const {
   evaluateDecision,
   decision,
   resolveDecisionWithTradingPreferences,
-} = require("./brain/decision-engine-v6");
+} = require("./brain/decision-engine-v7");
 const { getSession } = require("./brain/session-filter");
 const { getRiskState, calculateDynamicRisk } = require("./brain/risk-manager");
 const { checkCalendar, fetchCalendar } = require("./brain/economic-calendar");
-const { analyzePattern } = require("./pattern/pattern-analyzer-v2");
+const { analyzePattern } = require("./pattern/pattern-analyzer-v3");
 const { analyzeICT } = require("./pattern/ict-rules");
 const { learnPatternWeights } = require("./learning/pattern-learner");
 const { findFailedPattern } = require("./failedPattern.repo");
@@ -2020,36 +2020,74 @@ app.post("/signal", async (req, res) => {
       candles,
     });
 
+    // const evaluateResult = await evaluateDecision({
+    //   news,
+    //   calendar,
+    //   session,
+    //   risk,
+    //   pattern,
+    //   ictContext,
+    //   historicalVolume,
+    //   market: {
+    //     userId: resolvedUserId,
+    //     symbol: resolvedSymbol,
+    //     timeframe: "M5",
+    //     price,
+    //     candles,
+
+    //     candlesM15: higherTf.candlesM15,
+    //     candlesM30: higherTf.candlesM30,
+
+    //     // HTF หลักจริง
+    //     trendPrimaryCandles: higherTf.trendPrimaryCandles,
+    //     trendSecondaryCandles: higherTf.trendSecondaryCandles,
+    //     trendPrimaryLabel: higherTf.trendPrimaryLabel,
+    //     trendSecondaryLabel: higherTf.trendSecondaryLabel,
+
+    //     // backward compatible
+    //     candlesH1: higherTf.trendPrimaryCandles,
+    //     candlesH4: higherTf.trendSecondaryCandles,
+
+    //     portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
+    //     sessionName: session.name,
+    //   }
+    // });
+
     const evaluateResult = await evaluateDecision({
       news,
       calendar,
       session,
       risk,
       pattern,
+      trendFollow4: pattern?.trendFollow4 || {},
       ictContext,
-      historicalVolume,
       market: {
         userId: resolvedUserId,
+        accountId: accountId || null,
         symbol: resolvedSymbol,
         timeframe: "M5",
         price,
-        candles,
+        candles: Array.isArray(candles) ? candles : [],
 
         candlesM15: higherTf.candlesM15,
         candlesM30: higherTf.candlesM30,
-
-        // HTF หลักจริง
-        trendPrimaryCandles: higherTf.trendPrimaryCandles,
-        trendSecondaryCandles: higherTf.trendSecondaryCandles,
-        trendPrimaryLabel: higherTf.trendPrimaryLabel,
-        trendSecondaryLabel: higherTf.trendSecondaryLabel,
 
         // backward compatible
         candlesH1: higherTf.trendPrimaryCandles,
         candlesH4: higherTf.trendSecondaryCandles,
 
+        trendPrimaryCandles: higherTf.trendPrimaryCandles,
+        trendSecondaryCandles: higherTf.trendSecondaryCandles,
+        trendPrimaryLabel: higherTf.trendPrimaryLabel,
+        trendSecondaryLabel: higherTf.trendSecondaryLabel,
+
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
-        sessionName: session.name,
+        sessionName: session?.name || null,
+
+        historicalVolumeSignal:
+          historicalVolume?.signal ||
+          historicalVolume ||
+          null,
       }
     });
 
