@@ -39,7 +39,6 @@ function getExitProfile(mode = "NORMAL") {
 
     if (normalized === "MICRO_SCALP") {
         return {
-            // profit protect
             armProfitMin: 0.35,
             moveToBeMinProfit: 0.26,
             takeProfitMinProfit: 0.42,
@@ -47,14 +46,19 @@ function getExitProfile(mode = "NORMAL") {
             beMinRetraceRatio: 0.18,
             tpMinRetraceRatio: 0.32,
 
-            // wrong-way cut
             wrongWayMinMinutes: 1.0,
             wrongWayCutProfit: -0.06,
             wrongWayHardCutProfit: -0.12,
             wrongWayFlowCutScore: 1.95,
             wrongWayFlowHardScore: 2.55,
 
-            // fallback cut
+            noFollowThroughMinMinutes: 1.0,
+            noFollowThroughCutProfit: -0.04,
+            noFollowThroughScore: 1.85,
+
+            takeoverCutProfit: -0.03,
+            takeoverCutScore: 2.05,
+
             simpleCutMinutes: 2,
             simpleCutProfit: -0.18,
             strongCutProfit: -0.10,
@@ -71,7 +75,6 @@ function getExitProfile(mode = "NORMAL") {
 
     if (normalized === "SCALP") {
         return {
-            // profit protect
             armProfitMin: 0.55,
             moveToBeMinProfit: 0.35,
             takeProfitMinProfit: 0.60,
@@ -79,14 +82,19 @@ function getExitProfile(mode = "NORMAL") {
             beMinRetraceRatio: 0.16,
             tpMinRetraceRatio: 0.28,
 
-            // wrong-way cut
             wrongWayMinMinutes: 1.5,
             wrongWayCutProfit: -0.10,
             wrongWayHardCutProfit: -0.20,
             wrongWayFlowCutScore: 2.15,
             wrongWayFlowHardScore: 2.85,
 
-            // fallback cut
+            noFollowThroughMinMinutes: 1.5,
+            noFollowThroughCutProfit: -0.08,
+            noFollowThroughScore: 2.00,
+
+            takeoverCutProfit: -0.06,
+            takeoverCutScore: 2.20,
+
             simpleCutMinutes: 4,
             simpleCutProfit: -0.24,
             strongCutProfit: -0.14,
@@ -102,7 +110,6 @@ function getExitProfile(mode = "NORMAL") {
     }
 
     return {
-        // profit protect
         armProfitMin: 1.10,
         moveToBeMinProfit: 0.75,
         takeProfitMinProfit: 1.20,
@@ -110,14 +117,19 @@ function getExitProfile(mode = "NORMAL") {
         beMinRetraceRatio: 0.15,
         tpMinRetraceRatio: 0.25,
 
-        // wrong-way cut
         wrongWayMinMinutes: 2.0,
         wrongWayCutProfit: -0.15,
         wrongWayHardCutProfit: -0.30,
         wrongWayFlowCutScore: 2.35,
         wrongWayFlowHardScore: 3.05,
 
-        // fallback cut
+        noFollowThroughMinMinutes: 2.0,
+        noFollowThroughCutProfit: -0.12,
+        noFollowThroughScore: 2.15,
+
+        takeoverCutProfit: -0.10,
+        takeoverCutScore: 2.40,
+
         simpleCutMinutes: 10,
         simpleCutProfit: -0.35,
         strongCutProfit: -0.22,
@@ -389,7 +401,6 @@ function detectWrongWayFlowScore(candles = [], side = "") {
 
     const last = recent5[recent5.length - 1] || {};
     const prev = recent5[recent5.length - 2] || {};
-    const prev2 = recent5[recent5.length - 3] || {};
 
     const avgBullBody5 =
         recent5.filter(isBullish).reduce((sum, c) => sum + getCandleBody(c), 0) /
@@ -465,6 +476,226 @@ function detectWrongWayFlowScore(candles = [], side = "") {
             softInvalidation,
             hardInvalidation,
         },
+    };
+}
+
+function detectNoFollowThrough(candles = [], side = "") {
+    const sample = Array.isArray(candles) ? candles.slice(-6) : [];
+    const s = normalizeSide(side);
+
+    if (sample.length < 5 || (s !== "BUY" && s !== "SELL")) {
+        return {
+            score: 0,
+            detected: false,
+            breakdown: {},
+        };
+    }
+
+    const highs = sample.map((c) => toNumber(c.high, 0));
+    const lows = sample.map((c) => toNumber(c.low, 0));
+    const closes = sample.map((c) => toNumber(c.close, 0));
+
+    const last = sample[sample.length - 1] || {};
+    const prev = sample[sample.length - 2] || {};
+    const recent4 = sample.slice(-4);
+    const recent3 = sample.slice(-3);
+
+    let score = 0;
+
+    if (s === "SELL") {
+        const noNewLow =
+            Math.min(...recent4.map((c) => toNumber(c.low, 0))) >=
+            Math.min(...sample.slice(0, 2).map((c) => toNumber(c.low, 0)));
+
+        const bullishInterruptions = recent4.filter(isBullish).length;
+        const closeAboveMidpoint5 =
+            toNumber(last.close, 0) > ((Math.max(...highs) + Math.min(...lows)) / 2);
+
+        const higherLowShort =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].low, 0) >= toNumber(recent3[1].low, 0) &&
+            toNumber(recent3[1].low, 0) >= toNumber(recent3[0].low, 0);
+
+        const bullishBodyPressure =
+            recent4.filter(isBullish).reduce((sum, c) => sum + getCandleBody(c), 0) >
+            recent4.filter(isBearish).reduce((sum, c) => sum + getCandleBody(c), 0);
+
+        if (noNewLow) score += 0.70;
+        if (bullishInterruptions >= 2) score += 0.55;
+        if (closeAboveMidpoint5) score += 0.45;
+        if (higherLowShort) score += 0.40;
+        if (bullishBodyPressure) score += 0.30;
+
+        return {
+            score: Number(score.toFixed(4)),
+            detected: score >= 1.8,
+            breakdown: {
+                noNewLow,
+                bullishInterruptions,
+                closeAboveMidpoint5,
+                higherLowShort,
+                bullishBodyPressure,
+            },
+        };
+    }
+
+    if (s === "BUY") {
+        const noNewHigh =
+            Math.max(...recent4.map((c) => toNumber(c.high, 0))) <=
+            Math.max(...sample.slice(0, 2).map((c) => toNumber(c.high, 0)));
+
+        const bearishInterruptions = recent4.filter(isBearish).length;
+        const closeBelowMidpoint5 =
+            toNumber(last.close, 0) < ((Math.max(...highs) + Math.min(...lows)) / 2);
+
+        const lowerHighShort =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].high, 0) <= toNumber(recent3[1].high, 0) &&
+            toNumber(recent3[1].high, 0) <= toNumber(recent3[0].high, 0);
+
+        const bearishBodyPressure =
+            recent4.filter(isBearish).reduce((sum, c) => sum + getCandleBody(c), 0) >
+            recent4.filter(isBullish).reduce((sum, c) => sum + getCandleBody(c), 0);
+
+        if (noNewHigh) score += 0.70;
+        if (bearishInterruptions >= 2) score += 0.55;
+        if (closeBelowMidpoint5) score += 0.45;
+        if (lowerHighShort) score += 0.40;
+        if (bearishBodyPressure) score += 0.30;
+
+        return {
+            score: Number(score.toFixed(4)),
+            detected: score >= 1.8,
+            breakdown: {
+                noNewHigh,
+                bearishInterruptions,
+                closeBelowMidpoint5,
+                lowerHighShort,
+                bearishBodyPressure,
+            },
+        };
+    }
+
+    return {
+        score: 0,
+        detected: false,
+        breakdown: {},
+    };
+}
+
+function detectOppositeTakeover(candles = [], side = "") {
+    const sample = Array.isArray(candles) ? candles.slice(-8) : [];
+    const s = normalizeSide(side);
+
+    if (sample.length < 5 || (s !== "BUY" && s !== "SELL")) {
+        return {
+            score: 0,
+            detected: false,
+            breakdown: {},
+        };
+    }
+
+    const last5 = sample.slice(-5);
+    const recent3 = sample.slice(-3);
+
+    let score = 0;
+
+    if (s === "SELL") {
+        const bullishCount5 = last5.filter(isBullish).length;
+        const higherLowFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].low, 0) > toNumber(recent3[1].low, 0) &&
+            toNumber(recent3[1].low, 0) >= toNumber(recent3[0].low, 0);
+
+        const higherCloseFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].close, 0) > toNumber(recent3[1].close, 0) &&
+            toNumber(recent3[1].close, 0) > toNumber(recent3[0].close, 0);
+
+        const avgBullBody =
+            last5.filter(isBullish).reduce((sum, c) => sum + getCandleBody(c), 0) /
+            Math.max(1, last5.filter(isBullish).length);
+
+        const avgBearBody =
+            last5.filter(isBearish).reduce((sum, c) => sum + getCandleBody(c), 0) /
+            Math.max(1, last5.filter(isBearish).length);
+
+        const lastClose = toNumber(last5[last5.length - 1]?.close, 0);
+        const rangeMid =
+            (Math.max(...last5.map((c) => toNumber(c.high, 0))) +
+                Math.min(...last5.map((c) => toNumber(c.low, 0)))) / 2;
+
+        if (bullishCount5 >= 3) score += 0.70;
+        if (higherLowFlow) score += 0.55;
+        if (higherCloseFlow) score += 0.50;
+        if (avgBullBody > avgBearBody * 1.20) score += 0.35;
+        if (lastClose > rangeMid) score += 0.30;
+
+        return {
+            score: Number(score.toFixed(4)),
+            detected: score >= 2.0,
+            breakdown: {
+                bullishCount5,
+                higherLowFlow,
+                higherCloseFlow,
+                avgBullBody: Number(avgBullBody.toFixed(5)),
+                avgBearBody: Number(avgBearBody.toFixed(5)),
+                lastClose,
+                rangeMid: Number(rangeMid.toFixed(5)),
+            },
+        };
+    }
+
+    if (s === "BUY") {
+        const bearishCount5 = last5.filter(isBearish).length;
+        const lowerHighFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].high, 0) < toNumber(recent3[1].high, 0) &&
+            toNumber(recent3[1].high, 0) <= toNumber(recent3[0].high, 0);
+
+        const lowerCloseFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].close, 0) < toNumber(recent3[1].close, 0) &&
+            toNumber(recent3[1].close, 0) < toNumber(recent3[0].close, 0);
+
+        const avgBearBody =
+            last5.filter(isBearish).reduce((sum, c) => sum + getCandleBody(c), 0) /
+            Math.max(1, last5.filter(isBearish).length);
+
+        const avgBullBody =
+            last5.filter(isBullish).reduce((sum, c) => sum + getCandleBody(c), 0) /
+            Math.max(1, last5.filter(isBullish).length);
+
+        const lastClose = toNumber(last5[last5.length - 1]?.close, 0);
+        const rangeMid =
+            (Math.max(...last5.map((c) => toNumber(c.high, 0))) +
+                Math.min(...last5.map((c) => toNumber(c.low, 0)))) / 2;
+
+        if (bearishCount5 >= 3) score += 0.70;
+        if (lowerHighFlow) score += 0.55;
+        if (lowerCloseFlow) score += 0.50;
+        if (avgBearBody > avgBullBody * 1.20) score += 0.35;
+        if (lastClose < rangeMid) score += 0.30;
+
+        return {
+            score: Number(score.toFixed(4)),
+            detected: score >= 2.0,
+            breakdown: {
+                bearishCount5,
+                lowerHighFlow,
+                lowerCloseFlow,
+                avgBearBody: Number(avgBearBody.toFixed(5)),
+                avgBullBody: Number(avgBullBody.toFixed(5)),
+                lastClose,
+                rangeMid: Number(rangeMid.toFixed(5)),
+            },
+        };
+    }
+
+    return {
+        score: 0,
+        detected: false,
+        breakdown: {},
     };
 }
 
@@ -612,6 +843,55 @@ function shouldWrongWayFlowCut({
     return null;
 }
 
+function shouldNoFollowThroughCut({
+    currentProfit = 0,
+    holdingMinutes = 0,
+    noFollowThrough = { score: 0, detected: false },
+    mode = "NORMAL",
+}) {
+    const profile = getExitProfile(mode);
+    const profit = toNumber(currentProfit, 0);
+    const mins = toNumber(holdingMinutes, 0);
+
+    if (profit > 0) return null;
+    if (mins < profile.noFollowThroughMinMinutes) return null;
+
+    if (
+        profit <= profile.noFollowThroughCutProfit &&
+        toNumber(noFollowThrough.score, 0) >= profile.noFollowThroughScore
+    ) {
+        return {
+            action: "CUT_LOSS_NOW",
+            reason: `${normalizeMode(mode)}_NO_FOLLOW_THROUGH_CUT`,
+        };
+    }
+
+    return null;
+}
+
+function shouldTakeoverCut({
+    currentProfit = 0,
+    takeover = { score: 0, detected: false },
+    mode = "NORMAL",
+}) {
+    const profile = getExitProfile(mode);
+    const profit = toNumber(currentProfit, 0);
+
+    if (profit > 0) return null;
+
+    if (
+        profit <= profile.takeoverCutProfit &&
+        toNumber(takeover.score, 0) >= profile.takeoverCutScore
+    ) {
+        return {
+            action: "CUT_LOSS_NOW",
+            reason: `${normalizeMode(mode)}_OPPOSITE_TAKEOVER_CUT`,
+        };
+    }
+
+    return null;
+}
+
 function shouldEngineTakeSmallProfit({
     currentProfit = 0,
     openPosition = {},
@@ -748,6 +1028,8 @@ async function analyzeEarlyExit({
     const hardInvalidation = hasHardInvalidation(candles, side);
     const softInvalidation = hasSoftInvalidation(candles, side);
     const wrongWayFlow = detectWrongWayFlowScore(candles, side);
+    const noFollowThrough = detectNoFollowThrough(candles, side);
+    const takeover = detectOppositeTakeover(candles, side);
 
     let adjustedScore =
         detectReversalScore(candles, side, normalizedMode) +
@@ -780,7 +1062,6 @@ async function analyzeEarlyExit({
     }
 
     // ===== WRONG-WAY CUT LANE =====
-    // แยกจาก profit protect ชัดเจน
     if (profit <= 0) {
         if (failedPatternRule && profit <= profile.failedPatternCutProfit) {
             return {
@@ -790,9 +1071,62 @@ async function analyzeEarlyExit({
                 score: adjustedScore,
                 meta: {
                     wrongWayFlowScore: wrongWayFlow.score,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
                     holdingMinutes,
                     softInvalidation,
                     hardInvalidation,
+                },
+            };
+        }
+
+        const takeoverCut = shouldTakeoverCut({
+            currentProfit: profit,
+            takeover,
+            mode: normalizedMode,
+        });
+
+        if (takeoverCut) {
+            return {
+                action: takeoverCut.action,
+                reason: takeoverCut.reason,
+                riskLevel: "HIGH",
+                score: adjustedScore,
+                meta: {
+                    holdingMinutes,
+                    wrongWayFlowScore: wrongWayFlow.score,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
+                    takeoverBreakdown: takeover.breakdown,
+                    softInvalidation,
+                    hardInvalidation,
+                    confirmation: confirmation.level,
+                },
+            };
+        }
+
+        const noFollowThroughCut = shouldNoFollowThroughCut({
+            currentProfit: profit,
+            holdingMinutes,
+            noFollowThrough,
+            mode: normalizedMode,
+        });
+
+        if (noFollowThroughCut) {
+            return {
+                action: noFollowThroughCut.action,
+                reason: noFollowThroughCut.reason,
+                riskLevel: "HIGH",
+                score: adjustedScore,
+                meta: {
+                    holdingMinutes,
+                    wrongWayFlowScore: wrongWayFlow.score,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
+                    noFollowThroughBreakdown: noFollowThrough.breakdown,
+                    softInvalidation,
+                    hardInvalidation,
+                    confirmation: confirmation.level,
                 },
             };
         }
@@ -818,6 +1152,8 @@ async function analyzeEarlyExit({
                     wrongWayFlowScore: wrongWayFlow.score,
                     effectiveFlowScore: wrongWayCut.effectiveFlowScore,
                     wrongWayBreakdown: wrongWayFlow.breakdown,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
                     softInvalidation,
                     hardInvalidation,
                     confirmation: confirmation.level,
@@ -845,6 +1181,8 @@ async function analyzeEarlyExit({
                     holdingMinutes,
                     wrongWayFlowScore: wrongWayFlow.score,
                     wrongWayBreakdown: wrongWayFlow.breakdown,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
                     softInvalidation,
                     hardInvalidation,
                     confirmation: confirmation.level,
@@ -872,6 +1210,8 @@ async function analyzeEarlyExit({
                     holdingMinutes,
                     wrongWayFlowScore: wrongWayFlow.score,
                     wrongWayBreakdown: wrongWayFlow.breakdown,
+                    noFollowThroughScore: noFollowThrough.score,
+                    takeoverScore: takeover.score,
                     softInvalidation,
                     hardInvalidation,
                     confirmation: confirmation.level,
@@ -881,13 +1221,17 @@ async function analyzeEarlyExit({
 
         return {
             action: "HOLD",
-            reason: `WRONG_WAY_NOT_CONFIRMED_YET(score=${adjustedScore}, flow=${wrongWayFlow.score}, mode=${normalizedMode})`,
+            reason: `WRONG_WAY_NOT_CONFIRMED_YET(score=${adjustedScore}, flow=${wrongWayFlow.score}, nf=${noFollowThrough.score}, tk=${takeover.score}, mode=${normalizedMode})`,
             riskLevel,
             score: adjustedScore,
             meta: {
                 holdingMinutes,
                 wrongWayFlowScore: wrongWayFlow.score,
                 wrongWayBreakdown: wrongWayFlow.breakdown,
+                noFollowThroughScore: noFollowThrough.score,
+                noFollowThroughBreakdown: noFollowThrough.breakdown,
+                takeoverScore: takeover.score,
+                takeoverBreakdown: takeover.breakdown,
                 softInvalidation,
                 hardInvalidation,
                 confirmation: confirmation.level,
