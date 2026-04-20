@@ -13,7 +13,7 @@ const { sendTelegram } = require("./telegram");
 const { analyzePerformance } = require("./performance/performance-analyzer");
 const { runDailyLearning } = require("./performance/daily-learner");
 // const { analyzeEarlyExit } = require("./brain/early-exit-engine");
-const { analyzeEarlyExit } = require("./brain/early-exit-engine-v5");
+const { analyzeEarlyExit } = require("./brain/early-exit-engine-v6");
 const {
   evaluateDecision,
   decision,

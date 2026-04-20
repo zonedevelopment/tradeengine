@@ -137,8 +137,8 @@ async function analyzePerformance(firebaseUserId, symbol, mode) {
     try {
         await saveSuggestedWeightsToDB(patternWeights, symbol);
 
-        const stateFile = path.resolve(__dirname, "performance-state.json");
-        fs.writeFileSync(stateFile, JSON.stringify(result, null, 2), "utf8");
+        // const stateFile = path.resolve(__dirname, "performance-state.json");
+        // fs.writeFileSync(stateFile, JSON.stringify(result, null, 2), "utf8");
 
     } catch (err) {
         console.error("[Performance] Final save failed:", err.message);
