@@ -180,18 +180,57 @@ function detectMotherFishPattern(data) {
   }
 
   // 2. ENGULFING / PIERCING / DARK CLOUD (2 Candle Patterns)
+  // if (patternResult.pattern === "NONE" && pProps) {
+  //   if (pProps.isBear && cProps.isBull && currentCandle.close >= (prevCandle.close + pProps.body * 0.5)) {
+  //     const isEngulfing = currentCandle.close > prevCandle.open && currentCandle.open < prevCandle.close;
+  //     patternResult = {
+  //       pattern: "CLAW_BUY",
+  //       strength: cProps.body,
+  //       type: isEngulfing ? "Bullish_Engulfing" : "Piercing_Pattern",
+  //       slPrice: Math.min(currentCandle.low, prevCandle.low) - 1.5
+  //     };
+  //   }
+  //   else if (pProps.isBull && cProps.isBear && currentCandle.close <= (prevCandle.close - pProps.body * 0.5)) {
+  //     const isEngulfing = currentCandle.close < prevCandle.open && currentCandle.open > prevCandle.close;
+  //     patternResult = {
+  //       pattern: "CLAW_SELL",
+  //       strength: cProps.body,
+  //       type: isEngulfing ? "Bearish_Engulfing" : "Dark_Cloud_Cover",
+  //       slPrice: Math.max(currentCandle.high, prevCandle.high) + 1.5
+  //     };
+  //   }
+  // }
   if (patternResult.pattern === "NONE" && pProps) {
-    if (pProps.isBear && cProps.isBull && currentCandle.close >= (prevCandle.close + pProps.body * 0.5)) {
-      const isEngulfing = currentCandle.close > prevCandle.open && currentCandle.open < prevCandle.close;
+    const engulfUpperWickOk = cProps.upperWick <= cProps.body * 0.25;
+    const engulfLowerWickOk = cProps.lowerWick <= cProps.body * 0.25;
+    const engulfTightWickOk = engulfUpperWickOk && engulfLowerWickOk;
+
+    if (
+      pProps.isBear &&
+      cProps.isBull &&
+      currentCandle.close >= (prevCandle.close + pProps.body * 0.5)
+    ) {
+      const isEngulfing =
+        currentCandle.close > prevCandle.open &&
+        currentCandle.open < prevCandle.close &&
+        engulfTightWickOk;
+
       patternResult = {
         pattern: "CLAW_BUY",
         strength: cProps.body,
         type: isEngulfing ? "Bullish_Engulfing" : "Piercing_Pattern",
         slPrice: Math.min(currentCandle.low, prevCandle.low) - 1.5
       };
-    }
-    else if (pProps.isBull && cProps.isBear && currentCandle.close <= (prevCandle.close - pProps.body * 0.5)) {
-      const isEngulfing = currentCandle.close < prevCandle.open && currentCandle.open > prevCandle.close;
+    } else if (
+      pProps.isBull &&
+      cProps.isBear &&
+      currentCandle.close <= (prevCandle.close - pProps.body * 0.5)
+    ) {
+      const isEngulfing =
+        currentCandle.close < prevCandle.open &&
+        currentCandle.open > prevCandle.close &&
+        engulfTightWickOk;
+
       patternResult = {
         pattern: "CLAW_SELL",
         strength: cProps.body,
