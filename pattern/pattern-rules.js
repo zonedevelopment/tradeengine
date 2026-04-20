@@ -241,16 +241,49 @@ function detectMotherFishPattern(data) {
   }
 
   // 3. MORNING STAR / EVENING STAR / BASE BREAK (3 Candle Patterns)
+  // if (patternResult.pattern === "NONE" && ppProps) {
+  //   if (ppProps.isBear && pProps.body < ppProps.body * 0.5 && cProps.isBull && currentCandle.close > prevCandle.high) {
+  //     patternResult = {
+  //       pattern: "CLAW_BUY",
+  //       strength: cProps.body,
+  //       type: "Morning_Star_Base_Break",
+  //       slPrice: prevCandle.low - 1.5 // ใต้ Base
+  //     };
+  //   }
+  //   else if (ppProps.isBull && pProps.body < ppProps.body * 0.5 && cProps.isBear && currentCandle.close < prevCandle.low) {
+  //     patternResult = {
+  //       pattern: "CLAW_SELL",
+  //       strength: cProps.body,
+  //       type: "Evening_Star_Base_Break",
+  //       slPrice: prevCandle.high + 1.5 // เหนือ Base
+  //     };
+  //   }
+  // }
   if (patternResult.pattern === "NONE" && ppProps) {
-    if (ppProps.isBear && pProps.body < ppProps.body * 0.5 && cProps.isBull && currentCandle.close > prevCandle.high) {
+    const dojiMaxDistance = 0.5; // 50 จุด สำหรับ XAU ที่ _Point = 0.01
+    const middleOpenCloseDistance = Math.abs(prevCandle.close - prevCandle.open);
+    const isMiddleNearDoji =
+      middleOpenCloseDistance <= dojiMaxDistance &&
+      pProps.body < ppProps.body * 0.5;
+
+    if (
+      ppProps.isBear &&
+      isMiddleNearDoji &&
+      cProps.isBull &&
+      currentCandle.close > prevCandle.high
+    ) {
       patternResult = {
         pattern: "CLAW_BUY",
         strength: cProps.body,
         type: "Morning_Star_Base_Break",
         slPrice: prevCandle.low - 1.5 // ใต้ Base
       };
-    }
-    else if (ppProps.isBull && pProps.body < ppProps.body * 0.5 && cProps.isBear && currentCandle.close < prevCandle.low) {
+    } else if (
+      ppProps.isBull &&
+      isMiddleNearDoji &&
+      cProps.isBear &&
+      currentCandle.close < prevCandle.low
+    ) {
       patternResult = {
         pattern: "CLAW_SELL",
         strength: cProps.body,
