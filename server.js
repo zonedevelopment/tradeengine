@@ -116,8 +116,8 @@ const MICRO_SCALP_CONFIG = {
   onePositionOnly: true,
   maxHoldBars: 2,
 
-  maxLossUsd: 5,
-  minProfitToClose: 0.8,
+  maxLossUsd: 1,
+  minProfitToClose: 1.5,
 
   trendWeight: 1,
   momentumWeight: 1,
@@ -375,8 +375,6 @@ function isPrimaryTradeDecision(decisionValue) {
     "ALLOW_SELL_SCALP",
     "ALLOW_BUY_PYRAMID",
     "ALLOW_SELL_PYRAMID",
-    "ALLOW_BUY_MICRO_SCALP",
-    "ALLOW_SELL_MICRO_SCALP"
   ].includes(String(decisionValue || "").toUpperCase());
 }
 
@@ -2206,9 +2204,11 @@ app.post("/signal", async (req, res) => {
     // ต้องมาก่อน return NO_TRADE ปกติ
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.analyzeMicroScalp({
+        symbol: resolvedSymbol,
         candles: Array.isArray(candles) ? candles : [],
+        candlesH1: Array.isArray(candles_h1) ? candles_h1 : [],
+        candlesH4: Array.isArray(candles_h4) ? candles_h4 : [],
         spread: spreadPoints,
-        openPositions: [],
         config: MICRO_SCALP_CONFIG,
       });
 

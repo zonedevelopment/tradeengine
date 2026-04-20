@@ -501,11 +501,11 @@ function calculateSignalScores({ candles = [], spreadPoints = 0, trendContext = 
 
 function getDefaultScalpConfig() {
     return {
-        minScore: 47,
-        minScoreGap: 9,
-        maxHoldBars: 1,
-        maxLossUsd: 6,
-        minProfitToClose: 1.2,
+        minScore: 42,
+        minScoreGap: 5,
+        maxHoldBars: 2,
+        maxLossUsd: 1,
+        minProfitToClose: 1.5,
     };
 }
 
