@@ -3129,6 +3129,7 @@ app.post("/check-exit-signal", async (req, res) => {
       tpPoints = null,
       slPoints = null,
       holdingMinutes = null,
+      accountId
     } = req.body || {};
 
     const resolvedUserId = firebaseUserId || null;
@@ -3246,14 +3247,30 @@ app.post("/check-exit-signal", async (req, res) => {
       candles,
       mode: resolvedMode,
       price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
-      tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
-      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      // tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
+      // slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
       historicalVolume,
-      holdingMinutes: Number.isFinite(resolvedHoldingMinutes)
-        ? Math.max(0, resolvedHoldingMinutes)
-        : 0,
       pattern,
+      accountId
     });
+
+    // const exitResult = await analyzeEarlyExit({
+    //   firebaseUserId,
+    //   symbol,
+    //   openPosition: {
+    //     ...openPosition,
+    //     side: String(openPosition?.side || openPosition?.type || "").toUpperCase(),
+    //     symbol: openPosition?.symbol || symbol,
+    //   },
+    //   currentProfit: Number(currentProfit || openPosition?.profit || 0),
+    //   candles: Array.isArray(candles) ? candles : [],
+    //   mode: String(mode || openPosition?.mode || "NORMAL").toUpperCase(),
+    //   price: Number(price || openPosition?.currentPrice || openPosition?.current_price || 0),
+    //   timeframe: String(timeframe || "M5").toUpperCase(),
+    //   holdingMinutes: Number(holdingMinutes || 0),
+    //   historicalVolume: historicalVolume ?? null,
+    //   accountId: accountId ?? openPosition?.accountId ?? null,
+    // });
 
     // ถ้า EA ของคุณยังไม่รองรับ action ใหม่
     // ให้ map กลับเป็น action เดิมที่ EA ใช้อยู่

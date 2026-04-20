@@ -200,7 +200,7 @@ function getProfitRetractionRatio(openPosition = {}, currentProfit = 0) {
     if (peakProfit <= 0) return 0;
     if (profit >= peakProfit) return 0;
 
-    return clamp((peakProfit - profit) / peakProfit, 0, 1.5);
+    return clamp((peakProfit - profit) / peakProfit, 0, 2.0);
 }
 
 function getCandleBody(c = {}) {
