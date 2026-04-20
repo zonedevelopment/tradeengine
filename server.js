@@ -777,7 +777,31 @@ function applyMicroScalpFixedTargetToTradeSetup({
 //   userAdaptiveProfile,
 //   activeCfg,
 // }) {
-//   if (!tradeSetup || !userAdaptiveProfile?.enabled) {
+//   if (!tradeSetup) {
+//     return tradeSetup;
+//   }
+
+//   const safeMode = String(tradeSetup.mode || "").toUpperCase();
+//   const isMicroScalp = safeMode === "MICRO_SCALP";
+
+//   if (!userAdaptiveProfile?.enabled) {
+//     if (isMicroScalp) {
+//       const minTP = Number(activeCfg?.minTP || 100);
+//       const maxTP = Number(activeCfg?.maxTP || 200);
+
+//       return {
+//         ...tradeSetup,
+//         tp_points: clampNumber(Number(tradeSetup.tp_points || minTP), minTP, maxTP),
+//         retrace_points: Math.max(
+//           20,
+//           Number(
+//             tradeSetup.retrace_points ||
+//             Math.round(Number(tradeSetup.tp_points || minTP) * 0.35)
+//           )
+//         ),
+//       };
+//     }
+
 //     return tradeSetup;
 //   }
 
@@ -809,20 +833,31 @@ function applyMicroScalpFixedTargetToTradeSetup({
 
 //   const minSL = Number(activeCfg?.minSL || slPoints || 1);
 //   const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
-//   const minTP = Number(activeCfg?.minTP || tpPoints || 1);
-//   const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
 
 //   slPoints = clampNumber(slPoints, minSL, maxSL);
-//   tpPoints = clampNumber(tpPoints, minTP, maxTP);
 
-//   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
-//     retracePoints = Math.max(1, Math.round(minSL * 0.2));
+//   if (isMicroScalp) {
+//     const microMinTP = Number(activeCfg?.minTP || 100);
+//     const microMaxTP = Number(activeCfg?.maxTP || 200);
+
+//     tpPoints = clampNumber(tpPoints, microMinTP, microMaxTP);
+//     retracePoints = Math.max(20, Math.round(tpPoints * 0.35));
+//   } else {
+//     const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+//     const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
+
+//     tpPoints = clampNumber(tpPoints, minTP, maxTP);
+
+//     if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+//       retracePoints = Math.max(1, Math.round(minSL * 0.2));
+//     }
 //   }
 
 //   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
-//     recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
-//       ? Number(baseRecommendedLot.toFixed(2))
-//       : 0.01;
+//     recommendedLot =
+//       Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+//         ? Number(baseRecommendedLot.toFixed(2))
+//         : 0.01;
 //   }
 
 //   if (recommendedLot < 0.01) recommendedLot = 0.01;
@@ -847,68 +882,74 @@ function applyUserAdaptiveProfileToTradeSetup({
   const safeMode = String(tradeSetup.mode || "").toUpperCase();
   const isMicroScalp = safeMode === "MICRO_SCALP";
 
-  if (!userAdaptiveProfile?.enabled) {
-    if (isMicroScalp) {
-      const minTP = Number(activeCfg?.minTP || 100);
-      const maxTP = Number(activeCfg?.maxTP || 200);
+  let slPoints = Math.round(Number(tradeSetup.sl_points || 0));
+  let tpPoints = Math.round(Number(tradeSetup.tp_points || 0));
+  let retracePoints = Math.round(Number(tradeSetup.retrace_points || 0));
+  const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0.01);
 
-      return {
-        ...tradeSetup,
-        tp_points: clampNumber(Number(tradeSetup.tp_points || minTP), minTP, maxTP),
-        retrace_points: Math.max(
-          20,
-          Number(
-            tradeSetup.retrace_points ||
-            Math.round(Number(tradeSetup.tp_points || minTP) * 0.35)
-          )
-        ),
-      };
-    }
+  // 1) บังคับกรอบตาม mode/symbol config เสมอ
+  const minSL = Number(activeCfg?.minSL || slPoints || 1);
+  const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
+  const minTP = Number(activeCfg?.minTP || tpPoints || 1);
+  const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
 
-    return tradeSetup;
+  if (Number.isFinite(slPoints) && slPoints > 0) {
+    slPoints = clampNumber(slPoints, minSL, maxSL);
+  } else {
+    slPoints = minSL;
   }
 
-  let slPoints = Math.round(
-    Number(tradeSetup.sl_points || 0) * Number(userAdaptiveProfile.slMultiplier || 1)
+  if (Number.isFinite(tpPoints) && tpPoints > 0) {
+    tpPoints = clampNumber(tpPoints, minTP, maxTP);
+  } else {
+    tpPoints = minTP;
+  }
+
+  if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+    retracePoints = isMicroScalp
+      ? Math.max(20, Math.round(tpPoints * 0.35))
+      : Math.max(1, Math.round(minSL * 0.2));
+  }
+
+  // 2) ถ้า adaptive profile ยังไม่เปิด ให้คืนค่าที่ clamp แล้ว
+  if (!userAdaptiveProfile?.enabled) {
+    return {
+      ...tradeSetup,
+      sl_points: slPoints,
+      tp_points: tpPoints,
+      retrace_points: retracePoints,
+    };
+  }
+
+  // 3) ถ้า adaptive profile เปิด ค่อยเอา multiplier มาปรับต่อ
+  slPoints = Math.round(
+    slPoints * Number(userAdaptiveProfile.slMultiplier || 1)
   );
 
-  let tpPoints = Math.round(
-    Number(tradeSetup.tp_points || 0) * Number(userAdaptiveProfile.tpMultiplier || 1)
+  tpPoints = Math.round(
+    tpPoints * Number(userAdaptiveProfile.tpMultiplier || 1)
   );
 
-  const safeRetraceMultiplier = Math.min(
-    1.0,
-    Math.max(0.60, Number(userAdaptiveProfile.retraceMultiplier || 1))
+  retracePoints = Math.round(
+    retracePoints * Number(userAdaptiveProfile.retraceMultiplier || 1)
   );
-
-  let retracePoints = Math.round(
-    Number(tradeSetup.retrace_points || 0) * safeRetraceMultiplier
-  );
-
-  const baseRecommendedLot = Number(tradeSetup.recommended_lot || 0);
 
   let recommendedLot = Number(
     (
-      (Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0 ? baseRecommendedLot : 0.01) *
+      (Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+        ? baseRecommendedLot
+        : 0.01) *
       Number(userAdaptiveProfile.lotMultiplier || 1)
     ).toFixed(2)
   );
 
-  const minSL = Number(activeCfg?.minSL || slPoints || 1);
-  const maxSL = Number(activeCfg?.maxSL || slPoints || minSL);
-
+  // 4) clamp อีกรอบหลัง adaptive
   slPoints = clampNumber(slPoints, minSL, maxSL);
 
   if (isMicroScalp) {
-    const microMinTP = Number(activeCfg?.minTP || 100);
-    const microMaxTP = Number(activeCfg?.maxTP || 200);
-
-    tpPoints = clampNumber(tpPoints, microMinTP, microMaxTP);
+    tpPoints = clampNumber(tpPoints, minTP, maxTP);
     retracePoints = Math.max(20, Math.round(tpPoints * 0.35));
   } else {
-    const minTP = Number(activeCfg?.minTP || tpPoints || 1);
-    const maxTP = Number(activeCfg?.maxTP || tpPoints || minTP);
-
     tpPoints = clampNumber(tpPoints, minTP, maxTP);
 
     if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
@@ -917,13 +958,10 @@ function applyUserAdaptiveProfileToTradeSetup({
   }
 
   if (!Number.isFinite(recommendedLot) || recommendedLot <= 0) {
-    recommendedLot =
-      Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
-        ? Number(baseRecommendedLot.toFixed(2))
-        : 0.01;
+    recommendedLot = Number.isFinite(baseRecommendedLot) && baseRecommendedLot > 0
+      ? Number(baseRecommendedLot.toFixed(2))
+      : 0.01;
   }
-
-  if (recommendedLot < 0.01) recommendedLot = 0.01;
 
   return {
     ...tradeSetup,
@@ -931,6 +969,17 @@ function applyUserAdaptiveProfileToTradeSetup({
     sl_points: slPoints,
     tp_points: tpPoints,
     retrace_points: retracePoints,
+    adaptive_profile: {
+      enabled: true,
+      stage: userAdaptiveProfile.stage,
+      sampleCount: userAdaptiveProfile.sampleCount,
+      minScoreBoost: userAdaptiveProfile.minScoreBoost,
+      lotMultiplier: userAdaptiveProfile.lotMultiplier,
+      slMultiplier: userAdaptiveProfile.slMultiplier,
+      tpMultiplier: userAdaptiveProfile.tpMultiplier,
+      retraceMultiplier: userAdaptiveProfile.retraceMultiplier,
+      reason: userAdaptiveProfile.reason,
+    },
   };
 }
 
