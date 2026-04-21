@@ -905,10 +905,25 @@ function applyUserAdaptiveProfileToTradeSetup({
     tpPoints = minTP;
   }
 
+  // if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+  //   retracePoints = isMicroScalp
+  //     ? Math.max(20, Math.round(tpPoints * 0.35))
+  //     : Math.max(1, Math.round(minSL * 0.2));
+  // }
   if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
-    retracePoints = isMicroScalp
-      ? Math.max(20, Math.round(tpPoints * 0.35))
-      : Math.max(1, Math.round(minSL * 0.2));
+    if (isMicroScalp) {
+      retracePoints = Math.max(20, Math.round(tpPoints * 0.10));
+    } else if (safeMode === "SCALP") {
+      retracePoints = Math.max(
+        35,
+        Math.min(
+          Math.round(Math.min(tpPoints * 0.10, slPoints * 0.12)),
+          65
+        )
+      );
+    } else {
+      retracePoints = Math.max(1, Math.round(minSL * 0.10));
+    }
   }
 
   // 2) ถ้า adaptive profile ยังไม่เปิด ให้คืนค่าที่ clamp แล้ว
@@ -948,12 +963,25 @@ function applyUserAdaptiveProfileToTradeSetup({
 
   if (isMicroScalp) {
     tpPoints = clampNumber(tpPoints, minTP, maxTP);
-    retracePoints = Math.max(20, Math.round(tpPoints * 0.35));
+    retracePoints = Math.max(20, Math.round(tpPoints * 0.10));
   } else {
     tpPoints = clampNumber(tpPoints, minTP, maxTP);
 
+    // if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
+    //   retracePoints = Math.max(1, Math.round(minSL * 0.2));
+    // }
     if (!Number.isFinite(retracePoints) || retracePoints <= 0) {
-      retracePoints = Math.max(1, Math.round(minSL * 0.2));
+      if (safeMode === "SCALP") {
+        retracePoints = Math.max(
+          35,
+          Math.min(
+            Math.round(Math.min(tpPoints * 0.10, slPoints * 0.12)),
+            65
+          )
+        );
+      } else {
+        retracePoints = Math.max(1, Math.round(tpPoints * 0.10));
+      }
     }
   }
 
