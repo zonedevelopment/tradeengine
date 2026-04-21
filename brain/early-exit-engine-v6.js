@@ -1075,7 +1075,7 @@ async function analyzeEarlyExit({
         : 0;
 
     // กัน FAILED_PATTERN_EARLY_EXIT เร็วเกินในช่วงต้นไม้ของ SCALP
-    if (failedPatternRule && normalizedMode === "SCALP" && safeHoldingMinutes < 2) {
+    if (failedPatternRule && normalizedMode === "SCALP" && safeHoldingMinutes < 5) {
         failedPatternRule = null;
     }
 
