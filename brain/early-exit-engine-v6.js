@@ -82,30 +82,48 @@ function getExitProfile(mode = "NORMAL") {
             beMinRetraceRatio: 0.16,
             tpMinRetraceRatio: 0.28,
 
-            wrongWayMinMinutes: 1.5,
-            wrongWayCutProfit: -0.10,
-            wrongWayHardCutProfit: -0.20,
+            // wrongWayMinMinutes: 1.5,
+            // wrongWayCutProfit: -0.10,
+            // wrongWayHardCutProfit: -0.20,
             wrongWayFlowCutScore: 2.15,
             wrongWayFlowHardScore: 2.85,
 
-            noFollowThroughMinMinutes: 1.5,
-            noFollowThroughCutProfit: -0.08,
-            noFollowThroughScore: 2.00,
+            // noFollowThroughMinMinutes: 1.5,
+            // noFollowThroughCutProfit: -0.08,
+            // noFollowThroughScore: 2.00,
 
             takeoverCutProfit: -0.06,
             takeoverCutScore: 2.20,
 
-            simpleCutMinutes: 4,
-            simpleCutProfit: -0.24,
-            strongCutProfit: -0.14,
-            reversalCutScore: 2.15,
+            // simpleCutMinutes: 4,
+            // simpleCutProfit: -0.24,
+            // strongCutProfit: -0.14,
+            // reversalCutScore: 2.15,
 
             lowVolumeProfitMinutes: 7,
-            failedPatternCutProfit: 0.08,
-            failedPatternTakeProfitMin: 0.35,
+            // failedPatternCutProfit: 0.08,
+            // failedPatternTakeProfitMin: 0.35,
 
             weakStructureScore: 1.20,
             strongStructureScore: 1.90,
+
+            holdToBEProfit: 0.55,
+
+            simpleCutMinutes: 4,
+            simpleCutProfit: -0.24,
+            strongCutProfit: -0.18,
+            reversalCutScore: 2.35,
+
+            wrongWayMinMinutes: 2.5,
+            wrongWayCutProfit: -0.14,
+            wrongWayHardCutProfit: -0.26,
+
+            noFollowThroughMinMinutes: 2.5,
+            noFollowThroughCutProfit: -0.12,
+            noFollowThroughScore: 2.2,
+
+            failedPatternCutProfit: 0.08,
+            failedPatternTakeProfitMin: 0.35,
         };
     }
 
@@ -1051,6 +1069,15 @@ async function analyzeEarlyExit({
         price,
         candlesM: candles,
     });
+
+    const safeHoldingMinutes = Number.isFinite(Number(holdingMinutes))
+        ? Number(holdingMinutes)
+        : 0;
+
+    // กัน FAILED_PATTERN_EARLY_EXIT เร็วเกินในช่วงต้นไม้ของ SCALP
+    if (failedPatternRule && normalizedMode === "SCALP" && safeHoldingMinutes < 2) {
+        failedPatternRule = null;
+    }
 
     if (failedPatternRule) {
         riskLevel = "CRITICAL";
