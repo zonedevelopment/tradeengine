@@ -3623,6 +3623,63 @@ async function findFailedPatternRule({
     }
 }
 
+function getPyramidFollowupMode({
+    currentMode = "NORMAL",
+    score = 0,
+    side = "NEUTRAL",
+    historicalVolumeSignal = null,
+    trendFollow4 = {},
+    hierarchical = null,
+}) {
+    const normalizedMode = String(currentMode || "NORMAL").toUpperCase();
+
+    if (normalizedMode === "MICRO_SCALP" || normalizedMode === "SCALP") {
+        return normalizedMode;
+    }
+
+    const followDirection = String(trendFollow4?.direction || "NEUTRAL").toUpperCase();
+    const sideAligned = followDirection === side;
+
+    const strongContinuation =
+        Boolean(hierarchical?.strongContinuation) &&
+        !Boolean(hierarchical?.noisySetup) &&
+        !Boolean(hierarchical?.continuationBlockAgainstSide);
+
+    const scoreStrength = Math.abs(Number(score || 0));
+
+    // ถ้าไม้ตามน้ำยังไม่แข็งมาก ให้ลดไป MICRO_SCALP
+    if (
+        !sideAligned ||
+        !strongContinuation ||
+        historicalVolumeSignal === "LOW_VOLUME" ||
+        scoreStrength < 2.85
+    ) {
+        return "MICRO_SCALP";
+    }
+
+    // ถ้าแข็งพอแต่ไม่อยากเสี่ยงแบบ NORMAL ให้ลงเป็น SCALP
+    return "SCALP";
+}
+
+function getPyramidFollowupAction(side = "NEUTRAL", followupMode = "SCALP") {
+    const normalizedSide = String(side || "NEUTRAL").toUpperCase();
+    const normalizedMode = String(followupMode || "SCALP").toUpperCase();
+
+    if (normalizedSide === "BUY") {
+        return normalizedMode === "MICRO_SCALP"
+            ? "ALLOW_BUY_MICRO_SCALP"
+            : "ALLOW_BUY_SCALP";
+    }
+
+    if (normalizedSide === "SELL") {
+        return normalizedMode === "MICRO_SCALP"
+            ? "ALLOW_SELL_MICRO_SCALP"
+            : "ALLOW_SELL_SCALP";
+    }
+
+    return "NO_TRADE";
+}
+
 async function evaluateDecision({
     pattern,
     candlesM15 = [],
@@ -3827,6 +3884,77 @@ async function evaluateDecision({
         tradeMode = "SCALP";
     }
 
+    // if (market && market.portfolio) {
+    //     const { currentPosition, count } = market.portfolio;
+    //     const pyramidThreshold = tradeMode === "SCALP" ? 2.6 : 2.25;
+
+    //     if (currentPosition !== "NONE") {
+    //         if (currentPosition === "BUY" && score <= -2.15) {
+    //             return {
+    //                 action: "NO_TRADE",
+    //                 reason: "ANTI_HEDGE_BLOCK",
+    //                 score,
+    //                 side: effectiveSide,
+    //             };
+    //         }
+
+    //         if (currentPosition === "SELL" && score >= 2.15) {
+    //             return {
+    //                 action: "NO_TRADE",
+    //                 reason: "ANTI_HEDGE_BLOCK",
+    //                 score,
+    //                 side: effectiveSide,
+    //             };
+    //         }
+
+    //         if (currentPosition === "BUY" && score >= pyramidThreshold) {
+    //             if (count >= 3) {
+    //                 return {
+    //                     action: "NO_TRADE",
+    //                     reason: "MAX_PYRAMID_ORDERS_REACHED",
+    //                     score,
+    //                     side: effectiveSide,
+    //                 };
+    //             }
+
+    //             return {
+    //                 action: "ALLOW_BUY_PYRAMID",
+    //                 score,
+    //                 side: effectiveSide,
+    //                 mode: tradeMode,
+    //                 trend: trendContext.overallTrend,
+    //                 defensiveFlags,
+    //             };
+    //         }
+
+    //         if (currentPosition === "SELL" && score <= -pyramidThreshold) {
+    //             if (count >= 3) {
+    //                 return {
+    //                     action: "NO_TRADE",
+    //                     reason: "MAX_PYRAMID_ORDERS_REACHED",
+    //                     score,
+    //                     side: effectiveSide,
+    //                 };
+    //             }
+
+    //             return {
+    //                 action: "ALLOW_SELL_PYRAMID",
+    //                 score,
+    //                 side: effectiveSide,
+    //                 mode: tradeMode,
+    //                 trend: trendContext.overallTrend,
+    //                 defensiveFlags,
+    //             };
+    //         }
+
+    //         return {
+    //             action: "NO_TRADE",
+    //             reason: "SCORE_TOO_LOW_FOR_PYRAMIDING",
+    //             score,
+    //             side: effectiveSide,
+    //         };
+    //     }
+    // }
     if (market && market.portfolio) {
         const { currentPosition, count } = market.portfolio;
         const pyramidThreshold = tradeMode === "SCALP" ? 2.6 : 2.25;
@@ -3860,13 +3988,25 @@ async function evaluateDecision({
                     };
                 }
 
-                return {
-                    action: "ALLOW_BUY_PYRAMID",
+                const followupMode = getPyramidFollowupMode({
+                    currentMode: tradeMode,
                     score,
                     side: effectiveSide,
-                    mode: tradeMode,
+                    historicalVolumeSignal,
+                    trendFollow4,
+                    hierarchical,
+                });
+
+                return {
+                    action: getPyramidFollowupAction("BUY", followupMode),
+                    reason: "FOLLOWUP_ORDER_DOWNGRADED_FROM_PYRAMID",
+                    score,
+                    side: effectiveSide,
+                    mode: followupMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
+                    originalMode: tradeMode,
+                    originalAction: "ALLOW_BUY_PYRAMID",
                 };
             }
 
@@ -3880,13 +4020,25 @@ async function evaluateDecision({
                     };
                 }
 
-                return {
-                    action: "ALLOW_SELL_PYRAMID",
+                const followupMode = getPyramidFollowupMode({
+                    currentMode: tradeMode,
                     score,
                     side: effectiveSide,
-                    mode: tradeMode,
+                    historicalVolumeSignal,
+                    trendFollow4,
+                    hierarchical,
+                });
+
+                return {
+                    action: getPyramidFollowupAction("SELL", followupMode),
+                    reason: "FOLLOWUP_ORDER_DOWNGRADED_FROM_PYRAMID",
+                    score,
+                    side: effectiveSide,
+                    mode: followupMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
+                    originalMode: tradeMode,
+                    originalAction: "ALLOW_SELL_PYRAMID",
                 };
             }
 
