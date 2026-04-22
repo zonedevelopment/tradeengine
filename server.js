@@ -105,6 +105,63 @@ const {
   appendPendingTradeConfirmationLog,
 } = require("./pendingTradeConfirmation.repo");
 
+// Mangmao feature
+const {
+  getDefaultMangmaoConfig,
+  analyzeMangmaoEntry,
+  createMangmaoGroup,
+  bindMangmaoTickets,
+  evaluateMangmaoExit,
+  finalizeMangmaoGroup,
+} = require("./mangmaoEngine-v1");
+
+const MANGMAO_CONFIG = {
+  ...getDefaultMangmaoConfig(),
+  enabled: true,
+  minScore: MICRO_SCALP_CONFIG.minScore,
+  minScoreGap: MICRO_SCALP_CONFIG.minScoreGap,
+  maxSpread: MICRO_SCALP_CONFIG.maxSpread,
+  lossCutUsdPerOrder: -1,
+  requireNoOpenPositions: true,
+  allowOnlyOneActiveGroup: true,
+  maxLevel: 3,
+};
+
+function normalizeTicketIdForMangmao(value) {
+  if (value === undefined || value === null) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  return /^\d+$/.test(str) ? str : null;
+}
+
+function normalizeMangmaoSymbol(value) {
+  return String(value || "").trim();
+}
+
+function normalizeMangmaoAccountId(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeMangmaoActivePositions(rows = []) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => ({
+    ticketId: row.ticketId ?? row.ticket_id ?? row.ticket ?? null,
+    ticket: row.ticketId ?? row.ticket_id ?? row.ticket ?? null,
+    symbol: row.symbol,
+    side: row.side,
+    profit: Number(row.profit || 0),
+    swap: Number(row.swap || 0),
+    commission: Number(row.commission || 0),
+    entryPrice: row.entryPrice ?? row.entry_price ?? null,
+    currentPrice: row.currentPrice ?? row.current_price ?? null,
+    openTime: row.openTime ?? row.open_time ?? null,
+    status: row.status || "OPEN",
+  }));
+}
+// End Mangmao feature
+
 
 const MICRO_SCALP_CONFIG = {
   enabled: true,
@@ -2530,505 +2587,255 @@ app.post("/signal", async (req, res) => {
     });
   }
 });
+app.post("/mangmao/signal", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId,
+      symbol,
+      candles = [],
+      candlesH1 = [],
+      candlesH4 = [],
+      spreadPoints = 0,
+      autoCreateGroup = true,
+    } = req.body || {};
 
-// app.post("/signal", async (req, res) => {
-//   const {
-//     symbol,
-//     firebaseUserId,
-//     accountId,
-//     side,
-//     price,
-//     candles,
-//     candles_m15,
-//     candles_m30,
-//     candles_h1,
-//     candles_h4,
-//     balance,
-//     overlapPips,
-//   } = req.body;
+    if (!firebaseUserId || !symbol) {
+      return res.status(400).json({
+        status: false,
+        message: "firebaseUserId and symbol are required",
+      });
+    }
 
-//   const resolvedUserId = firebaseUserId || null;
-//   const spreadPoints = req.body.spreadPoints || 0;
+    const safeSymbol = normalizeMangmaoSymbol(symbol);
+    const safeAccountId = normalizeMangmaoAccountId(accountId);
 
-//   const higherTf = resolveHigherTimeframes({
-//     candles_m15,
-//     candles_m30,
-//     candles_h1,
-//     candles_h4,
-//   });
+    let activePositions = [];
+    try {
+      const rows = await getActivePositionsByUserAndSymbol(firebaseUserId, safeSymbol);
+      activePositions = normalizeMangmaoActivePositions(rows);
+    } catch (error) {
+      console.error("[/mangmao/signal] load active positions error:", error.message);
+    }
 
-//   let tradingPreferences = normalizeTradingPreferences(null);
-//   try {
-//     if (resolvedUserId) {
-//       const rawTradingPreferences = await getUserTradingPreferences(
-//         resolvedUserId,
-//         accountId ?? null
-//       );
+    const openCount = await countOpenPositionsByUserAccountAndSymbol(
+      firebaseUserId,
+      safeAccountId,
+      safeSymbol
+    );
 
-//       tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
-//     }
-//   } catch (prefError) {
-//     console.error("Load trading preferences error:", prefError.message);
-//   }
+    const entryResult = await analyzeMangmaoEntry({
+      firebaseUserId,
+      accountId: safeAccountId,
+      symbol: safeSymbol,
+      candles,
+      candlesH1,
+      candlesH4,
+      spreadPoints,
+      activePositions,
+      config: {
+        ...MANGMAO_CONFIG,
+        requireNoOpenPositions: Number(openCount || 0) <= 0,
+      },
+    });
 
-//   if (!isTradingEngineEnabled(tradingPreferences)) {
-//     return res.json(
-//       buildBlockedSignalResponse({
-//         reason: "ENGINE_DISABLED",
-//         score: 0,
-//         firebaseUserId: resolvedUserId,
-//         mode: "NORMAL",
-//         trend: "NEUTRAL",
-//         pattern: null,
-//         historicalVolume: null,
-//         defensiveFlags: null,
-//         trade_setup: null,
-//         currentOpenPositionsCount: 0,
-//       })
-//     );
-//   }
+    if (!autoCreateGroup || entryResult.action !== "OPEN_GROUP") {
+      return res.json({
+        status: true,
+        message: "Mangmao signal analyzed",
+        data: entryResult,
+      });
+    }
 
-//   let totalClosedTrades = 0;
+    const createResult = await createMangmaoGroup({
+      firebaseUserId,
+      accountId: safeAccountId,
+      symbol: safeSymbol,
+      groupId: entryResult.groupId,
+      side: entryResult.side,
+      orderCount: entryResult.orderCount,
+    });
 
-//   try {
-//     if (resolvedUserId) {
-//       totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
-//     }
-//   } catch (tradeCountError) {
-//     console.error("Load trade count error:", tradeCountError.message);
-//   }
+    return res.json({
+      status: true,
+      message: "Mangmao group created",
+      data: {
+        ...entryResult,
+        createResult,
+      },
+    });
+  } catch (error) {
+    console.error("[/mangmao/signal] error:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Mangmao signal failed",
+      error: error.message,
+    });
+  }
+});
 
-//   try {
-//     const news = readFilter();
-//     const calendar = checkCalendar();
-//     const session = getSession();
-//     const risk = getRiskState();
+app.post("/mangmao/bind-tickets", async (req, res) => {
+  try {
+    const { groupId, tickets = [] } = req.body || {};
 
-//     const pattern = await analyzePattern({
-//       symbol: symbol,
-//       candles: candles,
-//       candlesM15: higherTf.candlesM15,
-//       candlesM30: higherTf.candlesM30,
-//       candlesH1: higherTf.candlesH1,
-//       candlesH4: higherTf.candlesH4,
+    if (!groupId || !Array.isArray(tickets) || tickets.length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: "groupId and tickets are required",
+      });
+    }
 
-//       // ส่ง HTF หลักที่ระบบจะใช้จริง
-//       candlesTrendPrimary: higherTf.trendPrimaryCandles,
-//       candlesTrendSecondary: higherTf.trendSecondaryCandles,
+    const safeTickets = tickets
+      .map((item) => ({
+        ticketId: normalizeTicketIdForMangmao(item.ticketId ?? item.ticket),
+        openPrice: item.openPrice ?? item.entryPrice ?? null,
+        openedAt: item.openedAt ?? null,
+      }))
+      .filter((item) => item.ticketId);
 
-//       // คงชื่อเดิมไว้ให้ flow เก่าทำงานต่อได้
-//       candlesH1: higherTf.trendPrimaryCandles,
-//       candlesH4: higherTf.trendSecondaryCandles,
+    if (!safeTickets.length) {
+      return res.status(400).json({
+        status: false,
+        message: "No valid ticketId found",
+      });
+    }
 
-//       overlapPips: overlapPips,
-//     });
+    const result = await bindMangmaoTickets({
+      groupId,
+      tickets: safeTickets,
+    });
 
-//     const ictContext = analyzeICT(candles);
-//     const historicalVolume = evaluateCurrentVolumeAgainstHistory({
-//       firebaseUserId: resolvedUserId,
-//       symbol,
-//       candles,
-//     });
+    return res.json({
+      status: true,
+      message: "Mangmao tickets bound",
+      data: result,
+    });
+  } catch (error) {
+    console.error("[/mangmao/bind-tickets] error:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Bind mangmao tickets failed",
+      error: error.message,
+    });
+  }
+});
 
-//     const evaluateResult = await evaluateDecision({
-//       news,
-//       calendar,
-//       session,
-//       risk,
-//       pattern,
-//       ictContext,
-//       historicalVolume,
-//       market: {
-//         userId: resolvedUserId,
-//         symbol: symbol,
-//         timeframe: "M5",
-//         price: price,
-//         candles: candles,
+app.post("/mangmao/check-exit", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId,
+      symbol,
+      activePositions = [],
+      autoFinalize = false,
+    } = req.body || {};
 
-//         // เก็บทุก TF ไว้
-//         candlesM15: higherTf.candlesM15,
-//         candlesM30: higherTf.candlesM30,
-//         candlesH1: higherTf.candlesH1,
-//         candlesH4: higherTf.candlesH4,
+    if (!firebaseUserId || !symbol) {
+      return res.status(400).json({
+        status: false,
+        message: "firebaseUserId and symbol are required",
+      });
+    }
 
-//         // TF ที่ใช้เป็น HTF หลักจริง
-//         trendPrimaryCandles: higherTf.trendPrimaryCandles,
-//         trendSecondaryCandles: higherTf.trendSecondaryCandles,
-//         trendPrimaryLabel: higherTf.trendPrimaryLabel,
-//         trendSecondaryLabel: higherTf.trendSecondaryLabel,
+    const safeSymbol = normalizeMangmaoSymbol(symbol);
+    const safeAccountId = normalizeMangmaoAccountId(accountId);
 
-//         // backward compatible
-//         candlesH1: higherTf.trendPrimaryCandles,
-//         candlesH4: higherTf.trendSecondaryCandles,
+    let positions = Array.isArray(activePositions) ? activePositions : [];
+    if (!positions.length) {
+      try {
+        const rows = await getActivePositionsByUserAndSymbol(firebaseUserId, safeSymbol);
+        positions = normalizeMangmaoActivePositions(rows);
+      } catch (error) {
+        console.error("[/mangmao/check-exit] load active positions error:", error.message);
+      }
+    }
 
-//         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
-//         sessionName: session.name,
-//       }
-//     });
+    const exitResult = await evaluateMangmaoExit({
+      firebaseUserId,
+      accountId: safeAccountId,
+      symbol: safeSymbol,
+      activePositions: positions,
+    });
 
-//     console.log("[EVALUATE_DECISION_BREAKDOWN]", {
-//       Action: evaluateResult.finalDecision,
-//       reason: evaluateResult.reason,
-//       evaluateResult
-//     });
+    if (!autoFinalize || exitResult.action !== "CLOSE_ALL") {
+      return res.json({
+        status: true,
+        message: "Mangmao exit checked",
+        data: exitResult,
+      });
+    }
 
-//     let mainUserRecentPerformance = null;
-//     let mainUserAdaptiveProfile = null;
+    const finalizeResult = await finalizeMangmaoGroup({
+      firebaseUserId,
+      accountId: safeAccountId,
+      symbol: safeSymbol,
+      groupId: exitResult.groupId,
+      result: exitResult.result,
+      closedOrders: exitResult.tickets || [],
+      note: exitResult.reason || null,
+    });
 
-//     try {
-//       if (resolvedUserId) {
-//         mainUserRecentPerformance = await getRecentClosedTradePerformance({
-//           firebaseUserId: resolvedUserId,
-//           accountId,
-//           symbol,
-//           mode: normalizeAdaptiveMode(evaluateResult?.mode || "NORMAL"),
-//           limit: 18,
-//         });
-//       }
-//     } catch (recentPerfError) {
-//       console.error("Load recent performance error:", recentPerfError.message);
-//     }
+    return res.json({
+      status: true,
+      message: "Mangmao exit checked and finalized",
+      data: {
+        exitResult,
+        finalizeResult,
+      },
+    });
+  } catch (error) {
+    console.error("[/mangmao/check-exit] error:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Mangmao check exit failed",
+      error: error.message,
+    });
+  }
+});
 
-//     mainUserAdaptiveProfile = buildUserAdaptiveProfile({
-//       recentPerformance: mainUserRecentPerformance,
-//       mode: evaluateResult?.mode || "NORMAL",
-//     });
+app.post("/mangmao/finalize", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId,
+      symbol,
+      groupId,
+      result,
+      closedOrders = [],
+      note = null,
+    } = req.body || {};
 
-//     const score = evaluateResult.score || 0;
-//     const finalDecisionResult = resolveDecisionWithTradingPreferences(
-//       evaluateResult,
-//       symbol,
-//       { tradingPreferences }
-//     );
+    if (!firebaseUserId || !symbol || !groupId || !result) {
+      return res.status(400).json({
+        status: false,
+        message: "firebaseUserId, symbol, groupId, result are required",
+      });
+    }
 
-//     const finalDecision = finalDecisionResult.decision;
-//     const finalDecisionReason = finalDecisionResult.reason || null;
+    const finalizeResult = await finalizeMangmaoGroup({
+      firebaseUserId,
+      accountId: normalizeMangmaoAccountId(accountId),
+      symbol: normalizeMangmaoSymbol(symbol),
+      groupId,
+      result,
+      closedOrders: Array.isArray(closedOrders) ? closedOrders : [],
+      note,
+    });
 
-//     try {
-//       if (Array.isArray(candles) && candles.length > 0) {
-//         const contextCandles = candles.map((c) => ({
-//           time: c.time ? new Date(c.time) : null,
-//           open: Number(c.open || 0),
-//           high: Number(c.high || 0),
-//           low: Number(c.low || 0),
-//           close: Number(c.close || 0),
-//           tickVolume: Number(c.tickVolume || c.tick_volume || 0),
-//         }));
-
-//         await CandleTrainingData.create({
-//           firebaseUserId: resolvedUserId || "",
-//           accountId: accountId || "",
-//           symbol: symbol || "",
-//           timeframe: "M5",
-//           eventTime: new Date(),
-//           price: Number(price || 0),
-//           candles: contextCandles,
-//           source: "signal",
-//           mode: evaluateResult.mode || "NORMAL",
-//         });
-//       }
-//     } catch (e) {
-//       console.error("Error saving candle training data to MongoDB:", e);
-//     }
-
-//     // console.log(`\n--- 📊 MARKET STATE LOG [${symbol}] ---`);
-//     // console.log(`Price: ${price}`);
-//     // console.log(`H1/H4 Trend: ${evaluateResult.trend} | Mode: ${evaluateResult.mode}`);
-//     // if (pattern.structure) {
-//     //   console.log(`M5 Micro-Trend: ${pattern.structure.microTrend}`);
-//     //   console.log(`Fail to LL: ${pattern.structure.isFailToLL} | Fail to HH: ${pattern.structure.isFailToHH}`);
-//     //   console.log(`Retesting Support: ${pattern.structure.isRetestingSupport} | Retesting Resistance: ${pattern.structure.isRetestingResistance}`);
-//     // }
-//     // console.log(`Volume Climax (VSA): ${pattern.isVolumeClimax} | Volume Drying: ${pattern.isVolumeDrying}`);
-//     // console.log(`Pattern Detected: ${pattern.pattern} (${pattern.type})`);
-//     // console.log(`Final Score: ${score.toFixed(2)} | Decision: ${finalDecision}`);
-//     // console.log(`--------------------------------------\n`);
-
-//     console.log("[DECISION_BREAKDOWN]", {
-//       symbol,
-//       mode: evaluateResult.mode,
-//       trend: evaluateResult.trend,
-//       score: evaluateResult.score,
-//       adaptiveScoreDelta: evaluateResult.adaptiveScoreDelta,
-//       historicalVolumeSignal: evaluateResult.historicalVolumeSignal,
-//       thresholdContext: evaluateResult.thresholdContext,
-//       finalDecision
-//     });
-
-//     // const activeCfg = symbolConfig[symbol] || symbolConfig["DEFAULT"];
-//     const activeCfg = getActiveSymbolConfig(symbol, evaluateResult.mode || "NORMAL");
-
-//     const coldStartProfile = buildColdStartProfile({
-//       closedTradesCount: totalClosedTrades,
-//       mode: evaluateResult.mode || "NORMAL",
-//     });
-
-//     if (
-//       isOpenDecision(finalDecision) &&
-//       coldStartProfile.enabled &&
-//       coldStartProfile.blockWeakSignals &&
-//       Math.abs(Number(score || 0)) < Number(coldStartProfile.minRequiredStrength || 0)
-//     ) {
-//       return res.json({
-//         ...buildBlockedSignalResponse({
-//           reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
-//           score,
-//           firebaseUserId: resolvedUserId,
-//           mode: evaluateResult.mode || "NORMAL",
-//           trend: evaluateResult.trend || "NEUTRAL",
-//           pattern,
-//           historicalVolume,
-//           defensiveFlags: evaluateResult.defensiveFlags || null,
-//           trade_setup: null,
-//           currentOpenPositionsCount: 0,
-//         }),
-//         cold_start_profile: coldStartProfile,
-//         totalClosedTrades,
-//       });
-//     }
-
-//     if (finalDecision === "NO_TRADE" && finalDecisionReason) {
-//       return res.json(
-//         buildBlockedSignalResponse({
-//           reason: finalDecisionReason,
-//           score,
-//           firebaseUserId: resolvedUserId,
-//           mode: evaluateResult.mode || "NORMAL",
-//           trend: evaluateResult.trend || "NEUTRAL",
-//           pattern,
-//           historicalVolume,
-//           defensiveFlags: evaluateResult.defensiveFlags || {
-//             warningMatched: false,
-//             lotMultiplier: 1,
-//             tpMultiplier: 1,
-//             reason: null,
-//           },
-//           trade_setup: null,
-//           currentOpenPositionsCount: 0,
-//         })
-//       );
-//     }
-
-//     // ========= FALLBACK TO MICRO SCALP =========
-//     if (!isPrimaryTradeDecision(finalDecision)) {
-//       const microResult = microScalpEngine.analyzeMicroScalp({
-//         candles: Array.isArray(candles) ? candles : [],
-//         spread: Number(spreadPoints || 0),
-//         openPositions: [],
-//         config: MICRO_SCALP_CONFIG,
-//       });
-
-//       if (microResult.allowOpen) {
-//         const microUserRecentPerformance = await getRecentClosedTradePerformance({
-//           firebaseUserId: resolvedUserId,
-//           accountId,
-//           symbol,
-//           mode: "SCALP",
-//           limit: 18,
-//         });
-
-//         const microUserAdaptiveProfile = buildUserAdaptiveProfile({
-//           recentPerformance: microUserRecentPerformance,
-//           mode: "MICRO_SCALP",
-//         });
-
-//         const microActiveCfg = getActiveSymbolConfig(symbol, "MICRO_SCALP");
-//         const microResponse = buildMicroFallbackResponse({
-//           microResult,
-//           reqBody: req.body,
-//           resolvedUserId,
-//           pattern,
-//           historicalVolume,
-//           activeCfg: microActiveCfg,
-//           tradingPreferences,
-//           totalClosedTrades,
-//           userAdaptiveProfile: microUserAdaptiveProfile,
-//           symbol
-//         });
-
-//         if (microResponse) {
-//           if (microResponse.decision === "NO_TRADE") {
-//             return res.json(microResponse);
-//           }
-
-//           const microDirectionResult = enforceDirectionBiasOnDecision(
-//             microResponse.decision,
-//             tradingPreferences
-//           );
-
-//           if (microDirectionResult.blocked) {
-//             return res.json(
-//               buildBlockedSignalResponse({
-//                 reason: microDirectionResult.reason,
-//                 score: microResponse.score || 0,
-//                 firebaseUserId: resolvedUserId,
-//                 mode: microResponse.mode || "MICRO_SCALP",
-//                 trend: microResponse.trend || "NEUTRAL",
-//                 pattern: microResponse.pattern || null,
-//                 historicalVolume: microResponse.historicalVolume || null,
-//                 defensiveFlags: microResponse.defensiveFlags || null,
-//                 trade_setup: null,
-//                 currentOpenPositionsCount: 0,
-//               })
-//             );
-//           }
-
-//           const currentOpenPositionsCount =
-//             await countOpenPositionsByUserAccountAndSymbol({
-//               firebaseUserId: resolvedUserId,
-//               accountId,
-//               symbol,
-//             });
-
-//           if (
-//             isMaxOpenPositionsReached(
-//               currentOpenPositionsCount,
-//               tradingPreferences.max_open_positions
-//             )
-//           ) {
-//             return res.json(
-//               buildBlockedSignalResponse({
-//                 reason: "MAX_OPEN_POSITIONS_REACHED",
-//                 score: microResponse.score || 0,
-//                 firebaseUserId: resolvedUserId,
-//                 mode: microResponse.mode || "MICRO_SCALP",
-//                 trend: microResponse.trend || "NEUTRAL",
-//                 pattern: microResponse.pattern || null,
-//                 historicalVolume: microResponse.historicalVolume || null,
-//                 defensiveFlags: microResponse.defensiveFlags || null,
-//                 trade_setup: null,
-//                 currentOpenPositionsCount,
-//               })
-//             );
-//           }
-//           console.log(`[MICRO_SCALP FALLBACK] symbol=${symbol} side=${side} score=${microResponse.score} decision=${microResponse.decision}`);
-
-//           return res.json(microResponse);
-//         }
-//       }
-//     }
-
-//     const defensiveFlags = evaluateResult.defensiveFlags || {
-//       warningMatched: false,
-//       lotMultiplier: 1,
-//       tpMultiplier: 1,
-//       reason: null,
-//     };
-
-//     // const rawLotCap = Number(
-//     //   tradingPreferences?.base_log_size ??
-//     //   tradingPreferences?.base_lot_size ??
-//     //   0
-//     // );
-//     const rawLotFloor = Number(
-//       tradingPreferences?.base_log_size ??
-//       tradingPreferences?.base_lot_size ??
-//       0
-//     );
-
-//     let trade_setup = buildTradeSetupFromPattern({
-//       side,
-//       price: Number(price || 0),
-//       pattern,
-//       candles,
-//       balance: Number(balance || 0),
-//       spreadPoints: Number(spreadPoints || 0),
-//       activeCfg,
-//       score,
-//       defensiveFlags,
-//       userMinLotFloor: rawLotFloor,
-//       coldStartProfile,
-//       historicalVolumeSignal: historicalVolume,
-//       symbol,
-//     });
-
-//     trade_setup = applyUserAdaptiveProfileToTradeSetup({
-//       tradeSetup: trade_setup,
-//       userAdaptiveProfile: mainUserAdaptiveProfile,
-//       activeCfg,
-//     });
-
-//     if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
-//       trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
-//       if (trade_setup.recommended_lot < 0.01) {
-//         trade_setup.recommended_lot = 0.01;
-//       }
-//     }
-
-//     const adaptiveMinScore = getAdaptiveMinRequiredScore({
-//       baseScore: 0,
-//       coldStartProfile,
-//       userAdaptiveProfile: mainUserAdaptiveProfile,
-//     });
-
-//     if (
-//       isOpenDecision(finalDecision) &&
-//       Math.abs(Number(score || 0)) < adaptiveMinScore
-//     ) {
-//       return res.json({
-//         ...buildBlockedSignalResponse({
-//           reason: "USER_ADAPTIVE_MIN_SCORE",
-//           score,
-//           firebaseUserId: resolvedUserId,
-//           mode: evaluateResult.mode || "NORMAL",
-//           trend: evaluateResult.trend || "NEUTRAL",
-//           pattern,
-//           historicalVolume,
-//           defensiveFlags: evaluateResult.defensiveFlags || null,
-//           trade_setup: null,
-//           currentOpenPositionsCount: 0,
-//         }),
-//         cold_start_profile: coldStartProfile,
-//         user_adaptive_profile: mainUserAdaptiveProfile,
-//         recent_performance: mainUserRecentPerformance,
-//         totalClosedTrades,
-//       });
-//     }
-
-//     console.log("[FINAL_REPONSE_BREAKDOWN]", {
-//       decision: finalDecision,
-//       score: score,
-//       firebaseUserId: resolvedUserId,
-//       mode: evaluateResult.mode || "NORMAL",
-//       trend: evaluateResult.trend || "NEUTRAL",
-//       pattern: pattern,
-//       historicalVolume: historicalVolume,
-//       defensiveFlags: defensiveFlags,
-//       trade_setup,
-//       cold_start_profile: coldStartProfile,
-//       user_adaptive_profile: mainUserAdaptiveProfile,
-//       recent_performance: mainUserRecentPerformance,
-//       totalClosedTrades,
-//     });
-
-//     return res.json({
-//       decision: finalDecision,
-//       score: score,
-//       firebaseUserId: resolvedUserId,
-//       mode: evaluateResult.mode || "NORMAL",
-//       trend: evaluateResult.trend || "NEUTRAL",
-//       pattern: pattern,
-//       historicalVolume: historicalVolume,
-//       defensiveFlags: defensiveFlags,
-//       trade_setup,
-//       cold_start_profile: coldStartProfile,
-//       user_adaptive_profile: mainUserAdaptiveProfile,
-//       recent_performance: mainUserRecentPerformance,
-//       totalClosedTrades,
-//     });
-
-//   } catch (error) {
-//     console.error("Signal processing error:", error);
-//     return res.status(500).json({
-//       decision: "NO_TRADE",
-//       score: 0,
-//       firebaseUserId: resolvedUserId,
-//       mode: "NORMAL",
-//       trend: "NEUTRAL",
-//       error: error.message || "Internal server error",
-//     });
-//   }
-// });
+    return res.json({
+      status: true,
+      message: "Mangmao finalized",
+      data: finalizeResult,
+    });
+  } catch (error) {
+    console.error("[/mangmao/finalize] error:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Mangmao finalize failed",
+      error: error.message,
+    });
+  }
+});
 
 app.post("/trade-event", async (req, res) => {
   const {
