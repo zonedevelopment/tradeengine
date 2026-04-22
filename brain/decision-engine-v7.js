@@ -3137,6 +3137,36 @@ function applyLearnedPatternWeight(patternScore, learnedWeight) {
     return Number((base * clamp(mildMultiplier, 0.85, 1.15)).toFixed(4));
 }
 
+// function getPatternClassBonus(patternType = "", tradeMode = "NORMAL") {
+//     const type = String(patternType || "").toUpperCase();
+//     const isScalp = tradeMode === "SCALP";
+
+//     const strongPatterns = new Set([
+//         "BULLISH_ENGULFING",
+//         "BEARISH_ENGULFING",
+//         "MORNING_STAR_BASE_BREAK",
+//         "EVENING_STAR_BASE_BREAK",
+//     ]);
+
+//     const momentumPatterns = new Set([
+//         "WATERFALL_DROP_CONTINUATION",
+//         "ROCKET_SURGE_CONTINUATION",
+//         "DESCENDING_TRIANGLE_BREAKDOWN",
+//         "ASCENDING_TRIANGLE_BREAKOUT",
+//         "FIRST_LEG_BREAKDOWN",
+//         "FIRST_LEG_BREAKOUT",
+//     ]);
+
+//     if (momentumPatterns.has(type)) {
+//         return isScalp ? 0.22 : 0.32;
+//     }
+
+//     if (strongPatterns.has(type)) {
+//         return isScalp ? 0.14 : 0.22;
+//     }
+
+//     return 0;
+// }
 function getPatternClassBonus(patternType = "", tradeMode = "NORMAL") {
     const type = String(patternType || "").toUpperCase();
     const isScalp = tradeMode === "SCALP";
@@ -3148,6 +3178,13 @@ function getPatternClassBonus(patternType = "", tradeMode = "NORMAL") {
         "EVENING_STAR_BASE_BREAK",
     ]);
 
+    const strictReversalPatterns = new Set([
+        "STRICT_HAMMER_SUPPORT_REVERSAL",
+        "STRICT_SHOOTING_STAR_RESISTANCE_REVERSAL",
+        "STRICT_PIN_BAR_HAMMER",
+        "STRICT_PIN_BAR_SHOOTING_STAR",
+    ]);
+
     const momentumPatterns = new Set([
         "WATERFALL_DROP_CONTINUATION",
         "ROCKET_SURGE_CONTINUATION",
@@ -3156,6 +3193,10 @@ function getPatternClassBonus(patternType = "", tradeMode = "NORMAL") {
         "FIRST_LEG_BREAKDOWN",
         "FIRST_LEG_BREAKOUT",
     ]);
+
+    if (strictReversalPatterns.has(type)) {
+        return isScalp ? 0.20 : 0.30;
+    }
 
     if (momentumPatterns.has(type)) {
         return isScalp ? 0.22 : 0.32;
@@ -3309,6 +3350,30 @@ function buildContextComponents({
     }
 
     const patternType = String(pattern?.type || "").toUpperCase();
+
+    const isStrictHammer =
+        patternType === "STRICT_HAMMER_SUPPORT_REVERSAL" ||
+        patternType === "STRICT_PIN_BAR_HAMMER";
+
+    const isStrictShootingStar =
+        patternType === "STRICT_SHOOTING_STAR_RESISTANCE_REVERSAL" ||
+        patternType === "STRICT_PIN_BAR_SHOOTING_STAR";
+
+    const reversalZone = String(pattern?.reversalZone || "NONE").toUpperCase();
+
+    if (side === "BUY" && isStrictHammer) {
+        pushComponent(
+            "STRICT_REVERSAL_PINBAR",
+            reversalZone === "SUPPORT" ? 0.42 : 0.24
+        );
+    }
+
+    if (side === "SELL" && isStrictShootingStar) {
+        pushComponent(
+            "STRICT_REVERSAL_PINBAR",
+            reversalZone === "RESISTANCE" ? -0.42 : -0.24
+        );
+    }
 
     if (side === "BUY" && patternType.includes("FIRST_LEG_BREAKOUT")) {
         pushComponent("FIRST_LEG_BREAKOUT_BONUS", 0.28);
@@ -3970,6 +4035,14 @@ function decision(evaluation, symbol) {
         ? scoreBreakdown.some((item) => item?.label === "WEAK_PULLBACK_CONTINUATION")
         : false;
 
+    const hasStrictBullishReversal = Array.isArray(scoreBreakdown)
+        ? scoreBreakdown.some((item) => item?.label === "STRICT_REVERSAL_PINBAR" && Number(item?.value || 0) > 0)
+        : false;
+
+    const hasStrictBearishReversal = Array.isArray(scoreBreakdown)
+        ? scoreBreakdown.some((item) => item?.label === "STRICT_REVERSAL_PINBAR" && Number(item?.value || 0) < 0)
+        : false;
+
     const sellStructureReady = isSellStructureContinuationReady(
         hierarchical,
         trendFollow4
@@ -4014,6 +4087,12 @@ function decision(evaluation, symbol) {
             hasWeakPullbackContinuation &&
             mode === "SCALP" &&
             score >= buyThreshold - 0.26
+        ) ||
+        (
+            side === "BUY" &&
+            hasStrictBullishReversal &&
+            (hasRetestSupport || hierarchical?.possibleReversal) &&
+            score >= buyThreshold - 0.18
         );
 
     const sellFastLane =
@@ -4050,6 +4129,12 @@ function decision(evaluation, symbol) {
             hasWeakPullbackContinuation &&
             mode === "SCALP" &&
             score <= sellThreshold + 0.26
+        ) ||
+        (
+            side === "SELL" &&
+            hasStrictBearishReversal &&
+            (hasRetestResistance || hierarchical?.possibleReversal) &&
+            score <= sellThreshold + 0.18
         );
 
     if (hasRejectedBreakoutRetest) {

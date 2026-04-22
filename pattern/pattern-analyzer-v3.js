@@ -802,6 +802,28 @@ function shouldUseSymbolWeights(signal = {}) {
     return hasM15 || hasM30 || hasH1 || hasH4;
 }
 
+function getStrictPinBarScore(result = {}) {
+    const type = String(result?.type || "").toUpperCase();
+
+    if (type === "STRICT_HAMMER_SUPPORT_REVERSAL") {
+        return 2.85;
+    }
+
+    if (type === "STRICT_SHOOTING_STAR_RESISTANCE_REVERSAL") {
+        return -2.85;
+    }
+
+    if (type === "STRICT_PIN_BAR_HAMMER") {
+        return 2.45;
+    }
+
+    if (type === "STRICT_PIN_BAR_SHOOTING_STAR") {
+        return -2.45;
+    }
+
+    return 0;
+}
+
 async function analyzePattern(signal = {}) {
     const safeCandles = normalizeCandles(
         signal.candles || [signal.prevCandle, signal.currentCandle].filter(Boolean)
@@ -819,9 +841,40 @@ async function analyzePattern(signal = {}) {
     const higherTfContext = resolveHigherTimeframeContext(signal);
     const softContext = getSoftPatternContext(safeCandles, higherTfContext);
 
+    // let score = 0;
+
+    // if (result.pattern === "CLAW_BUY" && result.type === "Rocket_Surge_Continuation") {
+    //     score = 2.5;
+    // } else if (
+    //     result.pattern === "CLAW_SELL" &&
+    //     result.type === "Waterfall_Drop_Continuation"
+    // ) {
+    //     score = -2.5;
+    // } else if (
+    //     result.pattern === "CLAW_BUY" &&
+    //     result.type === "Ascending_Triangle_Breakout"
+    // ) {
+    //     score = 2.8;
+    // } else if (
+    //     result.pattern === "CLAW_SELL" &&
+    //     result.type === "Descending_Triangle_Breakdown"
+    // ) {
+    //     score = -2.8;
+    // } else if (result.pattern === "CLAW_BUY") {
+    //     score = 2.0;
+    // } else if (result.pattern === "CLAW_SELL") {
+    //     score = -2.0;
+    // }
     let score = 0;
 
-    if (result.pattern === "CLAW_BUY" && result.type === "Rocket_Surge_Continuation") {
+    const strictPinBarScore = getStrictPinBarScore(result);
+
+    if (strictPinBarScore !== 0) {
+        score = strictPinBarScore;
+    } else if (
+        result.pattern === "CLAW_BUY" &&
+        result.type === "Rocket_Surge_Continuation"
+    ) {
         score = 2.5;
     } else if (
         result.pattern === "CLAW_SELL" &&

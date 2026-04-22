@@ -160,22 +160,109 @@ function detectMotherFishPattern(data) {
   let patternResult = { pattern: "NONE", strength: 0, type: "Unknown", slPrice: null, tpPrice: null };
 
   // 1. PIN BAR / HAMMER / SHOOTING STAR (1 Candle Pattern)
+  // if (cProps && cProps.totalSize > 0) {
+  //   if (cProps.lowerWick > cProps.body * 2 && cProps.upperWick < cProps.body) {
+  //     patternResult = {
+  //       pattern: "CLAW_BUY",
+  //       strength: cProps.body + cProps.lowerWick,
+  //       type: "Pin_Bar_Hammer",
+  //       slPrice: currentCandle.low - 1.5 // SL ใต้หางเผื่อระยะ Spread
+  //     };
+  //   }
+  //   else if (cProps.upperWick > cProps.body * 2 && cProps.lowerWick < cProps.body) {
+  //     patternResult = {
+  //       pattern: "CLAW_SELL",
+  //       strength: cProps.body + cProps.upperWick,
+  //       type: "Pin_Bar_Shooting_Star",
+  //       slPrice: currentCandle.high + 1.5 // SL เหนือหางเผื่อระยะ Spread
+  //     };
+  //   }
+  // }
+  // 1.
+  // PIN BAR / HAMMER / SHOOTING STAR (1 Candle Pattern)
+  // เพิ่ม strict version ก่อน แล้วค่อย fallback ไปของเดิม
   if (cProps && cProps.totalSize > 0) {
-    if (cProps.lowerWick > cProps.body * 2 && cProps.upperWick < cProps.body) {
+    const bodyRatio = cProps.body / cProps.totalSize;
+    const upperWickRatio = cProps.upperWick / cProps.totalSize;
+    const lowerWickRatio = cProps.lowerWick / cProps.totalSize;
+
+    const bodyTop = Math.max(currentCandle.open, currentCandle.close);
+    const bodyBottom = Math.min(currentCandle.open, currentCandle.close);
+
+    // body ต้องอยู่ชิดบน/ล่างของแท่ง
+    const bodyNearTop = (currentCandle.high - bodyTop) <= cProps.totalSize * 0.05;
+    const bodyNearBottom = (bodyBottom - currentCandle.low) <= cProps.totalSize * 0.05;
+
+    // support / resistance context จาก structure เดิมของระบบ
+    const structure = data?.pattern?.structure || data?.structure || {};
+    const isSupportZone =
+      Boolean(structure?.isRetestingSupport) ||
+      Boolean(structure?.retestingSupport) ||
+      Boolean(structure?.nearSupport);
+
+    const isResistanceZone =
+      Boolean(structure?.isRetestingResistance) ||
+      Boolean(structure?.retestingResistance) ||
+      Boolean(structure?.nearResistance);
+
+    // ===== STRICT VERSION =====
+    // body <= 20%
+    // long tail >= 60%
+    // opposite wick <= 5%
+    // body ต้องไปอยู่ชิดปลายแท่งจริง
+    const isStrictHammer =
+      bodyRatio <= 0.20 &&
+      lowerWickRatio >= 0.60 &&
+      upperWickRatio <= 0.05 &&
+      bodyNearTop;
+
+    const isStrictShootingStar =
+      bodyRatio <= 0.20 &&
+      upperWickRatio >= 0.60 &&
+      lowerWickRatio <= 0.05 &&
+      bodyNearBottom;
+
+    if (isStrictHammer) {
       patternResult = {
         pattern: "CLAW_BUY",
-        strength: cProps.body + cProps.lowerWick,
-        type: "Pin_Bar_Hammer",
-        slPrice: currentCandle.low - 1.5 // SL ใต้หางเผื่อระยะ Spread
+        strength: cProps.lowerWick + cProps.body,
+        type: isSupportZone
+          ? "Strict_Hammer_Support_Reversal"
+          : "Strict_Pin_Bar_Hammer",
+        slPrice: currentCandle.low - 1.5,
+        reversalBias: "BUY",
+        reversalZone: isSupportZone ? "SUPPORT" : "NONE",
       };
-    }
-    else if (cProps.upperWick > cProps.body * 2 && cProps.lowerWick < cProps.body) {
+    } else if (isStrictShootingStar) {
       patternResult = {
         pattern: "CLAW_SELL",
-        strength: cProps.body + cProps.upperWick,
-        type: "Pin_Bar_Shooting_Star",
-        slPrice: currentCandle.high + 1.5 // SL เหนือหางเผื่อระยะ Spread
+        strength: cProps.upperWick + cProps.body,
+        type: isResistanceZone
+          ? "Strict_Shooting_Star_Resistance_Reversal"
+          : "Strict_Pin_Bar_Shooting_Star",
+        slPrice: currentCandle.high + 1.5,
+        reversalBias: "SELL",
+        reversalZone: isResistanceZone ? "RESISTANCE" : "NONE",
       };
+    }
+
+    // ===== FALLBACK ของเดิม =====
+    if (patternResult.pattern === "NONE") {
+      if (cProps.lowerWick > cProps.body * 2 && cProps.upperWick < cProps.body) {
+        patternResult = {
+          pattern: "CLAW_BUY",
+          strength: cProps.body + cProps.lowerWick,
+          type: "Pin_Bar_Hammer",
+          slPrice: currentCandle.low - 1.5
+        };
+      } else if (cProps.upperWick > cProps.body * 2 && cProps.lowerWick < cProps.body) {
+        patternResult = {
+          pattern: "CLAW_SELL",
+          strength: cProps.body + cProps.upperWick,
+          type: "Pin_Bar_Shooting_Star",
+          slPrice: currentCandle.high + 1.5
+        };
+      }
     }
   }
 
