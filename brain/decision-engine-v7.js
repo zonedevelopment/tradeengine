@@ -1995,6 +1995,11 @@ async function evaluateDecision({
         trendFollow4,
         regimeContext,
         hierarchical,
+        setupTuning: {
+            tpMultiplier: Number(phase1Influence.tpMultiplier || 1),
+            slMultiplier: Number(phase1Influence.slMultiplier || 1),
+            retraceMultiplier: Number(phase1Influence.retraceMultiplier || 1),
+        },
     };
 }
 

@@ -2097,39 +2097,6 @@ app.post("/signal", async (req, res) => {
       candles,
     });
 
-    // const evaluateResult = await evaluateDecision({
-    //   news,
-    //   calendar,
-    //   session,
-    //   risk,
-    //   pattern,
-    //   ictContext,
-    //   historicalVolume,
-    //   market: {
-    //     userId: resolvedUserId,
-    //     symbol: resolvedSymbol,
-    //     timeframe: "M5",
-    //     price,
-    //     candles,
-
-    //     candlesM15: higherTf.candlesM15,
-    //     candlesM30: higherTf.candlesM30,
-
-    //     // HTF หลักจริง
-    //     trendPrimaryCandles: higherTf.trendPrimaryCandles,
-    //     trendSecondaryCandles: higherTf.trendSecondaryCandles,
-    //     trendPrimaryLabel: higherTf.trendPrimaryLabel,
-    //     trendSecondaryLabel: higherTf.trendSecondaryLabel,
-
-    //     // backward compatible
-    //     candlesH1: higherTf.trendPrimaryCandles,
-    //     candlesH4: higherTf.trendSecondaryCandles,
-
-    //     portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
-    //     sessionName: session.name,
-    //   }
-    // });
-
     const evaluateResult = await evaluateDecision({
       news,
       calendar,
@@ -2500,6 +2467,23 @@ app.post("/signal", async (req, res) => {
         recent_performance: mainUserRecentPerformance,
         totalClosedTrades,
       });
+    }
+
+    if (finalDecisionResult?.setupTuning) {
+      trade_setup.tp_points = Math.round(
+        Number(trade_setup.tp_points || 0) *
+        Number(finalDecisionResult.setupTuning.tpMultiplier || 1)
+      );
+
+      trade_setup.sl_points = Math.round(
+        Number(trade_setup.sl_points || 0) *
+        Number(finalDecisionResult.setupTuning.slMultiplier || 1)
+      );
+
+      trade_setup.retrace_points = Math.round(
+        Number(trade_setup.retrace_points || 0) *
+        Number(finalDecisionResult.setupTuning.retraceMultiplier || 1)
+      );
     }
 
     console.log("[FINAL_REPONSE_BREAKDOWN]", {
