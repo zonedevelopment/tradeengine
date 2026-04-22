@@ -115,18 +115,6 @@ const {
   finalizeMangmaoGroup,
 } = require("./mangmaoEngine-v1");
 
-const MANGMAO_CONFIG = {
-  ...getDefaultMangmaoConfig(),
-  enabled: true,
-  minScore: MICRO_SCALP_CONFIG.minScore,
-  minScoreGap: MICRO_SCALP_CONFIG.minScoreGap,
-  maxSpread: MICRO_SCALP_CONFIG.maxSpread,
-  lossCutUsdPerOrder: -1,
-  requireNoOpenPositions: true,
-  allowOnlyOneActiveGroup: true,
-  maxLevel: 3,
-};
-
 function normalizeTicketIdForMangmao(value) {
   if (value === undefined || value === null) return null;
   const str = String(value).trim();
@@ -187,6 +175,18 @@ const MICRO_SCALP_CONFIG = {
 
   useVolume: true,
   minVolumeRatio: 0.98,
+};
+
+const MANGMAO_CONFIG = {
+  ...getDefaultMangmaoConfig(),
+  enabled: true,
+  minScore: MICRO_SCALP_CONFIG.minScore,
+  minScoreGap: MICRO_SCALP_CONFIG.minScoreGap,
+  maxSpread: MICRO_SCALP_CONFIG.maxSpread,
+  lossCutUsdPerOrder: -1,
+  requireNoOpenPositions: true,
+  allowOnlyOneActiveGroup: true,
+  maxLevel: 3,
 };
 
 const symbolConfig = {
