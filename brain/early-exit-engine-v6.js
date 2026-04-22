@@ -1565,23 +1565,23 @@ function getExitProfile(mode = "NORMAL") {
             beMinRetraceRatio: 0.18,
             tpMinRetraceRatio: 0.32,
 
-            wrongWayMinMinutes: 1.0,
-            wrongWayCutProfit: -0.06,
-            wrongWayHardCutProfit: -0.12,
-            wrongWayFlowCutScore: 1.95,
-            wrongWayFlowHardScore: 2.55,
+            wrongWayMinMinutes: 1.5,
+            wrongWayCutProfit: -0.08,
+            wrongWayHardCutProfit: -0.14,
+            wrongWayFlowCutScore: 2.05,
+            wrongWayFlowHardScore: 2.65,
 
-            noFollowThroughMinMinutes: 1.0,
-            noFollowThroughCutProfit: -0.04,
-            noFollowThroughScore: 1.85,
+            noFollowThroughMinMinutes: 1.5,
+            noFollowThroughCutProfit: -0.06,
+            noFollowThroughScore: 1.95,
 
-            takeoverCutProfit: -0.03,
-            takeoverCutScore: 2.05,
+            takeoverCutProfit: -0.04,
+            takeoverCutScore: 2.10,
 
-            simpleCutMinutes: 2,
-            simpleCutProfit: -0.18,
-            strongCutProfit: -0.10,
-            reversalCutScore: 1.9,
+            simpleCutMinutes: 3,
+            simpleCutProfit: -0.20,
+            strongCutProfit: -0.12,
+            reversalCutScore: 2.0,
 
             lowVolumeProfitMinutes: 5,
             failedPatternCutProfit: 0.05,
@@ -1590,10 +1590,10 @@ function getExitProfile(mode = "NORMAL") {
             weakStructureScore: 1.15,
             strongStructureScore: 1.75,
 
-            normalFastCutMinutes: 2,
-            normalFastCutProfit: -0.05,
-            normalStructureBreakProfit: -0.03,
-            normalFastReversalScore: 1.5,
+            normalFastCutMinutes: 2.5,
+            normalFastCutProfit: -0.06,
+            normalStructureBreakProfit: -0.04,
+            normalFastReversalScore: 1.6,
         };
     }
 
@@ -1608,36 +1608,36 @@ function getExitProfile(mode = "NORMAL") {
 
             holdToBEProfit: 0.55,
 
-            simpleCutMinutes: 6,
-            simpleCutProfit: -0.30,
+            simpleCutMinutes: 8,
+            simpleCutProfit: -0.34,
 
-            strongCutProfit: -0.22,
-            reversalCutScore: 2.55,
+            strongCutProfit: -0.26,
+            reversalCutScore: 2.70,
 
-            wrongWayMinMinutes: 4.0,
-            wrongWayCutProfit: -0.16,
-            wrongWayHardCutProfit: -0.30,
-            wrongWayFlowCutScore: 2.45,
-            wrongWayFlowHardScore: 2.95,
+            wrongWayMinMinutes: 6.0,
+            wrongWayCutProfit: -0.20,
+            wrongWayHardCutProfit: -0.34,
+            wrongWayFlowCutScore: 2.55,
+            wrongWayFlowHardScore: 3.05,
 
-            noFollowThroughMinMinutes: 4.0,
-            noFollowThroughCutProfit: -0.14,
-            noFollowThroughScore: 2.35,
+            noFollowThroughMinMinutes: 6.0,
+            noFollowThroughCutProfit: -0.18,
+            noFollowThroughScore: 2.50,
 
-            takeoverCutProfit: -0.06,
-            takeoverCutScore: 2.20,
+            takeoverCutProfit: -0.08,
+            takeoverCutScore: 2.30,
 
-            lowVolumeProfitMinutes: 7,
-            failedPatternCutProfit: 0.12,
-            failedPatternTakeProfitMin: 0.40,
+            lowVolumeProfitMinutes: 8,
+            failedPatternCutProfit: 0.14,
+            failedPatternTakeProfitMin: 0.45,
 
             weakStructureScore: 1.20,
-            strongStructureScore: 1.90,
+            strongStructureScore: 1.95,
 
-            normalFastCutMinutes: 4,
-            normalFastCutProfit: -0.08,
-            normalStructureBreakProfit: -0.05,
-            normalFastReversalScore: 1.9,
+            normalFastCutMinutes: 5,
+            normalFastCutProfit: -0.10,
+            normalStructureBreakProfit: -0.06,
+            normalFastReversalScore: 2.00,
         };
     }
 
@@ -1654,18 +1654,18 @@ function getExitProfile(mode = "NORMAL") {
         simpleCutMinutes: 10,
         simpleCutProfit: -0.35,
 
-        strongCutProfit: -0.22,
-        reversalCutScore: 2.20,
+        strongCutProfit: -0.24,
+        reversalCutScore: 2.30,
 
-        wrongWayMinMinutes: 3.0,
-        wrongWayCutProfit: -0.15,
-        wrongWayHardCutProfit: -0.30,
-        wrongWayFlowCutScore: 2.45,
-        wrongWayFlowHardScore: 3.05,
+        wrongWayMinMinutes: 4.0,
+        wrongWayCutProfit: -0.17,
+        wrongWayHardCutProfit: -0.32,
+        wrongWayFlowCutScore: 2.55,
+        wrongWayFlowHardScore: 3.10,
 
-        noFollowThroughMinMinutes: 3.0,
-        noFollowThroughCutProfit: -0.12,
-        noFollowThroughScore: 2.10,
+        noFollowThroughMinMinutes: 4.0,
+        noFollowThroughCutProfit: -0.14,
+        noFollowThroughScore: 2.20,
 
         takeoverCutProfit: -0.10,
         takeoverCutScore: 2.40,
@@ -1677,10 +1677,10 @@ function getExitProfile(mode = "NORMAL") {
         weakStructureScore: 1.30,
         strongStructureScore: 2.10,
 
-        normalFastCutMinutes: 3,
-        normalFastCutProfit: -0.08,
-        normalStructureBreakProfit: -0.03,
-        normalFastReversalScore: 1.6,
+        normalFastCutMinutes: 5,
+        normalFastCutProfit: -0.10,
+        normalStructureBreakProfit: -0.05,
+        normalFastReversalScore: 1.8,
     };
 }
 
@@ -1713,32 +1713,36 @@ function buildHardCutGate({
     const damageRatio = profit < 0 ? Math.abs(profit) / sl : 0;
 
     if (safeMode === "SCALP") {
-        const timeReady = mins >= 5;
+        const timeReady = mins >= 7;
+
         const damageReady =
-            damageRatio >= 0.38 || profit <= -Math.max(180, Math.min(sl * 0.4, 260));
+            damageRatio >= 0.42 ||
+            profit <= -Math.max(220, Math.min(sl * 0.45, 300));
 
         const structureReady =
             Boolean(hardInvalidation) ||
-            (Boolean(failedPatternRule) && mins >= 5) ||
-            toSafeNumber(reversalScore, 0) >= 2.6;
+            (Boolean(failedPatternRule) && mins >= 7) ||
+            toSafeNumber(reversalScore, 0) >= 2.75;
 
         const flowReady =
-            toSafeNumber(wrongWayFlowScore, 0) >= 2.6 ||
-            toSafeNumber(noFollowThroughScore, 0) >= 2.35;
+            toSafeNumber(wrongWayFlowScore, 0) >= 2.75 ||
+            toSafeNumber(noFollowThroughScore, 0) >= 2.50;
 
         const emergencyCut =
-            mins >= 2 &&
-            damageRatio >= 0.6 &&
-            (Boolean(hardInvalidation) ||
-                toSafeNumber(reversalScore, 0) >= 2.9 ||
-                toSafeNumber(wrongWayFlowScore, 0) >= 2.9);
+            mins >= 3 &&
+            damageRatio >= 0.65 &&
+            (
+                Boolean(hardInvalidation) ||
+                toSafeNumber(reversalScore, 0) >= 3.00 ||
+                toSafeNumber(wrongWayFlowScore, 0) >= 3.00
+            );
 
         const suppressFailedPatternAlone =
             Boolean(failedPatternRule) &&
             !hardInvalidation &&
-            toSafeNumber(reversalScore, 0) < 2.6 &&
-            toSafeNumber(wrongWayFlowScore, 0) < 2.6 &&
-            toSafeNumber(noFollowThroughScore, 0) < 2.35;
+            toSafeNumber(reversalScore, 0) < 2.75 &&
+            toSafeNumber(wrongWayFlowScore, 0) < 2.75 &&
+            toSafeNumber(noFollowThroughScore, 0) < 2.50;
 
         const allowHardCut =
             emergencyCut ||
@@ -1746,15 +1750,17 @@ function buildHardCutGate({
 
         return {
             allowHardCut,
-            earlyWindow: mins < 5,
+            earlyWindow: mins < 7,
             damageRatio,
             suppressFailedPatternAlone,
             softOnly:
                 !allowHardCut &&
-                (Boolean(softInvalidation) ||
+                (
+                    Boolean(softInvalidation) ||
                     Boolean(failedPatternRule) ||
-                    toSafeNumber(wrongWayFlowScore, 0) >= 2.1 ||
-                    toSafeNumber(noFollowThroughScore, 0) >= 2.0),
+                    toSafeNumber(wrongWayFlowScore, 0) >= 2.20 ||
+                    toSafeNumber(noFollowThroughScore, 0) >= 2.10
+                ),
         };
     }
 
