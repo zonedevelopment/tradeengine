@@ -3661,25 +3661,6 @@ function getPyramidFollowupMode({
     return "SCALP";
 }
 
-function getPyramidFollowupAction(side = "NEUTRAL", followupMode = "SCALP") {
-    const normalizedSide = String(side || "NEUTRAL").toUpperCase();
-    const normalizedMode = String(followupMode || "SCALP").toUpperCase();
-
-    if (normalizedSide === "BUY") {
-        return normalizedMode === "MICRO_SCALP"
-            ? "ALLOW_BUY_MICRO_SCALP"
-            : "ALLOW_BUY_SCALP";
-    }
-
-    if (normalizedSide === "SELL") {
-        return normalizedMode === "MICRO_SCALP"
-            ? "ALLOW_SELL_MICRO_SCALP"
-            : "ALLOW_SELL_SCALP";
-    }
-
-    return "NO_TRADE";
-}
-
 async function evaluateDecision({
     pattern,
     candlesM15 = [],
@@ -3998,15 +3979,14 @@ async function evaluateDecision({
                 });
 
                 return {
-                    action: getPyramidFollowupAction("BUY", followupMode),
-                    reason: "FOLLOWUP_ORDER_DOWNGRADED_FROM_PYRAMID",
+                    action: "ALLOW_BUY_PYRAMID",
+                    reason: "FOLLOWUP_ORDER_MODE_DOWNGRADED",
                     score,
                     side: effectiveSide,
                     mode: followupMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
                     originalMode: tradeMode,
-                    originalAction: "ALLOW_BUY_PYRAMID",
                 };
             }
 
@@ -4030,15 +4010,14 @@ async function evaluateDecision({
                 });
 
                 return {
-                    action: getPyramidFollowupAction("SELL", followupMode),
-                    reason: "FOLLOWUP_ORDER_DOWNGRADED_FROM_PYRAMID",
+                    action: "ALLOW_SELL_PYRAMID",
+                    reason: "FOLLOWUP_ORDER_MODE_DOWNGRADED",
                     score,
                     side: effectiveSide,
                     mode: followupMode,
                     trend: trendContext.overallTrend,
                     defensiveFlags,
                     originalMode: tradeMode,
-                    originalAction: "ALLOW_SELL_PYRAMID",
                 };
             }
 
