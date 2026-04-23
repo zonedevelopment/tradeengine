@@ -3477,7 +3477,7 @@ app.post("/check-exit-signal", async (req, res) => {
 
 app.get("/trade-history/:firebaseUserId", async (req, res) => {
   const { firebaseUserId } = req.params;
-  const { limit = 50, page = 1 } = req.query;
+  const { limit = 500, page = 1 } = req.query;
 
   if (!firebaseUserId) {
     return res.status(400).json({
@@ -3498,7 +3498,7 @@ app.get("/trade-history/:firebaseUserId", async (req, res) => {
         total,
         page: Number(page),
         limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit || 50))
+        totalPages: Math.ceil(total / Number(limit || 500))
       }
     });
   } catch (error) {

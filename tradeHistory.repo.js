@@ -106,7 +106,7 @@ async function insertTradeHistory(data) {
 }
 
 async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
-  const safeLimit = Math.max(1, Math.min(10, normalizeNumber(limit, 10)));
+  const safeLimit = Math.max(1, Math.min(10, normalizeNumber(limit, 500)));
   const safePage = Math.max(1, normalizeNumber(page, 1));
   const offset = (safePage - 1) * safeLimit;
 
