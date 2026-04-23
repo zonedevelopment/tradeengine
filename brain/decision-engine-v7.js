@@ -1605,7 +1605,7 @@ function getPyramidFollowupMode({
     const normalizedMode = String(currentMode || "NORMAL").toUpperCase();
 
     if (normalizedMode === "MICRO_SCALP" || normalizedMode === "SCALP") {
-        return normalizedMode;
+        return "MICRO_SCALP";
     }
 
     const followDirection = String(trendFollow4?.direction || "NEUTRAL").toUpperCase();
@@ -1629,7 +1629,7 @@ function getPyramidFollowupMode({
     }
 
     // ถ้าแข็งพอแต่ไม่อยากเสี่ยงแบบ NORMAL ให้ลงเป็น SCALP
-    return "SCALP";
+    return "MICRO_SCALP";
 }
 
 async function evaluateDecision({

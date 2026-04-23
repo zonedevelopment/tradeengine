@@ -448,6 +448,79 @@ function normalizePortfolio(portfolio) {
   };
 }
 
+function isPyramidDecision(decisionValue) {
+  return [
+    "ALLOW_BUY_PYRAMID",
+    "ALLOW_SELL_PYRAMID",
+  ].includes(String(decisionValue || "").toUpperCase());
+}
+
+function normalizeComparableAccountId(value) {
+  if (value === undefined || value === null || value === "") return "";
+  return String(value).trim();
+}
+
+function resolvePyramidFirstLot({
+  activePositions = [],
+  accountId = null,
+  symbol = "",
+  side = "",
+  portfolio = null,
+}) {
+  const safeAccountId = normalizeComparableAccountId(accountId);
+  const safeSymbol = String(symbol || "").trim().toUpperCase();
+  const safeSide = String(side || "").trim().toUpperCase();
+
+  const fromPortfolioCandidates = [
+    portfolio?.firstLot,
+    portfolio?.firstPositionLot,
+    portfolio?.leadLot,
+    portfolio?.baseLot,
+    portfolio?.currentLot,
+  ];
+
+  for (const candidate of fromPortfolioCandidates) {
+    const lot = roundLot(candidate, 0.01);
+    if (lot > 0) {
+      return lot;
+    }
+  }
+
+  const filtered = (Array.isArray(activePositions) ? activePositions : [])
+    .filter((position) => {
+      if (safeSymbol && String(position?.symbol || "").trim().toUpperCase() !== safeSymbol) {
+        return false;
+      }
+
+      if (safeSide && String(position?.side || "").trim().toUpperCase() !== safeSide) {
+        return false;
+      }
+
+      if (
+        safeAccountId &&
+        normalizeComparableAccountId(position?.accountId) !== safeAccountId
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a?.openTime || a?.eventTime || a?.updatedAt || 0).getTime();
+      const bTime = new Date(b?.openTime || b?.eventTime || b?.updatedAt || 0).getTime();
+      return aTime - bTime;
+    });
+
+  for (const position of filtered) {
+    const lot = roundLot(position?.lot, 0.01);
+    if (lot > 0) {
+      return lot;
+    }
+  }
+
+  return 0;
+}
+
 function mapMicroScoreToMainScore(microScore, side) {
   const raw = Number(microScore || 0);
 
@@ -2269,14 +2342,37 @@ app.post("/signal", async (req, res) => {
       finalDecision,
     });
 
+    const effectiveTradeMode = isPyramidDecision(finalDecision)
+      ? "MICRO_SCALP"
+      : String(evaluateResult.mode || "NORMAL").toUpperCase();
+
+    if (isPyramidDecision(finalDecision) && resolvedUserId) {
+      try {
+        mainUserRecentPerformance = await getRecentClosedTradePerformance({
+          firebaseUserId: resolvedUserId,
+          accountId,
+          symbol: resolvedSymbol,
+          mode: normalizeAdaptiveMode(effectiveTradeMode),
+          limit: 18,
+        });
+
+        mainUserAdaptiveProfile = buildUserAdaptiveProfile({
+          recentPerformance: mainUserRecentPerformance,
+          mode: effectiveTradeMode,
+        });
+      } catch (recentPerfError) {
+        console.error("Reload pyramid performance error:", recentPerfError.message);
+      }
+    }
+
     const activeCfg = getActiveSymbolConfig(
       resolvedSymbol,
-      evaluateResult.mode || "NORMAL"
+      effectiveTradeMode
     );
 
     const coldStartProfile = buildColdStartProfile({
       closedTradesCount: totalClosedTrades,
-      mode: evaluateResult.mode || "NORMAL",
+      mode: effectiveTradeMode,
     });
 
     if (
@@ -2290,7 +2386,7 @@ app.post("/signal", async (req, res) => {
           reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
           score,
           firebaseUserId: resolvedUserId,
-          mode: evaluateResult.mode || "NORMAL",
+          mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           historicalVolume,
@@ -2444,6 +2540,7 @@ app.post("/signal", async (req, res) => {
       tradingPreferences?.base_lot_size ??
       0
     );
+    const safeLotFloor = rawLotFloor > 0 ? roundLot(rawLotFloor, 0.01) : 0;
 
     const resolvedTradeSide =
       String(finalDecision || "").includes("BUY")
@@ -2451,6 +2548,65 @@ app.post("/signal", async (req, res) => {
         : String(finalDecision || "").includes("SELL")
           ? "SELL"
           : String(evaluateResult?.side || requestSide || "").toUpperCase();
+
+    let pyramidReferenceLot = 0;
+    if (isPyramidDecision(finalDecision)) {
+      let activePositions = [];
+
+      try {
+        const rows = await getActivePositionsByUserAndSymbol({
+          firebaseUserId: resolvedUserId,
+        });
+        activePositions = Array.isArray(rows) ? rows : [];
+      } catch (activePositionError) {
+        console.error("Load active positions for pyramid error:", activePositionError.message);
+      }
+
+      pyramidReferenceLot = resolvePyramidFirstLot({
+        activePositions,
+        accountId,
+        symbol: resolvedSymbol,
+        side: resolvedTradeSide,
+        portfolio: req.body?.portfolio || null,
+      });
+
+      if (pyramidReferenceLot <= 0) {
+        return res.json(
+          buildBlockedSignalResponse({
+            reason: "PYRAMID_REFERENCE_LOT_NOT_FOUND",
+            score,
+            firebaseUserId: resolvedUserId,
+            mode: effectiveTradeMode,
+            trend: evaluateResult.trend || "NEUTRAL",
+            pattern,
+            historicalVolume,
+            defensiveFlags,
+            trade_setup: null,
+            currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
+          })
+        );
+      }
+
+      const pyramidLotCap = roundLot(pyramidReferenceLot - 0.01, 0.01);
+      const minAllowedLot = Math.max(safeLotFloor, 0.01);
+
+      if (pyramidLotCap < minAllowedLot) {
+        return res.json(
+          buildBlockedSignalResponse({
+            reason: "PYRAMID_LOT_CONSTRAINT_CONFLICT",
+            score,
+            firebaseUserId: resolvedUserId,
+            mode: effectiveTradeMode,
+            trend: evaluateResult.trend || "NEUTRAL",
+            pattern,
+            historicalVolume,
+            defensiveFlags,
+            trade_setup: null,
+            currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
+          })
+        );
+      }
+    }
 
     let trade_setup = buildTradeSetupFromPattern({
       side: resolvedTradeSide,
@@ -2468,7 +2624,7 @@ app.post("/signal", async (req, res) => {
       symbol: resolvedSymbol,
     });
 
-    if (String(evaluateResult.mode || "").toUpperCase() === "MICRO_SCALP") {
+    if (effectiveTradeMode === "MICRO_SCALP") {
       const microActiveCfg = getActiveSymbolConfig(resolvedSymbol, "MICRO_SCALP");
       trade_setup = applyMicroScalpFixedTargetToTradeSetup({
         tradeSetup: {
@@ -2489,11 +2645,30 @@ app.post("/signal", async (req, res) => {
       activeCfg,
     });
 
-    if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
-      trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
+    if (safeLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < safeLotFloor) {
+      trade_setup.recommended_lot = Number(safeLotFloor.toFixed(2));
       if (trade_setup.recommended_lot < 0.01) {
         trade_setup.recommended_lot = 0.01;
       }
+    }
+
+    if (isPyramidDecision(finalDecision)) {
+      const pyramidLotCap = roundLot(pyramidReferenceLot - 0.01, 0.01);
+      const currentRecommendedLot = roundLot(
+        Number(trade_setup?.recommended_lot || safeLotFloor || 0.01),
+        0.01
+      );
+
+      trade_setup = {
+        ...trade_setup,
+        mode: "MICRO_SCALP",
+        recommended_lot: roundLot(
+          Math.min(currentRecommendedLot, pyramidLotCap),
+          0.01
+        ),
+        pyramid_reference_lot: pyramidReferenceLot,
+        pyramid_lot_cap: pyramidLotCap,
+      };
     }
 
     const adaptiveMinScore = getAdaptiveMinRequiredScore({
@@ -2511,7 +2686,7 @@ app.post("/signal", async (req, res) => {
           reason: "USER_ADAPTIVE_MIN_SCORE",
           score,
           firebaseUserId: resolvedUserId,
-          mode: evaluateResult.mode || "NORMAL",
+          mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           historicalVolume,
@@ -2547,7 +2722,7 @@ app.post("/signal", async (req, res) => {
       decision: finalDecision,
       score,
       firebaseUserId: resolvedUserId,
-      mode: evaluateResult.mode || "NORMAL",
+      mode: effectiveTradeMode,
       trend: evaluateResult.trend || "NEUTRAL",
       pattern,
       historicalVolume,
@@ -2563,7 +2738,7 @@ app.post("/signal", async (req, res) => {
       decision: finalDecision,
       score,
       firebaseUserId: resolvedUserId,
-      mode: evaluateResult.mode || "NORMAL",
+      mode: effectiveTradeMode,
       trend: evaluateResult.trend || "NEUTRAL",
       pattern,
       historicalVolume,
