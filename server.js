@@ -2292,7 +2292,6 @@ function shouldRequireNextCandleConfirmation({
 }
 
 async function handleSignalCore(req, { isRefresh = false } = {}) {
-  // const body = req.body || {};
   const {
     symbol,
     firebaseUserId,
@@ -2307,10 +2306,20 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
     balance,
     overlapPips,
   } = req.body || {};
+
   const resolvedUserId = firebaseUserId || null;
   const resolvedSymbol = String(symbol || "").trim();
   const requestSide = String(side || "").toUpperCase();
   const spreadPoints = Number(req.body?.spreadPoints || 0);
+
+  const noTrade = (extra = {}) => ({
+    decision: "NO_TRADE",
+    score: 0,
+    firebaseUserId: resolvedUserId,
+    mode: "NORMAL",
+    trend: "NEUTRAL",
+    ...extra,
+  });
 
   try {
     const higherTf = resolveHigherTimeframes({
@@ -2327,7 +2336,6 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           resolvedUserId,
           accountId ?? null
         );
-
         tradingPreferences = normalizeTradingPreferences(rawTradingPreferences);
       }
     } catch (prefError) {
@@ -2335,24 +2343,21 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
     }
 
     if (!isTradingEngineEnabled(tradingPreferences)) {
-      return res.json(
-        buildBlockedSignalResponse({
-          reason: "ENGINE_DISABLED",
-          score: 0,
-          firebaseUserId: resolvedUserId,
-          mode: "NORMAL",
-          trend: "NEUTRAL",
-          pattern: null,
-          historicalVolume: null,
-          defensiveFlags: null,
-          trade_setup: null,
-          currentOpenPositionsCount: 0,
-        })
-      );
+      return buildBlockedSignalResponse({
+        reason: "ENGINE_DISABLED",
+        score: 0,
+        firebaseUserId: resolvedUserId,
+        mode: "NORMAL",
+        trend: "NEUTRAL",
+        pattern: null,
+        historicalVolume: null,
+        defensiveFlags: null,
+        trade_setup: null,
+        currentOpenPositionsCount: 0,
+      });
     }
 
     let totalClosedTrades = 0;
-
     try {
       if (resolvedUserId) {
         totalClosedTrades = await countTradeHistoryByUser(resolvedUserId);
@@ -2371,15 +2376,10 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       candles,
       candlesM15: higherTf.candlesM15,
       candlesM30: higherTf.candlesM30,
-
-      // HTF จริงที่ใช้วิเคราะห์
       candlesTrendPrimary: higherTf.trendPrimaryCandles,
       candlesTrendSecondary: higherTf.trendSecondaryCandles,
-
-      // backward compatible ให้ flow เดิม
       candlesH1: higherTf.trendPrimaryCandles,
       candlesH4: higherTf.trendSecondaryCandles,
-
       overlapPips,
     });
 
@@ -2406,26 +2406,17 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         timeframe: "M5",
         price,
         candles: Array.isArray(candles) ? candles : [],
-
         candlesM15: higherTf.candlesM15,
         candlesM30: higherTf.candlesM30,
-
-        // backward compatible
         candlesH1: higherTf.trendPrimaryCandles,
         candlesH4: higherTf.trendSecondaryCandles,
-
         trendPrimaryCandles: higherTf.trendPrimaryCandles,
         trendSecondaryCandles: higherTf.trendSecondaryCandles,
         trendPrimaryLabel: higherTf.trendPrimaryLabel,
         trendSecondaryLabel: higherTf.trendSecondaryLabel,
-
         portfolio: req.body.portfolio || { currentPosition: "NONE", count: 0 },
         sessionName: session?.name || null,
-
-        historicalVolumeSignal:
-          historicalVolume?.signal ||
-          historicalVolume ||
-          null,
+        historicalVolumeSignal: historicalVolume?.signal || historicalVolume || null,
       }
     });
 
@@ -2545,7 +2536,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       coldStartProfile.blockWeakSignals &&
       Math.abs(score) < Number(coldStartProfile.minRequiredStrength || 0)
     ) {
-      return res.json({
+      return {
         ...buildBlockedSignalResponse({
           reason: `COLD_START_${coldStartProfile.stage}_MIN_SCORE`,
           score,
@@ -2560,11 +2551,9 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         }),
         cold_start_profile: coldStartProfile,
         totalClosedTrades,
-      });
+      };
     }
 
-    // ========= FALLBACK TO MICRO SCALP =========
-    // ต้องมาก่อน return NO_TRADE ปกติ
     if (!isPrimaryTradeDecision(finalDecision)) {
       const microResult = microScalpEngine.analyzeMicroScalp({
         symbol: resolvedSymbol,
@@ -2606,7 +2595,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
 
         if (microResponse) {
           if (microResponse.decision === "NO_TRADE") {
-            return res.json(microResponse);
+            return microResponse;
           }
 
           const microDirectionResult = enforceDirectionBiasOnDecision(
@@ -2615,20 +2604,18 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           );
 
           if (microDirectionResult.blocked) {
-            return res.json(
-              buildBlockedSignalResponse({
-                reason: microDirectionResult.reason,
-                score: microResponse.score || 0,
-                firebaseUserId: resolvedUserId,
-                mode: microResponse.mode || "MICRO_SCALP",
-                trend: microResponse.trend || "NEUTRAL",
-                pattern: microResponse.pattern || null,
-                historicalVolume: microResponse.historicalVolume || null,
-                defensiveFlags: microResponse.defensiveFlags || null,
-                trade_setup: null,
-                currentOpenPositionsCount: 0,
-              })
-            );
+            return buildBlockedSignalResponse({
+              reason: microDirectionResult.reason,
+              score: microResponse.score || 0,
+              firebaseUserId: resolvedUserId,
+              mode: microResponse.mode || "MICRO_SCALP",
+              trend: microResponse.trend || "NEUTRAL",
+              pattern: microResponse.pattern || null,
+              historicalVolume: microResponse.historicalVolume || null,
+              defensiveFlags: microResponse.defensiveFlags || null,
+              trade_setup: null,
+              currentOpenPositionsCount: 0,
+            });
           }
 
           const currentOpenPositionsCount =
@@ -2644,52 +2631,47 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               tradingPreferences.max_open_positions
             )
           ) {
-            return res.json(
-              buildBlockedSignalResponse({
-                reason: "MAX_OPEN_POSITIONS_REACHED",
-                score: microResponse.score || 0,
-                firebaseUserId: resolvedUserId,
-                mode: microResponse.mode || "MICRO_SCALP",
-                trend: microResponse.trend || "NEUTRAL",
-                pattern: microResponse.pattern || null,
-                historicalVolume: microResponse.historicalVolume || null,
-                defensiveFlags: microResponse.defensiveFlags || null,
-                trade_setup: null,
-                currentOpenPositionsCount,
-              })
-            );
+            return buildBlockedSignalResponse({
+              reason: "MAX_OPEN_POSITIONS_REACHED",
+              score: microResponse.score || 0,
+              firebaseUserId: resolvedUserId,
+              mode: microResponse.mode || "MICRO_SCALP",
+              trend: microResponse.trend || "NEUTRAL",
+              pattern: microResponse.pattern || null,
+              historicalVolume: microResponse.historicalVolume || null,
+              defensiveFlags: microResponse.defensiveFlags || null,
+              trade_setup: null,
+              currentOpenPositionsCount,
+            });
           }
 
           console.log(
             `[MICRO_SCALP FALLBACK] symbol=${resolvedSymbol} side=${requestSide} score=${microResponse.score} decision=${microResponse.decision}`
           );
 
-          return res.json(microResponse);
+          return microResponse;
         }
       }
     }
 
-    // ถ้า main ไม่เปิด และ micro ก็ไม่ผ่าน ค่อย blocked ตรงนี้
     if (finalDecision === "NO_TRADE" && finalDecisionReason) {
-      return res.json(
-        buildBlockedSignalResponse({
-          reason: finalDecisionReason,
-          score,
-          firebaseUserId: resolvedUserId,
-          mode: evaluateResult.mode || "NORMAL",
-          trend: evaluateResult.trend || "NEUTRAL",
-          pattern,
-          historicalVolume,
-          defensiveFlags: evaluateResult.defensiveFlags || {
-            warningMatched: false,
-            lotMultiplier: 1,
-            tpMultiplier: 1,
-            reason: null,
-          },
-          trade_setup: null,
-          currentOpenPositionsCount: 0,
-        })
-      );
+      return buildBlockedSignalResponse({
+        reason: finalDecisionReason,
+        score,
+        firebaseUserId: resolvedUserId,
+        mode: evaluateResult.mode || "NORMAL",
+        trend: evaluateResult.trend || "NEUTRAL",
+        pattern,
+        historicalVolume,
+        defensiveFlags: evaluateResult.defensiveFlags || {
+          warningMatched: false,
+          lotMultiplier: 1,
+          tpMultiplier: 1,
+          reason: null,
+        },
+        trade_setup: null,
+        currentOpenPositionsCount: 0,
+      });
     }
 
     const defensiveFlags = evaluateResult.defensiveFlags || {
@@ -2735,40 +2717,36 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       });
 
       if (pyramidReferenceLot <= 0) {
-        return res.json(
-          buildBlockedSignalResponse({
-            reason: "PYRAMID_REFERENCE_LOT_NOT_FOUND",
-            score,
-            firebaseUserId: resolvedUserId,
-            mode: effectiveTradeMode,
-            trend: evaluateResult.trend || "NEUTRAL",
-            pattern,
-            historicalVolume,
-            defensiveFlags,
-            trade_setup: null,
-            currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
-          })
-        );
+        return buildBlockedSignalResponse({
+          reason: "PYRAMID_REFERENCE_LOT_NOT_FOUND",
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: effectiveTradeMode,
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags,
+          trade_setup: null,
+          currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
+        });
       }
 
       const pyramidLotCap = roundLot(pyramidReferenceLot - 0.01, 0.01);
       const minAllowedLot = Math.max(safeLotFloor, 0.01);
 
       if (pyramidLotCap < minAllowedLot) {
-        return res.json(
-          buildBlockedSignalResponse({
-            reason: "PYRAMID_LOT_CONSTRAINT_CONFLICT",
-            score,
-            firebaseUserId: resolvedUserId,
-            mode: effectiveTradeMode,
-            trend: evaluateResult.trend || "NEUTRAL",
-            pattern,
-            historicalVolume,
-            defensiveFlags,
-            trade_setup: null,
-            currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
-          })
-        );
+        return buildBlockedSignalResponse({
+          reason: "PYRAMID_LOT_CONSTRAINT_CONFLICT",
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: effectiveTradeMode,
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags,
+          trade_setup: null,
+          currentOpenPositionsCount: Number(req.body?.portfolio?.count || 0),
+        });
       }
     }
 
@@ -2845,7 +2823,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       isOpenDecision(finalDecision) &&
       Math.abs(score) < adaptiveMinScore
     ) {
-      return res.json({
+      return {
         ...buildBlockedSignalResponse({
           reason: "USER_ADAPTIVE_MIN_SCORE",
           score,
@@ -2862,7 +2840,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         user_adaptive_profile: mainUserAdaptiveProfile,
         recent_performance: mainUserRecentPerformance,
         totalClosedTrades,
-      });
+      };
     }
 
     if (finalDecisionResult?.setupTuning) {
@@ -2882,7 +2860,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       );
     }
 
-    console.log("[FINAL_REPONSE_BREAKDOWN]", {
+    const result = {
       decision: finalDecision,
       score,
       firebaseUserId: resolvedUserId,
@@ -2896,32 +2874,31 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       user_adaptive_profile: mainUserAdaptiveProfile,
       recent_performance: mainUserRecentPerformance,
       totalClosedTrades,
-    });
+    };
 
-    return res.json({
-      decision: finalDecision,
-      score,
-      firebaseUserId: resolvedUserId,
-      mode: effectiveTradeMode,
-      trend: evaluateResult.trend || "NEUTRAL",
-      pattern,
-      historicalVolume,
-      defensiveFlags,
-      trade_setup,
-      cold_start_profile: coldStartProfile,
-      user_adaptive_profile: mainUserAdaptiveProfile,
-      recent_performance: mainUserRecentPerformance,
-      totalClosedTrades,
-    });
+    if (isRefresh) {
+      const pendingSide = String(req.body?.pendingSide || "").toUpperCase();
+      const decisionUpper = String(result.decision || "").toUpperCase();
+      const isBuyDecision = decisionUpper.startsWith("ALLOW_BUY");
+      const isSellDecision = decisionUpper.startsWith("ALLOW_SELL");
 
+      if (
+        (pendingSide === "BUY" && isSellDecision) ||
+        (pendingSide === "SELL" && isBuyDecision)
+      ) {
+        return {
+          ...result,
+          decision: "NO_TRADE",
+          score: 0,
+          reason: "REFRESH_SIDE_MISMATCH",
+        };
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error("Signal processing error:", error);
-    return res.status(500).json({
-      decision: "NO_TRADE",
-      score: 0,
-      firebaseUserId: resolvedUserId,
-      mode: "NORMAL",
-      trend: "NEUTRAL",
+    return noTrade({
       error: error.message || "Internal server error",
     });
   }
