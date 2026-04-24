@@ -537,6 +537,15 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function toStr(value, fallback = "") {
+  if (value === undefined || value === null) return fallback;
+  return String(value).trim();
+}
+
+function toUpper(value, fallback = "") {
+  return toStr(value, fallback).toUpperCase();
+}
+
 function roundLot(value, step = 0.01) {
   const n = toNum(value, 0);
   return Number((Math.round(n / step) * step).toFixed(2));
@@ -567,6 +576,161 @@ function normalizeAdaptiveMode(mode = "NORMAL") {
   const raw = String(mode || "NORMAL").trim().toUpperCase();
   if (raw === "MICRO_SCALP") return "SCALP";
   return raw || "NORMAL";
+}
+
+function normalizeCandle(c = {}) {
+  return {
+    open: toNum(c.open, 0),
+    close: toNum(c.close, 0),
+    high: toNum(c.high, 0),
+    low: toNum(c.low, 0),
+    tick_volume: toNum(c.tick_volume ?? c.tickVolume ?? 0, 0),
+  };
+}
+
+function normalizeCandles(input, minLength = 0) {
+  const arr = Array.isArray(input) ? input.map(normalizeCandle) : [];
+  return arr.length >= minLength ? arr : [];
+}
+
+function normalizeSignalBody(body = {}) {
+  const normalized = {
+    symbol: toStr(body.symbol),
+    firebaseUserId: toStr(body.firebaseUserId),
+    accountId: toStr(body.accountId),
+    side: toUpper(body.side || "ANY"),
+    price: toNum(body.price, 0),
+    digits: toNum(body.digits, 2),
+    signalName: toStr(body.signalName || "AI_DETECT"),
+    timeframe: toUpper(body.timeframe || "M5"),
+    balance: toNum(body.balance, 0),
+    spreadPoints: toNum(body.spreadPoints, 0),
+
+    portfolio: normalizePortfolio(body.portfolio),
+
+    candles: normalizeCandles(body.candles, 5),
+    candlesM15: normalizeCandles(body.candles_m15, 2),
+    candlesM30: normalizeCandles(body.candles_m30, 2),
+    candlesH1: normalizeCandles(body.candles_h1, 2),
+    candlesH4: normalizeCandles(body.candles_h4, 2),
+
+    // refresh-only optional fields
+    isRefresh: Boolean(body.isRefresh),
+    pendingSide: toUpper(body.pendingSide || ""),
+    pendingTarget: toNum(body.pendingTarget, 0),
+    pendingLot: toNum(body.pendingLot, 0),
+    pendingSlPoints: toNum(body.pendingSlPoints, 0),
+    pendingTpPoints: toNum(body.pendingTpPoints, 0),
+    pendingRetracePoints: toNum(body.pendingRetracePoints, 0),
+    pendingMode: toStr(body.pendingMode || ""),
+    refreshAttempt: toNum(body.refreshAttempt, 0),
+    refreshStartedAt: toStr(body.refreshStartedAt || ""),
+  };
+
+  return normalized;
+}
+
+function validateSignalBody(input) {
+  const errors = [];
+
+  if (!input.symbol) errors.push("symbol is required");
+  if (!input.firebaseUserId) errors.push("firebaseUserId is required");
+  if (!input.accountId) errors.push("accountId is required");
+  if (input.price <= 0) errors.push("price must be > 0");
+  if (!input.candles.length) errors.push("candles must contain at least 5 items");
+
+  return errors;
+}
+
+function buildNoTradeResponse(reason, extra = {}) {
+  return {
+    decision: "NO_TRADE",
+    mode: extra.mode || "NORMAL",
+    score: 0,
+    recommended_lot: extra.recommended_lot || 0,
+    sl_points: extra.sl_points || 0,
+    tp_points: extra.tp_points || 0,
+    retrace_points: extra.retrace_points || 0,
+    reason,
+    ...extra,
+  };
+}
+
+function keepPendingSideOnRefresh(result, normalized) {
+  if (!normalized.isRefresh || !normalized.pendingSide) {
+    return result;
+  }
+
+  const pendingSide = normalized.pendingSide;
+  const decision = toUpper(result?.decision || "NO_TRADE");
+
+  const isBuyDecision = decision.startsWith("ALLOW_BUY");
+  const isSellDecision = decision.startsWith("ALLOW_SELL");
+
+  if (pendingSide === "BUY" && isSellDecision) {
+    return buildNoTradeResponse("REFRESH_SIDE_MISMATCH", {
+      mode: normalized.pendingMode || result?.mode || "NORMAL",
+      recommended_lot: normalized.pendingLot || result?.recommended_lot || 0,
+      sl_points: normalized.pendingSlPoints || result?.sl_points || 0,
+      tp_points: normalized.pendingTpPoints || result?.tp_points || 0,
+      retrace_points: normalized.pendingRetracePoints || result?.retrace_points || 0,
+      refreshAttempt: normalized.refreshAttempt,
+    });
+  }
+
+  if (pendingSide === "SELL" && isBuyDecision) {
+    return buildNoTradeResponse("REFRESH_SIDE_MISMATCH", {
+      mode: normalized.pendingMode || result?.mode || "NORMAL",
+      recommended_lot: normalized.pendingLot || result?.recommended_lot || 0,
+      sl_points: normalized.pendingSlPoints || result?.sl_points || 0,
+      tp_points: normalized.pendingTpPoints || result?.tp_points || 0,
+      retrace_points: normalized.pendingRetracePoints || result?.retrace_points || 0,
+      refreshAttempt: normalized.refreshAttempt,
+    });
+  }
+
+  return result;
+}
+
+async function runSignalDecision(normalized) {
+  const evalInput = {
+    symbol: normalized.symbol,
+    firebaseUserId: normalized.firebaseUserId,
+    accountId: normalized.accountId,
+    side: normalized.side,
+    price: normalized.price,
+    digits: normalized.digits,
+    signalName: normalized.signalName,
+    timeframe: normalized.timeframe,
+    balance: normalized.balance,
+    spreadPoints: normalized.spreadPoints,
+
+    portfolio: normalized.portfolio,
+
+    candles: normalized.candles,
+    candles_m15: normalized.candlesM15,
+    candles_m30: normalized.candlesM30,
+    candles_h1: normalized.candlesH1,
+    candles_h4: normalized.candlesH4,
+  };
+
+  // ใช้ evaluateDecision เดิมของระบบคุณ
+  const result = await evaluateDecision(evalInput);
+
+  return {
+    decision: toStr(result?.decision || "NO_TRADE"),
+    mode: toStr(result?.mode || "NORMAL"),
+    score: toNum(result?.score, 0),
+    recommended_lot: toNum(result?.recommended_lot, 0),
+    sl_points: toNum(result?.sl_points, 0),
+    tp_points: toNum(result?.tp_points, 0),
+    retrace_points: toNum(result?.retrace_points, 0),
+
+    // ส่ง reason/debug กลับได้ แต่ EA เดิมจะไม่พังเพราะไม่ใช้ field นี้
+    reason: toStr(result?.reason || ""),
+    trend: result?.trend || "",
+    pattern: result?.pattern || null,
+  };
 }
 
 /**
@@ -2127,7 +2291,8 @@ function shouldRequireNextCandleConfirmation({
   return false;
 }
 
-app.post("/signal", async (req, res) => {
+async function handleSignalCore(req, { isRefresh = false } = {}) {
+  // const body = req.body || {};
   const {
     symbol,
     firebaseUserId,
@@ -2142,7 +2307,6 @@ app.post("/signal", async (req, res) => {
     balance,
     overlapPips,
   } = req.body || {};
-
   const resolvedUserId = firebaseUserId || null;
   const resolvedSymbol = String(symbol || "").trim();
   const requestSide = String(side || "").toUpperCase();
@@ -2761,7 +2925,46 @@ app.post("/signal", async (req, res) => {
       error: error.message || "Internal server error",
     });
   }
+}
+
+app.post("/signal", async (req, res) => {
+  try {
+    const result = await handleSignalCore(req, { isRefresh: false });
+    return res.json(result);
+  } catch (error) {
+    console.error("[/signal] error:", error);
+    return res.status(500).json({
+      decision: "NO_TRADE",
+      score: 0,
+      recommended_lot: 0,
+      sl_points: 0,
+      tp_points: 0,
+      retrace_points: 0,
+      mode: "NORMAL",
+      error: error.message,
+    });
+  }
 });
+
+app.post("/signal-refresh", async (req, res) => {
+  try {
+    const result = await handleSignalCore(req, { isRefresh: true });
+    return res.json(result);
+  } catch (error) {
+    console.error("[/signal-refresh] error:", error);
+    return res.status(500).json({
+      decision: "NO_TRADE",
+      score: 0,
+      recommended_lot: 0,
+      sl_points: 0,
+      tp_points: 0,
+      retrace_points: 0,
+      mode: "NORMAL",
+      error: error.message,
+    });
+  }
+});
+
 app.post("/mangmao/signal", async (req, res) => {
   try {
     const {
