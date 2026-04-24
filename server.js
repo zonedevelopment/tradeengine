@@ -2923,13 +2923,365 @@ app.post("/signal", async (req, res) => {
   }
 });
 
+function toRefreshServerPoints(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return Number((num / 10).toFixed(2));
+}
+
+function getRefreshDecisionSide(decision = "") {
+  const upper = String(decision || "").toUpperCase();
+  if (upper.includes("BUY")) return "BUY";
+  if (upper.includes("SELL")) return "SELL";
+  return "";
+}
+
+function buildRefreshTradeSetup({
+  result,
+  pendingMode = "NORMAL",
+  pendingLot = 0,
+  pendingSlPoints = 0,
+  pendingTpPoints = 0,
+  pendingRetracePoints = 0,
+}) {
+  const tradeSetup = result?.trade_setup || {};
+
+  return {
+    recommended_lot: Number.isFinite(Number(tradeSetup?.recommended_lot))
+      ? Number(tradeSetup.recommended_lot)
+      : Number(pendingLot || 0),
+    sl_points: Number.isFinite(Number(tradeSetup?.sl_points))
+      ? Number(tradeSetup.sl_points)
+      : toRefreshServerPoints(pendingSlPoints),
+    tp_points: Number.isFinite(Number(tradeSetup?.tp_points))
+      ? Number(tradeSetup.tp_points)
+      : toRefreshServerPoints(pendingTpPoints),
+    retrace_points: Number.isFinite(Number(tradeSetup?.retrace_points))
+      ? Number(tradeSetup.retrace_points)
+      : toRefreshServerPoints(pendingRetracePoints),
+    mode: String(result?.mode || pendingMode || "NORMAL").toUpperCase(),
+  };
+}
+
+function scoreSignalRefreshMomentum({
+  pendingSide = "",
+  candlesM1 = [],
+  liveCandle = null,
+}) {
+  const side = String(pendingSide || "").toUpperCase();
+  const list = Array.isArray(candlesM1) ? candlesM1 : [];
+  const lastM1 = list.length >= 1 ? list[list.length - 1] : null;
+  const prevM1 = list.length >= 2 ? list[list.length - 2] : null;
+
+  const liveOpen = Number(liveCandle?.open ?? 0);
+  const liveClose = Number(liveCandle?.last ?? liveCandle?.close ?? 0);
+  const lastClose = Number(lastM1?.close ?? 0);
+  const prevClose = Number(prevM1?.close ?? 0);
+
+  let score = 0;
+  const reasons = [];
+
+  if (side === "BUY") {
+    if (liveClose > liveOpen) {
+      score += 0.35;
+      reasons.push("LIVE_BULLISH");
+    } else if (liveClose < liveOpen) {
+      score -= 0.45;
+      reasons.push("LIVE_BEARISH");
+    }
+
+    if (lastClose > prevClose && prevClose > 0) {
+      score += 0.25;
+      reasons.push("M1_UP");
+    } else if (lastClose < prevClose && prevClose > 0) {
+      score -= 0.25;
+      reasons.push("M1_DOWN");
+    }
+
+    if (liveClose > lastClose && lastClose > 0) {
+      score += 0.15;
+      reasons.push("LIVE_ABOVE_LAST_M1");
+    } else if (liveClose < lastClose && lastClose > 0) {
+      score -= 0.15;
+      reasons.push("LIVE_BELOW_LAST_M1");
+    }
+  } else if (side === "SELL") {
+    if (liveClose < liveOpen) {
+      score += 0.35;
+      reasons.push("LIVE_BEARISH");
+    } else if (liveClose > liveOpen) {
+      score -= 0.45;
+      reasons.push("LIVE_BULLISH");
+    }
+
+    if (lastClose < prevClose && prevClose > 0) {
+      score += 0.25;
+      reasons.push("M1_DOWN");
+    } else if (lastClose > prevClose && prevClose > 0) {
+      score -= 0.25;
+      reasons.push("M1_UP");
+    }
+
+    if (liveClose < lastClose && lastClose > 0) {
+      score += 0.15;
+      reasons.push("LIVE_BELOW_LAST_M1");
+    } else if (liveClose > lastClose && lastClose > 0) {
+      score -= 0.15;
+      reasons.push("LIVE_ABOVE_LAST_M1");
+    }
+  }
+
+  return {
+    score: Number(score.toFixed(2)),
+    aligned: score >= 0.35,
+    opposed: score <= -0.45,
+    reasons,
+  };
+}
+
+function deriveSignalRefreshPendingTarget({
+  side = "",
+  ask = 0,
+  bid = 0,
+  retracePoints = 0,
+  digits = 2,
+}) {
+  const pointSize = Math.pow(10, -Math.max(0, Number(digits || 0)));
+  const serverRetracePoints = Number(retracePoints || 0);
+
+  if (!Number.isFinite(pointSize) || pointSize <= 0 || serverRetracePoints <= 0) {
+    return null;
+  }
+
+  const adjustedBrokerPoints = Math.max(0, Math.round(serverRetracePoints * 10) - 80);
+  if (adjustedBrokerPoints <= 0) {
+    return side === "BUY" ? Number(ask || 0) : side === "SELL" ? Number(bid || 0) : null;
+  }
+
+  if (side === "BUY" && Number.isFinite(Number(ask)) && Number(ask) > 0) {
+    return Number((Number(ask) - adjustedBrokerPoints * pointSize).toFixed(Math.max(0, Number(digits || 0))));
+  }
+
+  if (side === "SELL" && Number.isFinite(Number(bid)) && Number(bid) > 0) {
+    return Number((Number(bid) + adjustedBrokerPoints * pointSize).toFixed(Math.max(0, Number(digits || 0))));
+  }
+
+  return null;
+}
+
 app.post("/signal-refresh", async (req, res) => {
   try {
     const result = await handleSignalCore(req, { isRefresh: true });
-    return res.json(result);
+
+    const refreshContext = req.body?.refreshContext || {};
+    const baseSignal = req.body?.baseSignal || {};
+    const pendingOrder = req.body?.pendingOrder || {};
+    const market = req.body?.market || {};
+    const liveCandle = req.body?.candles_live || null;
+    const candlesM1 = Array.isArray(req.body?.candles_m1) ? req.body.candles_m1 : [];
+
+    const pendingSide = String(
+      pendingOrder?.side || req.body?.pendingSide || ""
+    ).toUpperCase();
+    const pendingMode = String(
+      pendingOrder?.mode || req.body?.pendingMode || baseSignal?.mode || result?.mode || "NORMAL"
+    ).toUpperCase();
+
+    const pendingTarget = Number(
+      pendingOrder?.entryTargetPrice ?? req.body?.pendingTarget ?? 0
+    );
+    const pendingLot = Number(
+      pendingOrder?.recommendedLot ?? req.body?.pendingLot ?? 0
+    );
+    const pendingSlPoints = Number(
+      pendingOrder?.slPoints ?? req.body?.pendingSlPoints ?? 0
+    );
+    const pendingTpPoints = Number(
+      pendingOrder?.tpPoints ?? req.body?.pendingTpPoints ?? 0
+    );
+    const pendingRetracePoints = Number(
+      pendingOrder?.retracePoints ?? req.body?.pendingRetracePoints ?? 0
+    );
+
+    const pendingAgeSec = Number(
+      refreshContext?.pendingAgeSec ?? 0
+    );
+    const windowSec = Number(
+      refreshContext?.windowSec ?? 0
+    );
+    const refreshAttempt = Number(
+      refreshContext?.refreshAttempt ?? req.body?.refreshAttempt ?? 0
+    );
+    const digits = Number(
+      market?.digits ?? req.body?.digits ?? 2
+    );
+    const ask = Number(
+      market?.ask ?? req.body?.price ?? 0
+    );
+    const bid = Number(
+      market?.bid ?? req.body?.price ?? 0
+    );
+    const spreadPoints = Number(
+      market?.spreadPoints ?? req.body?.spreadPoints ?? 0
+    );
+
+    let currentDistancePoints = Number(
+      pendingOrder?.currentDistancePoints ?? 0
+    );
+
+    if ((!Number.isFinite(currentDistancePoints) || currentDistancePoints <= 0) && pendingTarget > 0) {
+      const pointSize = Math.pow(10, -Math.max(0, digits));
+      const referencePrice =
+        pendingSide === "BUY" ? ask : pendingSide === "SELL" ? bid : 0;
+
+      if (referencePrice > 0 && pointSize > 0) {
+        currentDistancePoints = Math.abs(referencePrice - pendingTarget) / pointSize;
+      }
+    }
+
+    const baseDecision = String(baseSignal?.decision || "").toUpperCase();
+    const baseScore = Number(baseSignal?.score ?? 0);
+    const resultDecision = String(result?.decision || "NO_TRADE").toUpperCase();
+    const resultSide = getRefreshDecisionSide(resultDecision);
+
+    const refreshTradeSetup = buildRefreshTradeSetup({
+      result,
+      pendingMode,
+      pendingLot,
+      pendingSlPoints,
+      pendingTpPoints,
+      pendingRetracePoints,
+    });
+
+    const responseDecision =
+      resultDecision !== "NO_TRADE"
+        ? resultDecision
+        : baseDecision || "NO_TRADE";
+
+    const responseSide =
+      getRefreshDecisionSide(responseDecision) || pendingSide;
+
+    const momentum = scoreSignalRefreshMomentum({
+      pendingSide: responseSide || pendingSide,
+      candlesM1,
+      liveCandle,
+    });
+
+    const suggestedTarget = deriveSignalRefreshPendingTarget({
+      side: responseSide || pendingSide,
+      ask,
+      bid,
+      retracePoints: refreshTradeSetup.retrace_points,
+      digits,
+    });
+
+    const pointSize = Math.pow(10, -Math.max(0, digits));
+    const targetShiftPoints =
+      suggestedTarget && pendingTarget > 0 && pointSize > 0
+        ? Math.abs(suggestedTarget - pendingTarget) / pointSize
+        : 0;
+
+    const immediateEntryThreshold = Math.max(
+      25,
+      Math.min(
+        120,
+        Math.round(Math.max(currentDistancePoints || 0, pendingRetracePoints || 0) * 0.18) || 40
+      )
+    );
+
+    const actionScoreFloor = Math.max(
+      1.6,
+      baseScore > 0 ? Number((baseScore * 0.72).toFixed(2)) : 1.6
+    );
+
+    let action = "KEEP_PENDING";
+    let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
+
+    if (windowSec > 0 && pendingAgeSec >= windowSec) {
+      action = "CANCEL_PENDING";
+      reason = "REFRESH_WINDOW_EXPIRED";
+    } else if (!pendingSide) {
+      action = "CANCEL_PENDING";
+      reason = "REFRESH_PENDING_SIDE_MISSING";
+    } else if (resultDecision === "NO_TRADE") {
+      action = "CANCEL_PENDING";
+      reason = String(result?.reason || "REFRESH_SIGNAL_INVALIDATED");
+    } else if (resultSide && pendingSide && resultSide !== pendingSide) {
+      action = "CANCEL_PENDING";
+      reason = "REFRESH_SIDE_MISMATCH";
+    } else if (
+      momentum.opposed &&
+      pendingAgeSec >= Math.max(5, Math.round(windowSec * 0.4)) &&
+      Number(result?.score || 0) < actionScoreFloor
+    ) {
+      action = "CANCEL_PENDING";
+      reason = "REFRESH_LIVE_MOMENTUM_INVALIDATION";
+    } else if (
+      momentum.aligned &&
+      currentDistancePoints > 0 &&
+      currentDistancePoints <= immediateEntryThreshold &&
+      Number(result?.score || 0) >= actionScoreFloor &&
+      spreadPoints <= Math.max(35, pendingSlPoints * 0.08)
+    ) {
+      action = "EXECUTE_NOW";
+      reason = "REFRESH_EXECUTE_NOW";
+    } else if (
+      suggestedTarget &&
+      pendingTarget > 0 &&
+      targetShiftPoints >= 15 &&
+      (
+        (responseSide === "BUY" && suggestedTarget < pendingTarget) ||
+        (responseSide === "SELL" && suggestedTarget > pendingTarget)
+      )
+    ) {
+      action = "TIGHTEN_ENTRY";
+      reason = "REFRESH_TIGHTEN_ENTRY";
+    }
+
+    const payload = {
+      action,
+      reason,
+      decision: action === "CANCEL_PENDING" ? "NO_TRADE" : responseDecision,
+      mode: refreshTradeSetup.mode,
+      score: Number(result?.score || baseScore || 0),
+      recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
+      sl_points: Number(refreshTradeSetup.sl_points || 0),
+      tp_points: Number(refreshTradeSetup.tp_points || 0),
+      retrace_points: Number(refreshTradeSetup.retrace_points || 0),
+      trade_setup: {
+        recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
+        sl_points: Number(refreshTradeSetup.sl_points || 0),
+        tp_points: Number(refreshTradeSetup.tp_points || 0),
+        retrace_points: Number(refreshTradeSetup.retrace_points || 0),
+        mode: refreshTradeSetup.mode,
+      },
+      meta: {
+        baseDecision,
+        resultDecision,
+        pendingSide,
+        pendingAgeSec,
+        refreshAttempt,
+        currentDistancePoints: Number.isFinite(currentDistancePoints)
+          ? Number(currentDistancePoints.toFixed(1))
+          : 0,
+        immediateEntryThreshold,
+        spreadPoints,
+        liveMomentumScore: momentum.score,
+        liveMomentumReasons: momentum.reasons,
+        suggestedTarget,
+        pendingTarget: pendingTarget > 0 ? pendingTarget : null,
+        targetShiftPoints: Number.isFinite(targetShiftPoints)
+          ? Number(targetShiftPoints.toFixed(1))
+          : 0,
+      },
+    };
+
+    return res.json(payload);
   } catch (error) {
     console.error("[/signal-refresh] error:", error);
     return res.status(500).json({
+      action: "CANCEL_PENDING",
+      reason: error.message || "Internal server error",
       decision: "NO_TRADE",
       score: 0,
       recommended_lot: 0,
