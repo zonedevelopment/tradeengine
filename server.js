@@ -3069,6 +3069,236 @@ function deriveSignalRefreshPendingTarget({
   return null;
 }
 
+function isRefreshBreakoutLikePattern(pattern = {}) {
+  const text = [
+    String(pattern?.type || ""),
+    String(pattern?.pattern || ""),
+  ]
+    .join(" ")
+    .toUpperCase();
+
+  return (
+    text.includes("BREAKOUT") ||
+    text.includes("BREAKDOWN") ||
+    text.includes("CONTINUATION") ||
+    text.includes("FIRST_LEG")
+  );
+}
+
+function getSignalRefreshBreakoutState(result = {}, baseSignal = {}) {
+  const state =
+    result?.pattern?.breakoutRetest ||
+    result?.pattern?.structure?.breakoutRetest ||
+    baseSignal?.pattern?.breakoutRetest ||
+    baseSignal?.pattern?.structure?.breakoutRetest ||
+    {};
+
+  return {
+    direction: String(state?.direction || "").toUpperCase(),
+    isBreakoutLike:
+      Boolean(state?.isBreakoutLike) ||
+      isRefreshBreakoutLikePattern(result?.pattern || {}) ||
+      isRefreshBreakoutLikePattern(baseSignal?.pattern || {}),
+    breakoutDetected: Boolean(state?.breakoutDetected),
+    freshBreakout: Boolean(state?.freshBreakout),
+    barsSinceBreakout:
+      state?.barsSinceBreakout === null || state?.barsSinceBreakout === undefined
+        ? null
+        : Number(state.barsSinceBreakout),
+    hasRetest: Boolean(state?.hasRetest),
+    retestAccepted: Boolean(state?.retestAccepted),
+    retestRejected: Boolean(state?.retestRejected),
+    breakoutLevel: Number(state?.breakoutLevel || 0),
+    breakoutZoneHigh: Number(state?.breakoutZoneHigh || 0),
+    breakoutZoneLow: Number(state?.breakoutZoneLow || 0),
+  };
+}
+
+function evaluateSignalRefreshValidation({
+  pendingSide = "",
+  candles = [],
+  liveCandle = null,
+  result = {},
+  baseSignal = {},
+  breakoutState = {},
+  score = 0,
+  actionScoreFloor = 0,
+}) {
+  const side = String(pendingSide || "").toUpperCase();
+  const safeCandles = normalizeCandles(candles, 0);
+  const last = getLastCandle(safeCandles, 1);
+  const prev = getLastCandle(safeCandles, 2);
+  const priorSample = safeCandles.slice(-7, -1);
+  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+
+  const liveOpen = Number(liveCandle?.open ?? 0);
+  const liveClose = Number(liveCandle?.last ?? liveCandle?.close ?? 0);
+  const liveBody = Math.abs(liveClose - liveOpen);
+  const lastBody = getBodySize(last || {});
+  const recentMassiveBull = Boolean(result?.pattern?.recentMassiveBull || baseSignal?.pattern?.recentMassiveBull);
+  const recentMassiveBear = Boolean(result?.pattern?.recentMassiveBear || baseSignal?.pattern?.recentMassiveBear);
+
+  const reasons = [];
+  let validated = false;
+  let waiting = false;
+  let invalidated = false;
+  let strongCounterImpulse = false;
+  let strongFollowThrough = false;
+
+  if (!side) {
+    return {
+      validated: false,
+      waiting: false,
+      invalidated: true,
+      reason: "REFRESH_PENDING_SIDE_MISSING",
+      evidence: [],
+      strongCounterImpulse: false,
+      strongFollowThrough: false,
+    };
+  }
+
+  if (side === "BUY") {
+    strongFollowThrough = Boolean(
+      last &&
+      isBullish(last) &&
+      lastBody >= avgBody * 0.9 &&
+      (
+        (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
+        (breakoutState.breakoutDetected && Number(last.close || 0) >= Number(breakoutState.breakoutLevel || 0))
+      )
+    );
+
+    strongCounterImpulse = Boolean(
+      (last &&
+        isBearish(last) &&
+        lastBody >= avgBody * 1.2 &&
+        (
+          (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
+          (breakoutState.breakoutDetected && Number(last.close || 0) < Number(breakoutState.breakoutLevel || 0))
+        )) ||
+      recentMassiveBear ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose < liveOpen &&
+        liveBody >= avgBody * 0.9 &&
+        last &&
+        liveClose < Number(last.close || 0))
+    );
+
+    if (breakoutState.retestRejected) {
+      invalidated = true;
+      reasons.push("BREAKOUT_RETEST_REJECTED");
+    } else if (
+      breakoutState.breakoutDetected &&
+      breakoutState.breakoutZoneLow > 0 &&
+      Number(last?.close || 0) > 0 &&
+      Number(last?.close || 0) < Number(breakoutState.breakoutZoneLow || 0)
+    ) {
+      invalidated = true;
+      reasons.push("BREAKOUT_ZONE_LOST");
+    } else if (strongCounterImpulse && score < actionScoreFloor + 0.35) {
+      invalidated = true;
+      reasons.push("STRONG_BEARISH_COUNTER_IMPULSE");
+    } else if (breakoutState.isBreakoutLike && breakoutState.breakoutDetected) {
+      if (breakoutState.retestAccepted) {
+        validated = true;
+        reasons.push("BREAKOUT_RETEST_ACCEPTED");
+      } else if (breakoutState.freshBreakout && !breakoutState.hasRetest) {
+        waiting = true;
+        reasons.push("WAIT_BREAKOUT_RETEST");
+      } else if (strongFollowThrough && score >= actionScoreFloor) {
+        validated = true;
+        reasons.push("BREAKOUT_FOLLOW_THROUGH_CONFIRMED");
+      } else {
+        waiting = true;
+        reasons.push("WAIT_BREAKOUT_CONFIRMATION");
+      }
+    } else if (strongCounterImpulse && score < actionScoreFloor + 0.15) {
+      invalidated = true;
+      reasons.push("BUY_SETUP_LOST_TO_COUNTER_IMPULSE");
+    } else {
+      validated = !strongCounterImpulse;
+      if (validated) {
+        reasons.push("NON_BREAKOUT_BUY_STRUCTURE_OK");
+      }
+    }
+  } else if (side === "SELL") {
+    strongFollowThrough = Boolean(
+      last &&
+      isBearish(last) &&
+      lastBody >= avgBody * 0.9 &&
+      (
+        (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
+        (breakoutState.breakoutDetected && Number(last.close || 0) <= Number(breakoutState.breakoutLevel || 0))
+      )
+    );
+
+    strongCounterImpulse = Boolean(
+      (last &&
+        isBullish(last) &&
+        lastBody >= avgBody * 1.2 &&
+        (
+          (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
+          (breakoutState.breakoutDetected && Number(last.close || 0) > Number(breakoutState.breakoutLevel || 0))
+        )) ||
+      recentMassiveBull ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose > liveOpen &&
+        liveBody >= avgBody * 0.9 &&
+        last &&
+        liveClose > Number(last.close || 0))
+    );
+
+    if (breakoutState.retestRejected) {
+      invalidated = true;
+      reasons.push("BREAKDOWN_RETEST_REJECTED");
+    } else if (
+      breakoutState.breakoutDetected &&
+      breakoutState.breakoutZoneHigh > 0 &&
+      Number(last?.close || 0) > Number(breakoutState.breakoutZoneHigh || 0)
+    ) {
+      invalidated = true;
+      reasons.push("BREAKDOWN_ZONE_LOST");
+    } else if (strongCounterImpulse && score > -(actionScoreFloor + 0.35)) {
+      invalidated = true;
+      reasons.push("STRONG_BULLISH_COUNTER_IMPULSE");
+    } else if (breakoutState.isBreakoutLike && breakoutState.breakoutDetected) {
+      if (breakoutState.retestAccepted) {
+        validated = true;
+        reasons.push("BREAKDOWN_RETEST_ACCEPTED");
+      } else if (breakoutState.freshBreakout && !breakoutState.hasRetest) {
+        waiting = true;
+        reasons.push("WAIT_BREAKDOWN_RETEST");
+      } else if (strongFollowThrough && score <= -actionScoreFloor) {
+        validated = true;
+        reasons.push("BREAKDOWN_FOLLOW_THROUGH_CONFIRMED");
+      } else {
+        waiting = true;
+        reasons.push("WAIT_BREAKDOWN_CONFIRMATION");
+      }
+    } else if (strongCounterImpulse && score > -(actionScoreFloor + 0.15)) {
+      invalidated = true;
+      reasons.push("SELL_SETUP_LOST_TO_COUNTER_IMPULSE");
+    } else {
+      validated = !strongCounterImpulse;
+      if (validated) {
+        reasons.push("NON_BREAKOUT_SELL_STRUCTURE_OK");
+      }
+    }
+  }
+
+  return {
+    validated,
+    waiting,
+    invalidated,
+    reason: reasons[0] || "REFRESH_VALIDATION_NEUTRAL",
+    evidence: reasons,
+    strongCounterImpulse,
+    strongFollowThrough,
+  };
+}
+
 app.post("/signal-refresh", async (req, res) => {
   try {
     const result = await handleSignalCore(req, { isRefresh: true });
@@ -3194,6 +3424,18 @@ app.post("/signal-refresh", async (req, res) => {
       baseScore > 0 ? Number((baseScore * 0.72).toFixed(2)) : 1.6
     );
 
+    const breakoutState = getSignalRefreshBreakoutState(result, baseSignal);
+    const refreshValidation = evaluateSignalRefreshValidation({
+      pendingSide: responseSide || pendingSide,
+      candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
+      liveCandle,
+      result,
+      baseSignal,
+      breakoutState,
+      score: Number(result?.score || baseScore || 0),
+      actionScoreFloor,
+    });
+
     let action = "KEEP_PENDING";
     let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
 
@@ -3209,6 +3451,12 @@ app.post("/signal-refresh", async (req, res) => {
     } else if (resultSide && pendingSide && resultSide !== pendingSide) {
       action = "CANCEL_PENDING";
       reason = "REFRESH_SIDE_MISMATCH";
+    } else if (refreshValidation.invalidated) {
+      action = "CANCEL_PENDING";
+      reason = refreshValidation.reason || "REFRESH_STRUCTURE_INVALIDATED";
+    } else if (refreshValidation.waiting) {
+      action = "KEEP_PENDING";
+      reason = refreshValidation.reason || "REFRESH_WAIT_CONFIRMATION";
     } else if (
       momentum.opposed &&
       pendingAgeSec >= Math.max(5, Math.round(windowSec * 0.4)) &&
@@ -3217,6 +3465,7 @@ app.post("/signal-refresh", async (req, res) => {
       action = "CANCEL_PENDING";
       reason = "REFRESH_LIVE_MOMENTUM_INVALIDATION";
     } else if (
+      refreshValidation.validated &&
       momentum.aligned &&
       currentDistancePoints > 0 &&
       currentDistancePoints <= immediateEntryThreshold &&
@@ -3268,6 +3517,21 @@ app.post("/signal-refresh", async (req, res) => {
         spreadPoints,
         liveMomentumScore: momentum.score,
         liveMomentumReasons: momentum.reasons,
+        refreshValidated: refreshValidation.validated,
+        refreshWaiting: refreshValidation.waiting,
+        refreshInvalidated: refreshValidation.invalidated,
+        refreshValidationReason: refreshValidation.reason,
+        refreshValidationEvidence: refreshValidation.evidence,
+        refreshStrongCounterImpulse: refreshValidation.strongCounterImpulse,
+        refreshStrongFollowThrough: refreshValidation.strongFollowThrough,
+        breakoutDetected: breakoutState.breakoutDetected,
+        breakoutFresh: breakoutState.freshBreakout,
+        breakoutHasRetest: breakoutState.hasRetest,
+        breakoutRetestAccepted: breakoutState.retestAccepted,
+        breakoutRetestRejected: breakoutState.retestRejected,
+        breakoutLevel: breakoutState.breakoutLevel || null,
+        breakoutZoneHigh: breakoutState.breakoutZoneHigh || null,
+        breakoutZoneLow: breakoutState.breakoutZoneLow || null,
         suggestedTarget,
         pendingTarget: pendingTarget > 0 ? pendingTarget : null,
         targetShiftPoints: Number.isFinite(targetShiftPoints)
