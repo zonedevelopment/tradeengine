@@ -2519,6 +2519,49 @@ function shouldPersistRefreshEntryThesis(payload = {}) {
   return Boolean(resolveRefreshEntryThesisStage(payload));
 }
 
+async function getLatestEntryThesisSnapshotForRefresh({
+  firebaseUserId,
+  accountId = "",
+  symbol = "",
+  side = "",
+  mode = "",
+}) {
+  const safeFirebaseUserId = String(firebaseUserId || "").trim();
+  const safeAccountId = String(accountId || "").trim();
+  const safeSymbol = String(symbol || "").trim().toUpperCase();
+  const safeSide = String(side || "").trim().toUpperCase();
+  const safeMode = String(mode || "").trim().toUpperCase();
+
+  if (!safeFirebaseUserId || !safeSymbol || !safeSide) {
+    return null;
+  }
+
+  const filter = {
+    firebaseUserId: safeFirebaseUserId,
+    symbol: safeSymbol,
+    side: safeSide,
+    sourceEndpoint: { $in: ["signal", "signal_refresh"] },
+    eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 12) },
+  };
+
+  if (safeAccountId) {
+    filter.accountId = safeAccountId;
+  }
+
+  if (safeMode) {
+    filter.mode = safeMode;
+  }
+
+  try {
+    return await EntryThesisSnapshot.findOne(filter)
+      .sort({ eventTime: -1, _id: -1 })
+      .lean();
+  } catch (error) {
+    console.error("[entry-thesis] load refresh snapshot failed:", error.message);
+    return null;
+  }
+}
+
 function writeEntryThesisSnapshot(document) {
   if (!document) return;
 
@@ -3491,6 +3534,46 @@ function getSignalRefreshBreakoutState(result = {}, baseSignal = {}) {
   };
 }
 
+function mergeSignalRefreshBreakoutState(baseState = {}, entryThesis = null) {
+  const thesisBreakout = entryThesis?.pattern?.breakoutRetest || {};
+
+  return {
+    direction: String(
+      baseState?.direction ||
+      thesisBreakout?.direction ||
+      ""
+    ).toUpperCase(),
+    isBreakoutLike:
+      Boolean(baseState?.isBreakoutLike) ||
+      Boolean(thesisBreakout?.breakoutDetected) ||
+      Boolean(thesisBreakout?.hasRetest) ||
+      Boolean(thesisBreakout?.retestAccepted) ||
+      Boolean(thesisBreakout?.retestRejected),
+    breakoutDetected:
+      Boolean(baseState?.breakoutDetected) ||
+      Boolean(thesisBreakout?.breakoutDetected),
+    freshBreakout:
+      Boolean(baseState?.freshBreakout) ||
+      Boolean(thesisBreakout?.freshBreakout),
+    barsSinceBreakout:
+      baseState?.barsSinceBreakout === null || baseState?.barsSinceBreakout === undefined
+        ? null
+        : Number(baseState.barsSinceBreakout),
+    hasRetest:
+      Boolean(baseState?.hasRetest) ||
+      Boolean(thesisBreakout?.hasRetest),
+    retestAccepted:
+      Boolean(baseState?.retestAccepted) ||
+      Boolean(thesisBreakout?.retestAccepted),
+    retestRejected:
+      Boolean(baseState?.retestRejected) ||
+      Boolean(thesisBreakout?.retestRejected),
+    breakoutLevel: Number(baseState?.breakoutLevel || thesisBreakout?.breakoutLevel || 0),
+    breakoutZoneHigh: Number(baseState?.breakoutZoneHigh || thesisBreakout?.breakoutZoneHigh || 0),
+    breakoutZoneLow: Number(baseState?.breakoutZoneLow || thesisBreakout?.breakoutZoneLow || 0),
+  };
+}
+
 function evaluateSignalRefreshValidation({
   pendingSide = "",
   candles = [],
@@ -3676,6 +3759,216 @@ function evaluateSignalRefreshValidation({
   };
 }
 
+function evaluateSignalRefreshEntryPressure({
+  pendingSide = "",
+  candles = [],
+  liveCandle = null,
+  breakoutState = {},
+  refreshValidation = {},
+  score = 0,
+  actionScoreFloor = 0,
+  entryThesis = null,
+}) {
+  const side = String(pendingSide || "").toUpperCase();
+  const safeCandles = normalizeCandles(candles, 0);
+  const last = getLastCandle(safeCandles, 1);
+  const prev = getLastCandle(safeCandles, 2);
+  const priorSample = safeCandles.slice(-7, -1);
+  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+  const lastBody = getBodySize(last || {});
+  const liveOpen = Number(liveCandle?.open ?? 0);
+  const liveClose = Number(liveCandle?.last ?? liveCandle?.close ?? 0);
+  const liveBody = Math.abs(liveClose - liveOpen);
+  const breakoutLevel = Number(breakoutState?.breakoutLevel || 0);
+  const breakoutZoneHigh = Number(breakoutState?.breakoutZoneHigh || 0);
+  const breakoutZoneLow = Number(breakoutState?.breakoutZoneLow || 0);
+  const thesisScore = Number(entryThesis?.score || 0);
+
+  let lightPullback = false;
+  let heavyCounter = false;
+  let lateContinuation = false;
+  let thesisIntact = false;
+  let classification = "NEUTRAL";
+  const evidence = [];
+
+  if (!side || !last) {
+    return {
+      lightPullback: false,
+      heavyCounter: false,
+      lateContinuation: false,
+      thesisIntact: false,
+      classification: "NEUTRAL",
+      evidence: [],
+    };
+  }
+
+  const bodyRatio = avgBody > 0 ? lastBody / avgBody : 0;
+  const safeScore = Math.abs(Number(score || 0));
+  const scoreFloor = Math.max(1.4, Number(actionScoreFloor || 0));
+  const effectiveScore = Math.max(safeScore, Math.abs(thesisScore));
+
+  if (side === "BUY") {
+    const lowerWick = Math.max(
+      0,
+      Math.min(Number(last.open || 0), Number(last.close || 0)) - Number(last.low || 0)
+    );
+    const zoneHeld =
+      !breakoutState?.breakoutDetected ||
+      (breakoutZoneLow > 0 && Number(last.close || 0) >= breakoutZoneLow) ||
+      (breakoutLevel > 0 && Number(last.close || 0) >= breakoutLevel);
+    const reclaiming =
+      liveClose > 0 &&
+      (
+        liveClose >= Number(last.close || 0) ||
+        (breakoutLevel > 0 && liveClose >= breakoutLevel)
+      );
+
+    lightPullback = Boolean(
+      isBearish(last) &&
+      bodyRatio > 0 &&
+      bodyRatio <= 1.08 &&
+      zoneHeld &&
+      !refreshValidation?.strongCounterImpulse &&
+      (
+        lowerWick >= lastBody * 0.45 ||
+        reclaiming
+      )
+    );
+
+    heavyCounter = Boolean(
+      refreshValidation?.invalidated ||
+      (isBearish(last) &&
+        bodyRatio >= 1.18 &&
+        (
+          (breakoutZoneLow > 0 && Number(last.close || 0) < breakoutZoneLow) ||
+          (prev && Number(last.close || 0) < Number(prev.low || 0))
+        )) ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose < liveOpen &&
+        liveBody >= avgBody * 1.0 &&
+        breakoutLevel > 0 &&
+        liveClose < breakoutLevel)
+    );
+
+    lateContinuation = Boolean(
+      refreshValidation?.validated &&
+      effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
+      (
+        refreshValidation?.strongFollowThrough ||
+        (isBullish(last) &&
+          bodyRatio >= 0.85 &&
+          (
+            (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
+            (breakoutLevel > 0 && Number(last.close || 0) >= breakoutLevel)
+          )) ||
+        (liveClose > 0 &&
+          liveOpen > 0 &&
+          liveClose > liveOpen &&
+          liveBody >= avgBody * 0.7 &&
+          Number(last.close || 0) > 0 &&
+          liveClose >= Number(last.close || 0))
+      )
+    );
+  } else if (side === "SELL") {
+    const upperWick = Math.max(
+      0,
+      Number(last.high || 0) - Math.max(Number(last.open || 0), Number(last.close || 0))
+    );
+    const zoneHeld =
+      !breakoutState?.breakoutDetected ||
+      (breakoutZoneHigh > 0 && Number(last.close || 0) <= breakoutZoneHigh) ||
+      (breakoutLevel > 0 && Number(last.close || 0) <= breakoutLevel);
+    const reclaiming =
+      liveClose > 0 &&
+      (
+        liveClose <= Number(last.close || 0) ||
+        (breakoutLevel > 0 && liveClose <= breakoutLevel)
+      );
+
+    lightPullback = Boolean(
+      isBullish(last) &&
+      bodyRatio > 0 &&
+      bodyRatio <= 1.08 &&
+      zoneHeld &&
+      !refreshValidation?.strongCounterImpulse &&
+      (
+        upperWick >= lastBody * 0.45 ||
+        reclaiming
+      )
+    );
+
+    heavyCounter = Boolean(
+      refreshValidation?.invalidated ||
+      (isBullish(last) &&
+        bodyRatio >= 1.18 &&
+        (
+          (breakoutZoneHigh > 0 && Number(last.close || 0) > breakoutZoneHigh) ||
+          (prev && Number(last.close || 0) > Number(prev.high || 0))
+        )) ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose > liveOpen &&
+        liveBody >= avgBody * 1.0 &&
+        breakoutLevel > 0 &&
+        liveClose > breakoutLevel)
+    );
+
+    lateContinuation = Boolean(
+      refreshValidation?.validated &&
+      effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
+      (
+        refreshValidation?.strongFollowThrough ||
+        (isBearish(last) &&
+          bodyRatio >= 0.85 &&
+          (
+            (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
+            (breakoutLevel > 0 && Number(last.close || 0) <= breakoutLevel)
+          )) ||
+        (liveClose > 0 &&
+          liveOpen > 0 &&
+          liveClose < liveOpen &&
+          liveBody >= avgBody * 0.7 &&
+          Number(last.close || 0) > 0 &&
+          liveClose <= Number(last.close || 0))
+      )
+    );
+  }
+
+  thesisIntact = Boolean(
+    !heavyCounter &&
+    (
+      refreshValidation?.validated ||
+      refreshValidation?.waiting ||
+      lightPullback ||
+      lateContinuation
+    )
+  );
+
+  if (heavyCounter) {
+    classification = "HEAVY_COUNTER";
+    evidence.push(`${side}_HEAVY_COUNTER`);
+  } else if (lateContinuation) {
+    classification = "LATE_CONTINUATION";
+    evidence.push(`${side}_LATE_CONTINUATION`);
+  } else if (lightPullback) {
+    classification = "LIGHT_PULLBACK";
+    evidence.push(`${side}_LIGHT_PULLBACK`);
+  } else if (thesisIntact) {
+    classification = "THESIS_INTACT";
+    evidence.push(`${side}_THESIS_INTACT`);
+  }
+
+  return {
+    lightPullback,
+    heavyCounter,
+    lateContinuation,
+    thesisIntact,
+    classification,
+    evidence,
+  };
+}
+
 function buildSignalRefreshLifecycle({
   action = "KEEP_PENDING",
   reason = "",
@@ -3708,6 +4001,9 @@ function buildSignalRefreshLifecycle({
   } else if (normalizedAction === "TIGHTEN_ENTRY") {
     phase = "VALIDATE";
     state = "ADJUST_ENTRY";
+  } else if (normalizedAction === "FREEZE_PENDING") {
+    phase = "VALIDATE";
+    state = "FROZEN_ENTRY";
   } else if (refreshValidation?.waiting) {
     phase = "VALIDATE";
     state = "WAIT_CONFIRM";
@@ -4426,7 +4722,18 @@ app.post("/signal-refresh", async (req, res) => {
       baseScore > 0 ? Number((baseScore * 0.72).toFixed(2)) : 1.6
     );
 
-    const breakoutState = getSignalRefreshBreakoutState(result, baseSignal);
+    const entryThesis = await getLatestEntryThesisSnapshotForRefresh({
+      firebaseUserId: req.body?.firebaseUserId || result?.firebaseUserId || "",
+      accountId: req.body?.accountId || "",
+      symbol: req.body?.symbol || "",
+      side: responseSide || pendingSide,
+      mode: pendingMode,
+    });
+
+    const breakoutState = mergeSignalRefreshBreakoutState(
+      getSignalRefreshBreakoutState(result, baseSignal),
+      entryThesis
+    );
     const refreshValidation = evaluateSignalRefreshValidation({
       pendingSide: responseSide || pendingSide,
       candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
@@ -4436,6 +4743,17 @@ app.post("/signal-refresh", async (req, res) => {
       breakoutState,
       score: Number(result?.score || baseScore || 0),
       actionScoreFloor,
+    });
+
+    const entryPressure = evaluateSignalRefreshEntryPressure({
+      pendingSide: responseSide || pendingSide,
+      candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
+      liveCandle,
+      breakoutState,
+      refreshValidation,
+      score: Number(result?.score || baseScore || 0),
+      actionScoreFloor,
+      entryThesis,
     });
 
     const rehypothesis = evaluateSignalRefreshRehypothesis({
@@ -4457,11 +4775,9 @@ app.post("/signal-refresh", async (req, res) => {
 
     let action = "KEEP_PENDING";
     let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
+    const windowExpired = windowSec > 0 && pendingAgeSec >= windowSec;
 
-    if (windowSec > 0 && pendingAgeSec >= windowSec) {
-      action = "CANCEL_PENDING";
-      reason = "REFRESH_WINDOW_EXPIRED";
-    } else if (!pendingSide) {
+    if (!pendingSide) {
       action = "CANCEL_PENDING";
       reason = "REFRESH_PENDING_SIDE_MISSING";
     } else if (resultDecision === "NO_TRADE") {
@@ -4473,13 +4789,33 @@ app.post("/signal-refresh", async (req, res) => {
     } else if (refreshValidation.invalidated) {
       action = "CANCEL_PENDING";
       reason = refreshValidation.reason || "REFRESH_STRUCTURE_INVALIDATED";
+    } else if (
+      windowExpired &&
+      entryPressure.lateContinuation &&
+      spreadPoints <= Math.max(35, pendingSlPoints * 0.08) &&
+      Number(result?.score || 0) >= Math.max(1.5, actionScoreFloor * 0.88)
+    ) {
+      action = "EXECUTE_NOW";
+      reason = "REFRESH_EXPIRED_EXECUTE_CONTINUATION";
+    } else if (
+      windowExpired &&
+      entryPressure.thesisIntact &&
+      !entryPressure.heavyCounter
+    ) {
+      action = "FREEZE_PENDING";
+      reason = entryPressure.lightPullback
+        ? "REFRESH_PULLBACK_FREEZE_PENDING"
+        : "REFRESH_THESIS_INTACT_FREEZE_PENDING";
     } else if (refreshValidation.waiting) {
       action = "KEEP_PENDING";
-      reason = refreshValidation.reason || "REFRESH_WAIT_CONFIRMATION";
+      reason = entryPressure.lightPullback
+        ? "REFRESH_WAIT_PULLBACK_ENTRY"
+        : refreshValidation.reason || "REFRESH_WAIT_CONFIRMATION";
     } else if (
       momentum.opposed &&
       pendingAgeSec >= Math.max(5, Math.round(windowSec * 0.4)) &&
-      Number(result?.score || 0) < actionScoreFloor
+      Number(result?.score || 0) < actionScoreFloor &&
+      entryPressure.heavyCounter
     ) {
       action = "CANCEL_PENDING";
       reason = "REFRESH_LIVE_MOMENTUM_INVALIDATION";
@@ -4503,11 +4839,12 @@ app.post("/signal-refresh", async (req, res) => {
       )
     ) {
       action = "TIGHTEN_ENTRY";
-      reason = "REFRESH_TIGHTEN_ENTRY";
+      reason = entryPressure.lightPullback
+        ? "REFRESH_PULLBACK_TIGHTEN_ENTRY"
+        : "REFRESH_TIGHTEN_ENTRY";
     }
 
     const fatalRefreshReasons = new Set([
-      "REFRESH_WINDOW_EXPIRED",
       "REFRESH_PENDING_SIDE_MISSING",
     ]);
 
@@ -4633,6 +4970,12 @@ app.post("/signal-refresh", async (req, res) => {
         refreshValidationEvidence: refreshValidation.evidence,
         refreshStrongCounterImpulse: refreshValidation.strongCounterImpulse,
         refreshStrongFollowThrough: refreshValidation.strongFollowThrough,
+        refreshEntryPressure: entryPressure.classification,
+        refreshEntryPressureEvidence: entryPressure.evidence,
+        refreshLightPullback: entryPressure.lightPullback,
+        refreshHeavyCounter: entryPressure.heavyCounter,
+        refreshLateContinuation: entryPressure.lateContinuation,
+        refreshThesisIntact: entryPressure.thesisIntact,
         breakoutDetected: breakoutState.breakoutDetected,
         breakoutFresh: breakoutState.freshBreakout,
         breakoutHasRetest: breakoutState.hasRetest,
@@ -4658,6 +5001,9 @@ app.post("/signal-refresh", async (req, res) => {
         targetShiftPoints: Number.isFinite(targetShiftPoints)
           ? Number(targetShiftPoints.toFixed(1))
           : 0,
+        thesisSourceEndpoint: entryThesis?.sourceEndpoint || null,
+        thesisStage: entryThesis?.thesisStage || null,
+        thesisLinkedTicketId: entryThesis?.linkedTicketId || null,
       },
     };
 
@@ -5271,8 +5617,8 @@ app.post("/check-exit-signal", async (req, res) => {
       candles,
       mode: resolvedMode,
       price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
-      // tpPoints: Number.isFinite(resolvedTpPoints) ? resolvedTpPoints : 0,
-      // slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
+      timeframe: String(req.body?.timeframe || "M5").toUpperCase(),
       historicalVolume,
       pattern,
       accountId

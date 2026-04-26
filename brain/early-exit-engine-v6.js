@@ -321,6 +321,18 @@ function getOpenTime(openPosition = {}) {
 }
 
 function getHoldingMinutes(openPosition = {}) {
+    const providedMinutes = toNumber(
+        openPosition.holdingMinutes ??
+        openPosition.holding_minutes ??
+        openPosition.minutesOpen ??
+        openPosition.minutes_open,
+        Number.NaN
+    );
+
+    if (Number.isFinite(providedMinutes) && providedMinutes >= 0) {
+        return providedMinutes;
+    }
+
     const raw = getOpenTime(openPosition);
     if (!raw) return 0;
 
@@ -342,6 +354,16 @@ function getHoldingMinutes(openPosition = {}) {
     if (!Number.isFinite(diffMs) || diffMs <= 0) return 0;
 
     return diffMs / 60000;
+}
+
+function buildLossFloor(slPoints = 0, ratio = 0.1, minLoss = 0, maxLoss = 0) {
+    const sl = Math.max(toSafeNumber(slPoints, 0), 1);
+    const bounded = Math.max(
+        toSafeNumber(minLoss, 0),
+        Math.min(sl * Math.max(toSafeNumber(ratio, 0), 0), Math.max(toSafeNumber(maxLoss, 0), toSafeNumber(minLoss, 0)))
+    );
+
+    return -Number(bounded.toFixed(2));
 }
 
 function getPeakProfit(openPosition = {}, currentProfit = 0) {
@@ -883,30 +905,46 @@ function shouldSimpleWrongWayCut({
     confirmation = { level: "LOW", score: 0 },
     softInvalidation = false,
     hardInvalidation = false,
+    slPoints = 0,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
+    const normalizedMode = normalizeMode(mode);
+
+    const effectiveStrongCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.16, 28, 90)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.18, 55, 150)
+                : buildLossFloor(slPoints, 0.18, 70, 220);
+
+    const effectiveSimpleCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.24, 45, 130)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.26, 90, 240)
+                : buildLossFloor(slPoints, 0.24, 120, 320);
 
     if (
-        profit <= profile.strongCutProfit &&
+        profit <= Math.min(profile.strongCutProfit, effectiveStrongCutProfit) &&
         reversalScore >= profile.reversalCutScore &&
         (softInvalidation || hardInvalidation || confirmation.level !== "LOW")
     ) {
         return {
             action: "CUT_LOSS_NOW",
-            reason: `${normalizeMode(mode)}_STRONG_REVERSAL_CUT`,
+            reason: `${normalizedMode}_STRONG_REVERSAL_CUT`,
         };
     }
 
     if (
         mins >= profile.simpleCutMinutes &&
-        profit <= profile.simpleCutProfit &&
+        profit <= Math.min(profile.simpleCutProfit, effectiveSimpleCutProfit) &&
         (softInvalidation || hardInvalidation || confirmation.level === "HIGH")
     ) {
         return {
             action: "CUT_LOSS_NOW",
-            reason: `${normalizeMode(mode)}_TIME_BASED_WRONG_WAY_CUT`,
+            reason: `${normalizedMode}_TIME_BASED_WRONG_WAY_CUT`,
         };
     }
 
@@ -921,19 +959,22 @@ function shouldNormalFastWrongWayCut({
     candles = [],
     side = "",
     confirmation = { level: "LOW", score: 0 },
+    slPoints = 0,
 }) {
     if (normalizeMode(mode) !== "NORMAL") return null;
 
     const profile = getExitProfile("NORMAL");
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
+    const effectiveStructureBreakProfit = buildLossFloor(slPoints, 0.08, 55, 150);
+    const effectiveFastCutProfit = buildLossFloor(slPoints, 0.12, 75, 180);
 
     const hardInvalidation = hasHardInvalidation(candles, side);
     const softInvalidation = hasSoftInvalidation(candles, side);
 
     if (
         mins >= profile.normalFastCutMinutes &&
-        profit <= profile.normalStructureBreakProfit &&
+        profit <= Math.min(profile.normalStructureBreakProfit, effectiveStructureBreakProfit) &&
         (hardInvalidation || (softInvalidation && confirmation.level !== "LOW"))
     ) {
         return {
@@ -944,7 +985,7 @@ function shouldNormalFastWrongWayCut({
 
     if (
         mins >= profile.normalFastCutMinutes &&
-        profit <= profile.normalFastCutProfit &&
+        profit <= Math.min(profile.normalFastCutProfit, effectiveFastCutProfit) &&
         reversalScore >= profile.normalFastReversalScore &&
         (hardInvalidation || softInvalidation)
     ) {
@@ -965,13 +1006,29 @@ function shouldWrongWayFlowCut({
     hardInvalidation = false,
     confirmation = { level: "LOW", score: 0 },
     mode = "NORMAL",
+    slPoints = 0,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
+    const normalizedMode = normalizeMode(mode);
 
     if (profit > 0) return null;
     if (mins < profile.wrongWayMinMinutes) return null;
+
+    const effectiveWrongWayCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.14, 24, 70)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.15, 50, 130)
+                : buildLossFloor(slPoints, 0.14, 65, 170);
+
+    const effectiveWrongWayHardCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.22, 40, 110)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.22, 85, 190)
+                : buildLossFloor(slPoints, 0.20, 110, 260);
 
     const confidenceBoost =
         (softInvalidation ? 0.25 : 0) +
@@ -981,7 +1038,7 @@ function shouldWrongWayFlowCut({
     const effectiveFlowScore = wrongWayFlowScore + confidenceBoost;
 
     if (
-        profit <= profile.wrongWayHardCutProfit &&
+        profit <= Math.min(profile.wrongWayHardCutProfit, effectiveWrongWayHardCutProfit) &&
         effectiveFlowScore >= profile.wrongWayFlowHardScore
     ) {
         return {
@@ -992,7 +1049,7 @@ function shouldWrongWayFlowCut({
     }
 
     if (
-        profit <= profile.wrongWayCutProfit &&
+        profit <= Math.min(profile.wrongWayCutProfit, effectiveWrongWayCutProfit) &&
         effectiveFlowScore >= profile.wrongWayFlowCutScore
     ) {
         return {
@@ -1010,16 +1067,25 @@ function shouldNoFollowThroughCut({
     holdingMinutes = 0,
     noFollowThrough = { score: 0, detected: false },
     mode = "NORMAL",
+    slPoints = 0,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
+    const normalizedMode = normalizeMode(mode);
 
     if (profit > 0) return null;
     if (mins < profile.noFollowThroughMinMinutes) return null;
 
+    const effectiveNoFollowThroughCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.10, 18, 60)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.12, 40, 110)
+                : buildLossFloor(slPoints, 0.10, 55, 140);
+
     if (
-        profit <= profile.noFollowThroughCutProfit &&
+        profit <= Math.min(profile.noFollowThroughCutProfit, effectiveNoFollowThroughCutProfit) &&
         toNumber(noFollowThrough.score, 0) >= profile.noFollowThroughScore
     ) {
         return {
@@ -1035,14 +1101,23 @@ function shouldTakeoverCut({
     currentProfit = 0,
     takeover = { score: 0, detected: false },
     mode = "NORMAL",
+    slPoints = 0,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
+    const normalizedMode = normalizeMode(mode);
 
     if (profit > 0) return null;
 
+    const effectiveTakeoverCutProfit =
+        normalizedMode === "MICRO_SCALP"
+            ? buildLossFloor(slPoints, 0.08, 14, 45)
+            : normalizedMode === "SCALP"
+                ? buildLossFloor(slPoints, 0.09, 30, 80)
+                : buildLossFloor(slPoints, 0.08, 40, 100);
+
     if (
-        profit <= profile.takeoverCutProfit &&
+        profit <= Math.min(profile.takeoverCutProfit, effectiveTakeoverCutProfit) &&
         toNumber(takeover.score, 0) >= profile.takeoverCutScore
     ) {
         return {
@@ -1212,6 +1287,7 @@ async function analyzeEarlyExit({
 
     const derivedSlPoints =
         toNumber(slPoints, 0) ||
+        toNumber(openPosition.slPoints ?? openPosition.sl_points, 0) ||
         abs(
             toNumber(openPosition.entryPrice || openPosition.openPrice, 0) -
             toNumber(openPosition.sl, 0)
@@ -1305,7 +1381,14 @@ async function analyzeEarlyExit({
     });
 
     if (profit <= 0) {
-        if (failedPatternRule && profit <= profile.failedPatternCutProfit) {
+        const effectiveFailedPatternCutProfit =
+            normalizeMode(normalizedMode) === "MICRO_SCALP"
+                ? buildLossFloor(derivedSlPoints, 0.10, 18, 60)
+                : normalizeMode(normalizedMode) === "SCALP"
+                    ? buildLossFloor(derivedSlPoints, 0.12, 40, 110)
+                    : buildLossFloor(derivedSlPoints, 0.10, 55, 140);
+
+        if (failedPatternRule && profit <= Math.min(profile.failedPatternCutProfit, effectiveFailedPatternCutProfit)) {
             if (!hardCutGate.allowHardCut) {
                 return buildSuppressedHold("FAILED_PATTERN_EARLY_EXIT_SUPPRESSED", {
                     rawReason: "FAILED_PATTERN_EARLY_EXIT",
@@ -1326,6 +1409,7 @@ async function analyzeEarlyExit({
             currentProfit: profit,
             takeover,
             mode: normalizedMode,
+            slPoints: derivedSlPoints,
         });
 
         if (takeoverCut) {
@@ -1350,6 +1434,7 @@ async function analyzeEarlyExit({
             holdingMinutes,
             noFollowThrough,
             mode: normalizedMode,
+            slPoints: derivedSlPoints,
         });
 
         if (noFollowThroughCut) {
@@ -1377,6 +1462,7 @@ async function analyzeEarlyExit({
             hardInvalidation,
             confirmation,
             mode: normalizedMode,
+            slPoints: derivedSlPoints,
         });
 
         if (wrongWayCut) {
@@ -1408,6 +1494,7 @@ async function analyzeEarlyExit({
             confirmation,
             softInvalidation,
             hardInvalidation,
+            slPoints: derivedSlPoints,
         });
 
         if (simpleCut) {
@@ -1435,6 +1522,7 @@ async function analyzeEarlyExit({
             candles,
             side,
             confirmation,
+            slPoints: derivedSlPoints,
         });
 
         if (normalFastCut) {
