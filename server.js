@@ -552,6 +552,56 @@ function roundLot(value, step = 0.01) {
   return Number((Math.round(n / step) * step).toFixed(2));
 }
 
+function resolveTradingPreferenceLotBounds(tradingPreferences = null) {
+  const rawBaseLot = Number(
+    tradingPreferences?.base_log_size ??
+    tradingPreferences?.base_lot_size ??
+    tradingPreferences?.baseLotSize ??
+    0
+  );
+
+  const rawMaxLot = Number(
+    tradingPreferences?.max_lot_size ??
+    tradingPreferences?.maxLotSize ??
+    5
+  );
+
+  const minLot = rawBaseLot > 0 ? roundLot(rawBaseLot, 0.01) : 0;
+  const maxLotCandidate = rawMaxLot > 0 ? roundLot(rawMaxLot, 0.01) : 5;
+  const maxLot = Math.max(minLot || 0.01, maxLotCandidate || 5);
+
+  return {
+    minLot,
+    maxLot,
+  };
+}
+
+function clampLotToTradingPreferences(lot, tradingPreferences = null, fallbackMinLot = 0.01) {
+  const safeLot = Number(lot || 0);
+  const fallbackMin = Math.max(0.01, Number(fallbackMinLot || 0.01));
+  const { minLot, maxLot } = resolveTradingPreferenceLotBounds(tradingPreferences);
+  const effectiveMin = Math.max(fallbackMin, minLot || 0);
+  const effectiveMax = Math.max(effectiveMin, maxLot || 5);
+
+  const normalizedLot = Number.isFinite(safeLot) && safeLot > 0 ? safeLot : effectiveMin;
+  return roundLot(clamp(normalizedLot, effectiveMin, effectiveMax), 0.01);
+}
+
+function applyTradingPreferenceLotBoundsToTradeSetup(tradeSetup, tradingPreferences = null, fallbackMinLot = 0.01) {
+  if (!tradeSetup || typeof tradeSetup !== "object") {
+    return tradeSetup;
+  }
+
+  return {
+    ...tradeSetup,
+    recommended_lot: clampLotToTradingPreferences(
+      tradeSetup.recommended_lot,
+      tradingPreferences,
+      fallbackMinLot
+    ),
+  };
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -744,11 +794,13 @@ async function runSignalDecision(normalized) {
  */
 function calculateProgressiveLotSize({
   userBaseLot = 0,
+  userMaxLot = 5,
   score,
   confidenceLevel = "NORMAL",
   balance,
 }) {
   const safeConfiguredBaseLot = toNum(userBaseLot, 0);
+  const safeConfiguredMaxLot = toNum(userMaxLot, 5);
   const safeBalance = Math.max(0, toNum(balance, 0));
   const safeScore = Math.abs(toNum(score, 0));
   const level = String(confidenceLevel || "NORMAL").toUpperCase();
@@ -781,13 +833,15 @@ function calculateProgressiveLotSize({
   let extraLot = maxExtraLot * scoreFactor * confidenceFactor;
   extraLot = clamp(Number(extraLot.toFixed(2)), 0, maxExtraLot);
 
-  const systemLot = roundLot(baseLot + extraLot, 0.01);
+  const maxLot = Math.max(baseLot, safeConfiguredMaxLot > 0 ? roundLot(safeConfiguredMaxLot, 0.01) : 5);
+  const systemLot = roundLot(clamp(baseLot + extraLot, baseLot, maxLot), 0.01);
 
   return {
     baseLot: roundLot(baseLot, 0.01),
     extraLot: roundLot(extraLot, 0.01),
     maxExtraLot: roundLot(maxExtraLot, 0.01),
     systemLot,
+    maxLot,
     scoreFactor: Number(scoreFactor.toFixed(2)),
     confidenceFactor: Number(confidenceFactor.toFixed(2)),
     confidenceLevel: level,
@@ -1804,6 +1858,7 @@ function buildTradeSetupFromPattern({
   score,
   defensiveFlags,
   userMinLotFloor,
+  userMaxLotCap = 5,
   coldStartProfile = null,
   historicalVolumeSignal = null,
   symbol = "",
@@ -1947,6 +2002,7 @@ function buildTradeSetupFromPattern({
 
   const lotSizing = calculateProgressiveLotSize({
     userBaseLot: userMinLotFloor,
+    userMaxLot: userMaxLotCap,
     score: signalStrength,
     confidenceLevel,
     balance: Number(balance || 0),
@@ -1975,7 +2031,10 @@ function buildTradeSetupFromPattern({
   }
 
   if (lotSize < 0.01) lotSize = 0.01;
-  if (lotSize > 5.0) lotSize = 5.0;
+  lotSize = clampLotToTradingPreferences(lotSize, {
+    base_log_size: userMinLotFloor,
+    max_lot_size: userMaxLotCap,
+  });
 
   let tradeSetup = {
     recommended_lot: lotSize,
@@ -2014,6 +2073,15 @@ function buildTradeSetupFromPattern({
       tradeSetup.recommended_lot = 0.01;
     }
   }
+
+  tradeSetup = applyTradingPreferenceLotBoundsToTradeSetup(
+    tradeSetup,
+    {
+      base_log_size: userMinLotFloor,
+      max_lot_size: userMaxLotCap,
+    },
+    0.01
+  );
 
   return tradeSetup;
 }
@@ -2098,6 +2166,11 @@ function buildMicroFallbackResponse({
     tradingPreferences?.base_lot_size ??
     0
   );
+  const rawMaxLotCap = Number(
+    tradingPreferences?.max_lot_size ??
+    tradingPreferences?.maxLotSize ??
+    5
+  );
 
   let trade_setup = buildTradeSetupFromPattern({
     side,
@@ -2110,6 +2183,7 @@ function buildMicroFallbackResponse({
     score,
     defensiveFlags,
     userMinLotFloor: rawLotFloor,
+    userMaxLotCap: rawMaxLotCap,
     coldStartProfile,
     historicalVolumeSignal: historicalVolume,
     symbol,
@@ -2134,12 +2208,11 @@ function buildMicroFallbackResponse({
     activeCfg,
   });
 
-  if (rawLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < rawLotFloor) {
-    trade_setup.recommended_lot = Number(rawLotFloor.toFixed(2));
-    if (trade_setup.recommended_lot < 0.01) {
-      trade_setup.recommended_lot = 0.01;
-    }
-  }
+  trade_setup = applyTradingPreferenceLotBoundsToTradeSetup(
+    trade_setup,
+    tradingPreferences,
+    0.01
+  );
 
   return {
     decision,
@@ -2688,6 +2761,17 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       0
     );
     const safeLotFloor = rawLotFloor > 0 ? roundLot(rawLotFloor, 0.01) : 0;
+    const safeLotCap = roundLot(
+      Math.max(
+        safeLotFloor || 0.01,
+        Number(
+          tradingPreferences?.max_lot_size ??
+          tradingPreferences?.maxLotSize ??
+          5
+        ) || 5
+      ),
+      0.01
+    );
 
     const resolvedTradeSide =
       String(finalDecision || "").includes("BUY")
@@ -2762,6 +2846,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       score,
       defensiveFlags,
       userMinLotFloor: rawLotFloor,
+      userMaxLotCap: safeLotCap,
       coldStartProfile,
       historicalVolumeSignal: historicalVolume,
       symbol: resolvedSymbol,
@@ -2788,12 +2873,11 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       activeCfg,
     });
 
-    if (safeLotFloor > 0 && Number(trade_setup?.recommended_lot || 0) < safeLotFloor) {
-      trade_setup.recommended_lot = Number(safeLotFloor.toFixed(2));
-      if (trade_setup.recommended_lot < 0.01) {
-        trade_setup.recommended_lot = 0.01;
-      }
-    }
+    trade_setup = applyTradingPreferenceLotBoundsToTradeSetup(
+      trade_setup,
+      tradingPreferences,
+      0.01
+    );
 
     if (isPyramidDecision(finalDecision)) {
       const pyramidLotCap = roundLot(pyramidReferenceLot - 0.01, 0.01);
@@ -4174,9 +4258,13 @@ app.post("/signal-refresh", async (req, res) => {
         : responseDecision;
 
     const finalTradeSetup = isReversalExecution
-      ? buildSignalRefreshReversalTradeSetup(
-        refreshTradeSetup,
-        reversalConfirmation.candidateSide
+      ? applyTradingPreferenceLotBoundsToTradeSetup(
+        buildSignalRefreshReversalTradeSetup(
+          refreshTradeSetup,
+          reversalConfirmation.candidateSide
+        ),
+        tradingPreferences,
+        0.01
       )
       : {
         recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
@@ -5992,6 +6080,7 @@ app.post("/trading-preferences", async (req, res) => {
       directionBias = "AUTO",
       maxOpenPositions = 5,
       baseLotSize = 0.01,
+      maxLotSize = 5,
       changedBy = null,
       note = null,
     } = req.body || {};
@@ -6002,6 +6091,7 @@ app.post("/trading-preferences", async (req, res) => {
     const safeDirectionBias = normalizeDirectionBias(directionBias);
     const safeMaxOpenPositions = toPositiveInt(maxOpenPositions, 5);
     const safeBaseLotSize = toPositiveDecimal(baseLotSize, 0.01);
+    const safeMaxLotSize = toPositiveDecimal(maxLotSize, 5);
     const safeChangedBy = normalizeNullable(changedBy);
     const safeNote = normalizeNullable(note);
 
@@ -6026,6 +6116,20 @@ app.post("/trading-preferences", async (req, res) => {
       });
     }
 
+    if (safeMaxLotSize <= 0 || safeMaxLotSize > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "maxLotSize must be greater than 0 and not exceed 100",
+      });
+    }
+
+    if (safeMaxLotSize < safeBaseLotSize) {
+      return res.status(400).json({
+        success: false,
+        error: "maxLotSize must be greater than or equal to baseLotSize",
+      });
+    }
+
     const upsertSql = `
       INSERT INTO user_trading_preferences (
         firebase_user_id,
@@ -6033,13 +6137,15 @@ app.post("/trading-preferences", async (req, res) => {
         engine_enabled,
         direction_bias,
         max_open_positions,
-        base_lot_size
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        base_lot_size,
+        max_lot_size
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         engine_enabled = VALUES(engine_enabled),
         direction_bias = VALUES(direction_bias),
         max_open_positions = VALUES(max_open_positions),
         base_lot_size = VALUES(base_lot_size),
+        max_lot_size = VALUES(max_lot_size),
         updated_at = CURRENT_TIMESTAMP
     `;
 
@@ -6052,6 +6158,7 @@ app.post("/trading-preferences", async (req, res) => {
         safeDirectionBias,
         safeMaxOpenPositions,
         safeBaseLotSize,
+        safeMaxLotSize,
       ],
       { retries: 2 }
     );
@@ -6093,6 +6200,7 @@ app.post("/trading-preferences", async (req, res) => {
         direction_bias AS directionBias,
         max_open_positions AS maxOpenPositions,
         base_lot_size AS baseLotSize,
+        max_lot_size AS maxLotSize,
         updated_at AS updatedAt
       FROM user_trading_preferences
       WHERE firebase_user_id = ?
@@ -6112,6 +6220,7 @@ app.post("/trading-preferences", async (req, res) => {
         directionBias: safeDirectionBias,
         maxOpenPositions: safeMaxOpenPositions,
         baseLotSize: safeBaseLotSize,
+        maxLotSize: safeMaxLotSize,
       },
     });
   } catch (error) {
@@ -6143,6 +6252,7 @@ app.get("/trading-preferences", async (req, res) => {
         direction_bias AS directionBias,
         max_open_positions AS maxOpenPositions,
         base_lot_size AS baseLotSize,
+        max_lot_size AS maxLotSize,
         updated_at AS updatedAt
       FROM user_trading_preferences
       WHERE firebase_user_id = ? AND account_id = ?
@@ -6168,6 +6278,7 @@ app.get("/trading-preferences", async (req, res) => {
         directionBias: "AUTO",
         maxOpenPositions: 5,
         baseLotSize: 0.01,
+        maxLotSize: 5,
         updatedAt: null,
       },
     });

@@ -3,6 +3,7 @@ const DEFAULT_TRADING_PREFERENCES = {
     direction_bias: "AUTO",
     max_open_positions: 0,
     base_lot_size: 0,
+    max_lot_size: 5,
 };
 
 const OPEN_DECISIONS = new Set([
@@ -41,6 +42,17 @@ function normalizeTradingPreferences(row) {
         row.baseLotSize ??
         0;
 
+    const rawMaxLotSize =
+        row.max_lot_size ??
+        row.maxLotSize ??
+        5;
+
+    const normalizedBaseLot = Math.max(0, toNumber(rawLotCap, 0));
+    const normalizedMaxLot = Math.max(
+        normalizedBaseLot,
+        toNumber(rawMaxLotSize, 5) > 0 ? toNumber(rawMaxLotSize, 5) : 5
+    );
+
     return {
         engine_enabled: Number(row.engine_enabled ?? 1) === 1 ? 1 : 0,
         direction_bias: normalizeDirectionBias(row.direction_bias),
@@ -48,7 +60,8 @@ function normalizeTradingPreferences(row) {
             0,
             parseInt(row.max_open_positions ?? 0, 10) || 0
         ),
-        base_log_size: Math.max(0, toNumber(rawLotCap, 0)),
+        base_log_size: normalizedBaseLot,
+        max_lot_size: normalizedMaxLot,
     };
 }
 
