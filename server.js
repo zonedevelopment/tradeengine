@@ -86,6 +86,7 @@ const {
 const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
+const SignalRefreshAuditLog = require("./models/SignalRefreshAuditLog");
 
 const microScalpEngine = require("./microScalpEngine-v4");
 
@@ -3399,6 +3400,164 @@ function buildSignalRefreshLifecycle({
   };
 }
 
+function shouldCaptureSignalRefreshSnapshot({
+  payload = {},
+  reqBody = {},
+}) {
+  const phase = String(payload?.phase || "").toUpperCase();
+  const state = String(payload?.state || "").toUpperCase();
+  const reason = String(payload?.reason || "").toUpperCase();
+  const symbol = String(reqBody?.symbol || "").toUpperCase();
+
+  if (phase === "RE_HYPOTHESIS") return true;
+  if (state === "OPEN_REVERSAL" || state === "INVALIDATED_BY_STRUCTURE" || state === "INVALIDATED_REANALYZE") return true;
+  if (reason.includes("RETEST_REJECTED") || reason.includes("COUNTER_IMPULSE") || reason.includes("ZONE_LOST")) return true;
+  if (["XAUUSD", "XAUUSDM", "BTCUSD", "BTCUSDM"].includes(symbol)) return true;
+
+  return false;
+}
+
+function buildSignalRefreshAuditSnapshots(reqBody = {}) {
+  const candles = normalizeCandles(reqBody?.candles, 0);
+  const candlesM1 = normalizeCandles(reqBody?.candles_m1, 0);
+  const liveCandle = reqBody?.candles_live || null;
+
+  const normalizeSnapshotCandles = (list = [], takeLast = 4) =>
+    list.slice(-takeLast).map((c) => ({
+      time: c?.time || null,
+      open: Number(c?.open || 0),
+      high: Number(c?.high || 0),
+      low: Number(c?.low || 0),
+      close: Number(c?.close || 0),
+      tickVolume: Number(c?.tick_volume ?? c?.tickVolume ?? 0),
+    }));
+
+  return {
+    candles: normalizeSnapshotCandles(candles, 4),
+    candlesM1: normalizeSnapshotCandles(candlesM1, 6),
+    liveCandle: liveCandle
+      ? {
+        time: liveCandle?.time || null,
+        open: Number(liveCandle?.open || 0),
+        high: Number(liveCandle?.high || 0),
+        low: Number(liveCandle?.low || 0),
+        close: Number(liveCandle?.close ?? liveCandle?.last ?? 0),
+        last: Number(liveCandle?.last ?? liveCandle?.close ?? 0),
+      }
+      : null,
+  };
+}
+
+function buildSignalRefreshAuditLogDocument({
+  reqBody = {},
+  payload = {},
+}) {
+  const baseSignal = reqBody?.baseSignal || {};
+  const meta = payload?.meta || {};
+  const pendingOrder = reqBody?.pendingOrder || {};
+
+  const doc = {
+    eventType: "SIGNAL_REFRESH",
+    firebaseUserId: String(reqBody?.firebaseUserId || ""),
+    accountId: String(reqBody?.accountId || ""),
+    symbol: String(reqBody?.symbol || "").toUpperCase(),
+    timeframe: String(reqBody?.timeframe || "M5").toUpperCase(),
+    eventTime: new Date(),
+
+    baseSide: String(
+      reqBody?.pendingSide ||
+      pendingOrder?.side ||
+      meta?.pendingSide ||
+      ""
+    ).toUpperCase(),
+    baseDecision: String(baseSignal?.decision || meta?.baseDecision || "").toUpperCase(),
+    baseScore: Number(baseSignal?.score || 0),
+    pendingSide: String(meta?.pendingSide || pendingOrder?.side || "").toUpperCase(),
+    pendingMode: String(
+      pendingOrder?.mode ||
+      reqBody?.pendingMode ||
+      baseSignal?.mode ||
+      ""
+    ).toUpperCase(),
+
+    action: String(payload?.action || "").toUpperCase(),
+    decision: String(payload?.decision || "").toUpperCase(),
+    reason: String(payload?.reason || "").toUpperCase(),
+    phase: String(payload?.phase || "").toUpperCase(),
+    state: String(payload?.state || "").toUpperCase(),
+    activeHypothesis: String(payload?.activeHypothesis || "").toUpperCase(),
+    candidateSide: String(payload?.candidateSide || "").toUpperCase(),
+
+    score: Number(payload?.score || 0),
+    confidence: Number(payload?.confidence || 0),
+    mode: String(payload?.mode || "").toUpperCase(),
+
+    refreshAttempt: Number(meta?.refreshAttempt || 0),
+    pendingAgeSec: Number(meta?.pendingAgeSec || 0),
+    spreadPoints: Number(meta?.spreadPoints || 0),
+    liveMomentumScore: Number(meta?.liveMomentumScore || 0),
+    currentDistancePoints: Number(meta?.currentDistancePoints || 0),
+    immediateEntryThreshold: Number(meta?.immediateEntryThreshold || 0),
+
+    refreshValidated: Boolean(meta?.refreshValidated),
+    refreshWaiting: Boolean(meta?.refreshWaiting),
+    refreshInvalidated: Boolean(meta?.refreshInvalidated),
+
+    reanalysisTriggered: Boolean(meta?.reanalysisTriggered),
+    reanalysisReason: String(meta?.reanalysisReason || "").toUpperCase(),
+    reversalConfirmed: Boolean(meta?.reversalConfirmed),
+
+    breakoutDetected: Boolean(meta?.breakoutDetected),
+    breakoutRetestAccepted: Boolean(meta?.breakoutRetestAccepted),
+    breakoutRetestRejected: Boolean(meta?.breakoutRetestRejected),
+
+    evidence: Array.isArray(payload?.evidence)
+      ? payload.evidence.map((item) => String(item || ""))
+      : [],
+
+    tradeSetup: payload?.trade_setup || null,
+    hypotheses: payload?.hypotheses || null,
+    requestSummary: {
+      price: Number(reqBody?.price || 0),
+      balance: Number(reqBody?.balance || 0),
+      digits: Number(reqBody?.market?.digits ?? reqBody?.digits ?? 0),
+      ask: Number(reqBody?.market?.ask ?? 0),
+      bid: Number(reqBody?.market?.bid ?? 0),
+      spreadPoints: Number(reqBody?.market?.spreadPoints ?? reqBody?.spreadPoints ?? 0),
+      pendingTarget: Number(reqBody?.pendingTarget ?? pendingOrder?.entryTargetPrice ?? 0),
+      pendingLot: Number(reqBody?.pendingLot ?? pendingOrder?.recommendedLot ?? 0),
+      pendingSlPoints: Number(reqBody?.pendingSlPoints ?? pendingOrder?.slPoints ?? 0),
+      pendingTpPoints: Number(reqBody?.pendingTpPoints ?? pendingOrder?.tpPoints ?? 0),
+      pendingRetracePoints: Number(reqBody?.pendingRetracePoints ?? pendingOrder?.retracePoints ?? 0),
+      windowSec: Number(reqBody?.refreshContext?.windowSec ?? 0),
+    },
+    snapshots: null,
+  };
+
+  if (shouldCaptureSignalRefreshSnapshot({ payload, reqBody })) {
+    doc.snapshots = buildSignalRefreshAuditSnapshots(reqBody);
+  }
+
+  return doc;
+}
+
+function writeSignalRefreshAuditLog({
+  reqBody = {},
+  payload = {},
+}) {
+  try {
+    const doc = buildSignalRefreshAuditLogDocument({ reqBody, payload });
+
+    Promise.resolve()
+      .then(() => SignalRefreshAuditLog.create(doc))
+      .catch((error) => {
+        console.error("[signal-refresh-audit-log] write failed:", error.message);
+      });
+  } catch (error) {
+    console.error("[signal-refresh-audit-log] build failed:", error.message);
+  }
+}
+
 function mapSignalRefreshConfidenceToScore(side = "", confidence = 0) {
   const normalizedSide = String(side || "").toUpperCase();
   const base = 1.6 + Number(confidence || 0) * 1.45;
@@ -4121,6 +4280,11 @@ app.post("/signal-refresh", async (req, res) => {
           : 0,
       },
     };
+
+    writeSignalRefreshAuditLog({
+      reqBody: req.body || {},
+      payload,
+    });
 
     return res.json(payload);
   } catch (error) {
