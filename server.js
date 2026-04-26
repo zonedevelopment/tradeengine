@@ -3299,6 +3299,67 @@ function evaluateSignalRefreshValidation({
   };
 }
 
+function buildSignalRefreshLifecycle({
+  action = "KEEP_PENDING",
+  reason = "",
+  pendingSide = "",
+  responseSide = "",
+  refreshValidation = {},
+}) {
+  const normalizedAction = String(action || "KEEP_PENDING").toUpperCase();
+  const validationReason = String(refreshValidation?.reason || reason || "").toUpperCase();
+  const hasEvidence = Array.isArray(refreshValidation?.evidence) && refreshValidation.evidence.length > 0;
+
+  let phase = "VALIDATE";
+  let state = "KEEP_ORIGINAL_BIAS";
+  let activeHypothesis = "ORIGINAL";
+  let candidateSide = String(responseSide || pendingSide || "").toUpperCase() || "NONE";
+
+  if (
+    normalizedAction === "CANCEL_PENDING" ||
+    refreshValidation?.invalidated
+  ) {
+    phase = "INVALIDATE";
+    state = "INVALIDATED";
+    activeHypothesis = "NONE";
+    candidateSide = "NONE";
+  } else if (normalizedAction === "EXECUTE_NOW") {
+    phase = "VALIDATE";
+    state = "CONFIRMED_ENTRY";
+  } else if (normalizedAction === "TIGHTEN_ENTRY") {
+    phase = "VALIDATE";
+    state = "ADJUST_ENTRY";
+  } else if (refreshValidation?.waiting) {
+    phase = "VALIDATE";
+    state = "WAIT_CONFIRM";
+  }
+
+  if (
+    phase === "INVALIDATE" &&
+    (
+      validationReason.includes("COUNTER_IMPULSE") ||
+      validationReason.includes("ZONE_LOST") ||
+      validationReason.includes("RETEST_REJECTED")
+    )
+  ) {
+    state = "INVALIDATED_BY_STRUCTURE";
+  }
+
+  const evidence = hasEvidence
+    ? [...refreshValidation.evidence]
+    : reason
+      ? [reason]
+      : [];
+
+  return {
+    phase,
+    state,
+    activeHypothesis,
+    candidateSide,
+    evidence,
+  };
+}
+
 app.post("/signal-refresh", async (req, res) => {
   try {
     const result = await handleSignalCore(req, { isRefresh: true });
@@ -3487,10 +3548,23 @@ app.post("/signal-refresh", async (req, res) => {
       reason = "REFRESH_TIGHTEN_ENTRY";
     }
 
+    const refreshLifecycle = buildSignalRefreshLifecycle({
+      action,
+      reason,
+      pendingSide,
+      responseSide,
+      refreshValidation,
+    });
+
     const payload = {
       action,
       reason,
       decision: action === "CANCEL_PENDING" ? "NO_TRADE" : responseDecision,
+      phase: refreshLifecycle.phase,
+      state: refreshLifecycle.state,
+      activeHypothesis: refreshLifecycle.activeHypothesis,
+      candidateSide: refreshLifecycle.candidateSide,
+      evidence: refreshLifecycle.evidence,
       mode: refreshTradeSetup.mode,
       score: Number(result?.score || baseScore || 0),
       recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
@@ -3508,6 +3582,7 @@ app.post("/signal-refresh", async (req, res) => {
         baseDecision,
         resultDecision,
         pendingSide,
+        responseSide,
         pendingAgeSec,
         refreshAttempt,
         currentDistancePoints: Number.isFinite(currentDistancePoints)
@@ -3547,6 +3622,11 @@ app.post("/signal-refresh", async (req, res) => {
       action: "CANCEL_PENDING",
       reason: error.message || "Internal server error",
       decision: "NO_TRADE",
+      phase: "INVALIDATE",
+      state: "ERROR",
+      activeHypothesis: "NONE",
+      candidateSide: "NONE",
+      evidence: [error.message || "Internal server error"],
       score: 0,
       recommended_lot: 0,
       sl_points: 0,
