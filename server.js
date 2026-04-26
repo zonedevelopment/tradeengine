@@ -3305,6 +3305,7 @@ function buildSignalRefreshLifecycle({
   pendingSide = "",
   responseSide = "",
   refreshValidation = {},
+  rehypothesis = null,
 }) {
   const normalizedAction = String(action || "KEEP_PENDING").toUpperCase();
   const validationReason = String(refreshValidation?.reason || reason || "").toUpperCase();
@@ -3345,11 +3346,34 @@ function buildSignalRefreshLifecycle({
     state = "INVALIDATED_BY_STRUCTURE";
   }
 
-  const evidence = hasEvidence
+  let evidence = hasEvidence
     ? [...refreshValidation.evidence]
     : reason
       ? [reason]
       : [];
+
+  if (
+    rehypothesis?.triggered &&
+    normalizedAction !== "EXECUTE_NOW" &&
+    normalizedAction !== "TIGHTEN_ENTRY"
+  ) {
+    phase = "RE_HYPOTHESIS";
+    activeHypothesis = "REVERSAL";
+    candidateSide = String(rehypothesis?.candidateSide || "NONE").toUpperCase() || "NONE";
+
+    if (normalizedAction === "CANCEL_PENDING" || refreshValidation?.invalidated) {
+      state = "INVALIDATED_REANALYZE";
+    } else {
+      state = "WAIT_REVERSAL_CONFIRM";
+    }
+
+    evidence = Array.from(
+      new Set([
+        ...evidence,
+        ...(Array.isArray(rehypothesis?.evidence) ? rehypothesis.evidence : []),
+      ].filter(Boolean))
+    );
+  }
 
   return {
     phase,
@@ -3357,6 +3381,244 @@ function buildSignalRefreshLifecycle({
     activeHypothesis,
     candidateSide,
     evidence,
+  };
+}
+
+function getSignalRefreshOppositeSide(side = "") {
+  const normalized = String(side || "").toUpperCase();
+  if (normalized === "BUY") return "SELL";
+  if (normalized === "SELL") return "BUY";
+  return "NONE";
+}
+
+function getSignalRefreshRecentZone(candles = []) {
+  const safeCandles = normalizeCandles(candles, 0);
+  const recent = safeCandles.slice(-10);
+
+  if (recent.length === 0) {
+    return {
+      swingHigh: 0,
+      swingLow: 0,
+      nearTop: false,
+      nearBottom: false,
+    };
+  }
+
+  const swingHigh = Math.max(...recent.map((c) => Number(c.high || 0)));
+  const swingLow = Math.min(...recent.map((c) => Number(c.low || 0)));
+  const last = recent[recent.length - 1] || {};
+  const close = Number(last.close || 0);
+  const range = Math.max(swingHigh - swingLow, 0.00001);
+  const distanceToTopPct = (swingHigh - close) / range;
+  const distanceToBottomPct = (close - swingLow) / range;
+
+  return {
+    swingHigh,
+    swingLow,
+    nearTop: distanceToTopPct <= 0.20,
+    nearBottom: distanceToBottomPct <= 0.20,
+  };
+}
+
+function evaluateSignalRefreshRehypothesis({
+  pendingSide = "",
+  candles = [],
+  liveCandle = null,
+  result = {},
+  baseSignal = {},
+  refreshValidation = {},
+  breakoutState = {},
+}) {
+  const originalSide = String(pendingSide || "").toUpperCase();
+  const candidateSide = getSignalRefreshOppositeSide(originalSide);
+  const safeCandles = normalizeCandles(candles, 0);
+  const last = getLastCandle(safeCandles, 1);
+  const prev = getLastCandle(safeCandles, 2);
+  const priorSample = safeCandles.slice(-7, -1);
+  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+  const lastBody = getBodySize(last || {});
+  const liveOpen = Number(liveCandle?.open ?? 0);
+  const liveClose = Number(liveCandle?.last ?? liveCandle?.close ?? 0);
+  const liveBody = Math.abs(liveClose - liveOpen);
+  const structure = result?.pattern?.structure || baseSignal?.pattern?.structure || {};
+  const recentZone = getSignalRefreshRecentZone(safeCandles);
+  const evidence = [];
+
+  let confidence = 0;
+  let reason = "";
+
+  if (candidateSide === "NONE") {
+    return {
+      triggered: false,
+      needsConfirmation: false,
+      candidateSide: "NONE",
+      confidence: 0,
+      reason: "",
+      evidence: [],
+      original: {
+        side: originalSide || "NONE",
+        status: "UNKNOWN",
+        score: Number(result?.score || baseSignal?.score || 0),
+        reason: String(refreshValidation?.reason || ""),
+      },
+      reversal: {
+        side: "NONE",
+        status: "NONE",
+        score: 0,
+        reason: "",
+        needsConfirmation: false,
+      },
+    };
+  }
+
+  const bullishReversal = Boolean(structure?.bullishReversal);
+  const bearishReversal = Boolean(structure?.bearishReversal);
+  const microTrend = String(structure?.microTrend || "NEUTRAL").toUpperCase();
+  const recentMassiveBull = Boolean(result?.pattern?.recentMassiveBull || baseSignal?.pattern?.recentMassiveBull);
+  const recentMassiveBear = Boolean(result?.pattern?.recentMassiveBear || baseSignal?.pattern?.recentMassiveBear);
+  const breakoutRejected = Boolean(breakoutState?.retestRejected);
+  const breakoutFailedZone =
+    originalSide === "BUY"
+      ? Boolean(
+        breakoutState?.breakoutDetected &&
+        breakoutState?.breakoutZoneLow > 0 &&
+        Number(last?.close || 0) < Number(breakoutState?.breakoutZoneLow || 0)
+      )
+      : Boolean(
+        breakoutState?.breakoutDetected &&
+        breakoutState?.breakoutZoneHigh > 0 &&
+        Number(last?.close || 0) > Number(breakoutState?.breakoutZoneHigh || 0)
+      );
+
+  const bullishReclaim = Boolean(
+    last &&
+    prev &&
+    isBullish(last) &&
+    lastBody >= avgBody * 1.15 &&
+    Number(last.close || 0) > Number(prev.high || 0)
+  );
+
+  const bearishReclaim = Boolean(
+    last &&
+    prev &&
+    isBearish(last) &&
+    lastBody >= avgBody * 1.15 &&
+    Number(last.close || 0) < Number(prev.low || 0)
+  );
+
+  const liveBullishImpulse = Boolean(
+    liveClose > 0 &&
+    liveOpen > 0 &&
+    liveClose > liveOpen &&
+    liveBody >= avgBody * 0.9
+  );
+
+  const liveBearishImpulse = Boolean(
+    liveClose > 0 &&
+    liveOpen > 0 &&
+    liveClose < liveOpen &&
+    liveBody >= avgBody * 0.9
+  );
+
+  if (originalSide === "SELL") {
+    if (refreshValidation?.strongCounterImpulse) {
+      confidence += 0.28;
+      evidence.push("BULLISH_COUNTER_IMPULSE");
+    }
+    if (breakoutRejected || breakoutFailedZone) {
+      confidence += 0.20;
+      evidence.push("SELL_BREAKDOWN_FAILED");
+    }
+    if (bullishReversal) {
+      confidence += 0.18;
+      evidence.push("BULLISH_REVERSAL_PATTERN");
+    }
+    if (recentMassiveBull) {
+      confidence += 0.16;
+      evidence.push("RECENT_MASSIVE_BULL");
+    }
+    if (microTrend === "BULLISH" || microTrend === "BULLISH_REVERSAL") {
+      confidence += microTrend === "BULLISH_REVERSAL" ? 0.16 : 0.10;
+      evidence.push(`MICRO_TREND_${microTrend}`);
+    }
+    if (recentZone.nearBottom) {
+      confidence += 0.12;
+      evidence.push("NEAR_SWING_BOTTOM");
+    }
+    if (bullishReclaim || liveBullishImpulse) {
+      confidence += bullishReclaim ? 0.20 : 0.10;
+      evidence.push(bullishReclaim ? "BULLISH_RECLAIM" : "LIVE_BULLISH_IMPULSE");
+    }
+    reason = bullishReclaim
+      ? "BULLISH_REVERSAL_RECLAIM"
+      : breakoutRejected || breakoutFailedZone
+        ? "FAILED_SELL_CONTINUATION"
+        : "BULLISH_REVERSAL_CANDIDATE";
+  } else if (originalSide === "BUY") {
+    if (refreshValidation?.strongCounterImpulse) {
+      confidence += 0.28;
+      evidence.push("BEARISH_COUNTER_IMPULSE");
+    }
+    if (breakoutRejected || breakoutFailedZone) {
+      confidence += 0.20;
+      evidence.push("BUY_BREAKOUT_FAILED");
+    }
+    if (bearishReversal) {
+      confidence += 0.18;
+      evidence.push("BEARISH_REVERSAL_PATTERN");
+    }
+    if (recentMassiveBear) {
+      confidence += 0.16;
+      evidence.push("RECENT_MASSIVE_BEAR");
+    }
+    if (microTrend === "BEARISH" || microTrend === "BEARISH_REVERSAL") {
+      confidence += microTrend === "BEARISH_REVERSAL" ? 0.16 : 0.10;
+      evidence.push(`MICRO_TREND_${microTrend}`);
+    }
+    if (recentZone.nearTop) {
+      confidence += 0.12;
+      evidence.push("NEAR_SWING_TOP");
+    }
+    if (bearishReclaim || liveBearishImpulse) {
+      confidence += bearishReclaim ? 0.20 : 0.10;
+      evidence.push(bearishReclaim ? "BEARISH_RECLAIM" : "LIVE_BEARISH_IMPULSE");
+    }
+    reason = bearishReclaim
+      ? "BEARISH_REVERSAL_RECLAIM"
+      : breakoutRejected || breakoutFailedZone
+        ? "FAILED_BUY_CONTINUATION"
+        : "BEARISH_REVERSAL_CANDIDATE";
+  }
+
+  confidence = Number(Math.min(0.95, confidence).toFixed(2));
+  const triggered = confidence >= 0.45 && evidence.length >= 2;
+
+  const originalStatus = refreshValidation?.invalidated
+    ? "INVALIDATED"
+    : refreshValidation?.waiting
+      ? "WAIT_CONFIRM"
+      : "ACTIVE";
+
+  return {
+    triggered,
+    needsConfirmation: triggered,
+    candidateSide: triggered ? candidateSide : "NONE",
+    confidence,
+    reason: triggered ? reason : "",
+    evidence: triggered ? evidence : [],
+    original: {
+      side: originalSide || "NONE",
+      status: originalStatus,
+      score: Number(result?.score || baseSignal?.score || 0),
+      reason: String(refreshValidation?.reason || ""),
+    },
+    reversal: {
+      side: triggered ? candidateSide : "NONE",
+      status: triggered ? "CANDIDATE" : "NONE",
+      score: confidence,
+      reason: triggered ? reason : "",
+      needsConfirmation: triggered,
+    },
   };
 }
 
@@ -3497,6 +3759,16 @@ app.post("/signal-refresh", async (req, res) => {
       actionScoreFloor,
     });
 
+    const rehypothesis = evaluateSignalRefreshRehypothesis({
+      pendingSide,
+      candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
+      liveCandle,
+      result,
+      baseSignal,
+      refreshValidation,
+      breakoutState,
+    });
+
     let action = "KEEP_PENDING";
     let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
 
@@ -3548,12 +3820,21 @@ app.post("/signal-refresh", async (req, res) => {
       reason = "REFRESH_TIGHTEN_ENTRY";
     }
 
+    if (rehypothesis.triggered) {
+      if (action === "CANCEL_PENDING") {
+        reason = "INVALIDATED_REANALYZE";
+      } else if (action === "KEEP_PENDING" && !refreshValidation.validated) {
+        reason = "WAIT_REVERSAL_CONFIRM";
+      }
+    }
+
     const refreshLifecycle = buildSignalRefreshLifecycle({
       action,
       reason,
       pendingSide,
       responseSide,
       refreshValidation,
+      rehypothesis,
     });
 
     const payload = {
@@ -3565,6 +3846,7 @@ app.post("/signal-refresh", async (req, res) => {
       activeHypothesis: refreshLifecycle.activeHypothesis,
       candidateSide: refreshLifecycle.candidateSide,
       evidence: refreshLifecycle.evidence,
+      confidence: Number(rehypothesis?.confidence || 0),
       mode: refreshTradeSetup.mode,
       score: Number(result?.score || baseScore || 0),
       recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
@@ -3577,6 +3859,10 @@ app.post("/signal-refresh", async (req, res) => {
         tp_points: Number(refreshTradeSetup.tp_points || 0),
         retrace_points: Number(refreshTradeSetup.retrace_points || 0),
         mode: refreshTradeSetup.mode,
+      },
+      hypotheses: {
+        original: rehypothesis.original,
+        reversal: rehypothesis.reversal,
       },
       meta: {
         baseDecision,
@@ -3607,6 +3893,12 @@ app.post("/signal-refresh", async (req, res) => {
         breakoutLevel: breakoutState.breakoutLevel || null,
         breakoutZoneHigh: breakoutState.breakoutZoneHigh || null,
         breakoutZoneLow: breakoutState.breakoutZoneLow || null,
+        reanalysisTriggered: rehypothesis.triggered,
+        reanalysisReason: rehypothesis.reason || null,
+        reanalysisNeedsConfirmation: rehypothesis.needsConfirmation,
+        reanalysisCandidateSide: rehypothesis.candidateSide,
+        reanalysisConfidence: rehypothesis.confidence,
+        reanalysisEvidence: rehypothesis.evidence,
         suggestedTarget,
         pendingTarget: pendingTarget > 0 ? pendingTarget : null,
         targetShiftPoints: Number.isFinite(targetShiftPoints)
@@ -3627,12 +3919,28 @@ app.post("/signal-refresh", async (req, res) => {
       activeHypothesis: "NONE",
       candidateSide: "NONE",
       evidence: [error.message || "Internal server error"],
+      confidence: 0,
       score: 0,
       recommended_lot: 0,
       sl_points: 0,
       tp_points: 0,
       retrace_points: 0,
       mode: "NORMAL",
+      hypotheses: {
+        original: {
+          side: "NONE",
+          status: "ERROR",
+          score: 0,
+          reason: error.message || "Internal server error",
+        },
+        reversal: {
+          side: "NONE",
+          status: "NONE",
+          score: 0,
+          reason: "",
+          needsConfirmation: false,
+        },
+      },
       error: error.message,
     });
   }
