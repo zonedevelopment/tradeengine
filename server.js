@@ -3306,6 +3306,7 @@ function buildSignalRefreshLifecycle({
   responseSide = "",
   refreshValidation = {},
   rehypothesis = null,
+  reversalConfirmation = null,
 }) {
   const normalizedAction = String(action || "KEEP_PENDING").toUpperCase();
   const validationReason = String(refreshValidation?.reason || reason || "").toUpperCase();
@@ -3375,12 +3376,155 @@ function buildSignalRefreshLifecycle({
     );
   }
 
+  if (reversalConfirmation?.confirmed && normalizedAction === "EXECUTE_NOW") {
+    phase = "RE_HYPOTHESIS";
+    state = "OPEN_REVERSAL";
+    activeHypothesis = "REVERSAL";
+    candidateSide = String(reversalConfirmation?.candidateSide || "NONE").toUpperCase() || "NONE";
+
+    evidence = Array.from(
+      new Set([
+        ...evidence,
+        ...(Array.isArray(reversalConfirmation?.evidence) ? reversalConfirmation.evidence : []),
+      ].filter(Boolean))
+    );
+  }
+
   return {
     phase,
     state,
     activeHypothesis,
     candidateSide,
     evidence,
+  };
+}
+
+function mapSignalRefreshConfidenceToScore(side = "", confidence = 0) {
+  const normalizedSide = String(side || "").toUpperCase();
+  const base = 1.6 + Number(confidence || 0) * 1.45;
+  const signed = normalizedSide === "SELL" ? -base : base;
+  return Number(signed.toFixed(2));
+}
+
+function buildSignalRefreshReversalTradeSetup(tradeSetup = {}, candidateSide = "") {
+  const fallbackLot = Number(tradeSetup?.recommended_lot || 0.01);
+  const reducedLot = roundLot(Math.max(0.01, fallbackLot * 0.75), 0.01);
+
+  return {
+    recommended_lot: reducedLot > 0 ? reducedLot : 0.01,
+    sl_points: Number(tradeSetup?.sl_points || 0),
+    tp_points: Number(tradeSetup?.tp_points || 0),
+    retrace_points: Number(tradeSetup?.retrace_points || 0),
+    mode: "SCALP",
+    side: String(candidateSide || "").toUpperCase() || "NONE",
+  };
+}
+
+function evaluateSignalRefreshReversalConfirmation({
+  rehypothesis = null,
+  candles = [],
+  candlesM1 = [],
+  liveCandle = null,
+}) {
+  const candidateSide = String(rehypothesis?.candidateSide || "NONE").toUpperCase();
+  const evidence = Array.isArray(rehypothesis?.evidence) ? [...rehypothesis.evidence] : [];
+  const confidence = Number(rehypothesis?.confidence || 0);
+  const safeCandles = normalizeCandles(candles, 0);
+  const last = getLastCandle(safeCandles, 1);
+  const prev = getLastCandle(safeCandles, 2);
+  const priorSample = safeCandles.slice(-7, -1);
+  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+  const lastBody = getBodySize(last || {});
+  const reversalMomentum = scoreSignalRefreshMomentum({
+    pendingSide: candidateSide,
+    candlesM1,
+    liveCandle,
+  });
+
+  const hasBullishReclaim = evidence.includes("BULLISH_RECLAIM");
+  const hasBearishReclaim = evidence.includes("BEARISH_RECLAIM");
+  const hasBullishPattern = evidence.includes("BULLISH_REVERSAL_PATTERN");
+  const hasBearishPattern = evidence.includes("BEARISH_REVERSAL_PATTERN");
+  const nearBottom = evidence.includes("NEAR_SWING_BOTTOM");
+  const nearTop = evidence.includes("NEAR_SWING_TOP");
+  const hasBullishCounter = evidence.includes("BULLISH_COUNTER_IMPULSE");
+  const hasBearishCounter = evidence.includes("BEARISH_COUNTER_IMPULSE");
+  const hasBullishMassive = evidence.includes("RECENT_MASSIVE_BULL");
+  const hasBearishMassive = evidence.includes("RECENT_MASSIVE_BEAR");
+
+  let confirmed = false;
+  let reason = "";
+  const confirmationEvidence = [];
+
+  if (candidateSide === "BUY") {
+    const bullishFollowThrough = Boolean(
+      last &&
+      isBullish(last) &&
+      lastBody >= avgBody * 0.95 &&
+      (
+        (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
+        hasBullishReclaim
+      )
+    );
+
+    confirmed = Boolean(
+      rehypothesis?.triggered &&
+      confidence >= 0.62 &&
+      reversalMomentum.aligned &&
+      (
+        bullishFollowThrough ||
+        (hasBullishPattern && nearBottom) ||
+        (hasBullishCounter && hasBullishMassive)
+      )
+    );
+
+    if (bullishFollowThrough) confirmationEvidence.push("REVERSAL_BULLISH_FOLLOW_THROUGH");
+    if (reversalMomentum.aligned) confirmationEvidence.push("REVERSAL_LIVE_MOMENTUM_ALIGNED");
+    if (hasBullishPattern) confirmationEvidence.push("REVERSAL_PATTERN_CONFIRMED");
+    if (nearBottom) confirmationEvidence.push("REVERSAL_FROM_BOTTOM_ZONE");
+
+    reason = confirmed
+      ? "OPEN_REVERSAL_BUY_CONFIRM"
+      : "";
+  } else if (candidateSide === "SELL") {
+    const bearishFollowThrough = Boolean(
+      last &&
+      isBearish(last) &&
+      lastBody >= avgBody * 0.95 &&
+      (
+        (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
+        hasBearishReclaim
+      )
+    );
+
+    confirmed = Boolean(
+      rehypothesis?.triggered &&
+      confidence >= 0.62 &&
+      reversalMomentum.aligned &&
+      (
+        bearishFollowThrough ||
+        (hasBearishPattern && nearTop) ||
+        (hasBearishCounter && hasBearishMassive)
+      )
+    );
+
+    if (bearishFollowThrough) confirmationEvidence.push("REVERSAL_BEARISH_FOLLOW_THROUGH");
+    if (reversalMomentum.aligned) confirmationEvidence.push("REVERSAL_LIVE_MOMENTUM_ALIGNED");
+    if (hasBearishPattern) confirmationEvidence.push("REVERSAL_PATTERN_CONFIRMED");
+    if (nearTop) confirmationEvidence.push("REVERSAL_FROM_TOP_ZONE");
+
+    reason = confirmed
+      ? "OPEN_REVERSAL_SELL_CONFIRM"
+      : "";
+  }
+
+  return {
+    confirmed,
+    candidateSide,
+    confidence,
+    reason,
+    evidence: confirmationEvidence,
+    momentum: reversalMomentum,
   };
 }
 
@@ -3769,6 +3913,13 @@ app.post("/signal-refresh", async (req, res) => {
       breakoutState,
     });
 
+    const reversalConfirmation = evaluateSignalRefreshReversalConfirmation({
+      rehypothesis,
+      candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
+      candlesM1,
+      liveCandle,
+    });
+
     let action = "KEEP_PENDING";
     let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
 
@@ -3820,12 +3971,75 @@ app.post("/signal-refresh", async (req, res) => {
       reason = "REFRESH_TIGHTEN_ENTRY";
     }
 
+    const fatalRefreshReasons = new Set([
+      "REFRESH_WINDOW_EXPIRED",
+      "REFRESH_PENDING_SIDE_MISSING",
+    ]);
+
+    if (
+      reversalConfirmation.confirmed &&
+      !fatalRefreshReasons.has(String(reason || "").toUpperCase()) &&
+      action !== "TIGHTEN_ENTRY" &&
+      action !== "EXECUTE_NOW"
+    ) {
+      action = "EXECUTE_NOW";
+      reason = reversalConfirmation.reason || "OPEN_REVERSAL_CONFIRM";
+    }
+
     if (rehypothesis.triggered) {
-      if (action === "CANCEL_PENDING") {
+      if (reversalConfirmation.confirmed) {
+        reason = reversalConfirmation.reason || "OPEN_REVERSAL_CONFIRM";
+      } else if (action === "CANCEL_PENDING") {
         reason = "INVALIDATED_REANALYZE";
       } else if (action === "KEEP_PENDING" && !refreshValidation.validated) {
         reason = "WAIT_REVERSAL_CONFIRM";
       }
+    }
+
+    const isReversalExecution = Boolean(
+      reversalConfirmation.confirmed &&
+      action === "EXECUTE_NOW" &&
+      String(reason || "").toUpperCase().includes("REVERSAL")
+    );
+
+    const finalDecision = isReversalExecution
+      ? (
+        reversalConfirmation.candidateSide === "BUY"
+          ? "ALLOW_BUY_SCALP"
+          : reversalConfirmation.candidateSide === "SELL"
+            ? "ALLOW_SELL_SCALP"
+            : responseDecision
+      )
+      : action === "CANCEL_PENDING"
+        ? "NO_TRADE"
+        : responseDecision;
+
+    const finalTradeSetup = isReversalExecution
+      ? buildSignalRefreshReversalTradeSetup(
+        refreshTradeSetup,
+        reversalConfirmation.candidateSide
+      )
+      : {
+        recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
+        sl_points: Number(refreshTradeSetup.sl_points || 0),
+        tp_points: Number(refreshTradeSetup.tp_points || 0),
+        retrace_points: Number(refreshTradeSetup.retrace_points || 0),
+        mode: refreshTradeSetup.mode,
+      };
+
+    const finalMode = String(finalTradeSetup.mode || refreshTradeSetup.mode || "NORMAL").toUpperCase();
+    const finalScore = isReversalExecution
+      ? mapSignalRefreshConfidenceToScore(
+        reversalConfirmation.candidateSide,
+        reversalConfirmation.confidence
+      )
+      : Number(result?.score || baseScore || 0);
+
+    if (rehypothesis?.reversal && isReversalExecution) {
+      rehypothesis.reversal.status = "CONFIRMED_ENTRY";
+      rehypothesis.reversal.score = Number(reversalConfirmation.confidence || 0);
+      rehypothesis.reversal.reason = reversalConfirmation.reason || rehypothesis.reversal.reason || "";
+      rehypothesis.reversal.needsConfirmation = false;
     }
 
     const refreshLifecycle = buildSignalRefreshLifecycle({
@@ -3835,31 +4049,26 @@ app.post("/signal-refresh", async (req, res) => {
       responseSide,
       refreshValidation,
       rehypothesis,
+      reversalConfirmation,
     });
 
     const payload = {
       action,
       reason,
-      decision: action === "CANCEL_PENDING" ? "NO_TRADE" : responseDecision,
+      decision: finalDecision,
       phase: refreshLifecycle.phase,
       state: refreshLifecycle.state,
       activeHypothesis: refreshLifecycle.activeHypothesis,
       candidateSide: refreshLifecycle.candidateSide,
       evidence: refreshLifecycle.evidence,
       confidence: Number(rehypothesis?.confidence || 0),
-      mode: refreshTradeSetup.mode,
-      score: Number(result?.score || baseScore || 0),
-      recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
-      sl_points: Number(refreshTradeSetup.sl_points || 0),
-      tp_points: Number(refreshTradeSetup.tp_points || 0),
-      retrace_points: Number(refreshTradeSetup.retrace_points || 0),
-      trade_setup: {
-        recommended_lot: Number(refreshTradeSetup.recommended_lot || 0),
-        sl_points: Number(refreshTradeSetup.sl_points || 0),
-        tp_points: Number(refreshTradeSetup.tp_points || 0),
-        retrace_points: Number(refreshTradeSetup.retrace_points || 0),
-        mode: refreshTradeSetup.mode,
-      },
+      mode: finalMode,
+      score: finalScore,
+      recommended_lot: Number(finalTradeSetup.recommended_lot || 0),
+      sl_points: Number(finalTradeSetup.sl_points || 0),
+      tp_points: Number(finalTradeSetup.tp_points || 0),
+      retrace_points: Number(finalTradeSetup.retrace_points || 0),
+      trade_setup: finalTradeSetup,
       hypotheses: {
         original: rehypothesis.original,
         reversal: rehypothesis.reversal,
@@ -3899,6 +4108,12 @@ app.post("/signal-refresh", async (req, res) => {
         reanalysisCandidateSide: rehypothesis.candidateSide,
         reanalysisConfidence: rehypothesis.confidence,
         reanalysisEvidence: rehypothesis.evidence,
+        reversalConfirmed: reversalConfirmation.confirmed,
+        reversalDecision: isReversalExecution ? finalDecision : null,
+        reversalMode: isReversalExecution ? finalMode : null,
+        reversalMomentumScore: reversalConfirmation?.momentum?.score ?? null,
+        reversalMomentumReasons: reversalConfirmation?.momentum?.reasons ?? [],
+        reversalConfirmationEvidence: reversalConfirmation.evidence,
         suggestedTarget,
         pendingTarget: pendingTarget > 0 ? pendingTarget : null,
         targetShiftPoints: Number.isFinite(targetShiftPoints)
