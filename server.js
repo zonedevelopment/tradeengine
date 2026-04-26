@@ -86,6 +86,7 @@ const {
 const database = require('./config/mongoDB')
 const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
+const EntryThesisSnapshot = require("./models/EntryThesisSnapshot");
 const SignalRefreshAuditLog = require("./models/SignalRefreshAuditLog");
 
 const microScalpEngine = require("./microScalpEngine-v4");
@@ -2312,6 +2313,285 @@ function getCandleTimeKey(candle = {}) {
   ).trim();
 }
 
+function getDecisionSideForThesis(decision = "") {
+  const upper = String(decision || "").toUpperCase();
+  if (upper.includes("BUY")) return "BUY";
+  if (upper.includes("SELL")) return "SELL";
+  return "";
+}
+
+function pickEntryThesisPatternSummary(pattern = null) {
+  if (!pattern || typeof pattern !== "object") return null;
+
+  const breakoutRetest = pattern?.breakoutRetest && typeof pattern.breakoutRetest === "object"
+    ? {
+      direction: String(pattern.breakoutRetest.direction || "").toUpperCase(),
+      breakoutDetected: Boolean(pattern.breakoutRetest.breakoutDetected),
+      freshBreakout: Boolean(pattern.breakoutRetest.freshBreakout),
+      hasRetest: Boolean(pattern.breakoutRetest.hasRetest),
+      retestAccepted: Boolean(pattern.breakoutRetest.retestAccepted),
+      retestRejected: Boolean(pattern.breakoutRetest.retestRejected),
+      breakoutLevel: Number(pattern.breakoutRetest.breakoutLevel || 0) || null,
+      breakoutZoneHigh: Number(pattern.breakoutRetest.breakoutZoneHigh || 0) || null,
+      breakoutZoneLow: Number(pattern.breakoutRetest.breakoutZoneLow || 0) || null,
+    }
+    : null;
+
+  const structure = pattern?.structure && typeof pattern.structure === "object"
+    ? {
+      microTrend: String(pattern.structure.microTrend || "").toUpperCase(),
+      triggerWindow: String(pattern.structure.triggerWindow || "").toUpperCase(),
+      setupWindow: String(pattern.structure.setupWindow || "").toUpperCase(),
+      recentMassiveBull: Boolean(pattern.structure.recentMassiveBull),
+      recentMassiveBear: Boolean(pattern.structure.recentMassiveBear),
+      possibleReversal: Boolean(pattern.structure.possibleReversal),
+    }
+    : null;
+
+  return {
+    name: String(pattern.pattern || pattern.name || pattern.type || "").trim(),
+    type: String(pattern.type || pattern.pattern || "").trim(),
+    tradeMode: String(pattern.tradeMode || pattern.mode || "").trim().toUpperCase(),
+    breakoutRetest,
+    structure,
+  };
+}
+
+function pickEntryThesisTriggerSummary(candles = []) {
+  const triggerCandle = getClosedCandle(candles, 1) || getLastCandle(candles, 1);
+  if (!triggerCandle) return null;
+
+  return {
+    time: getCandleTimeKey(triggerCandle) || null,
+    open: toNum(triggerCandle.open, 0),
+    high: toNum(triggerCandle.high, 0),
+    low: toNum(triggerCandle.low, 0),
+    close: toNum(triggerCandle.close, 0),
+    tickVolume: toNum(triggerCandle.tick_volume ?? triggerCandle.tickVolume ?? 0, 0),
+  };
+}
+
+function buildEntryThesisSnapshotDocument({
+  sourceEndpoint,
+  reqBody = {},
+  payload = {},
+  thesisStage,
+  executionStatus = "PENDING_EXECUTION",
+}) {
+  const firebaseUserId = String(
+    reqBody?.firebaseUserId ||
+    payload?.firebaseUserId ||
+    ""
+  ).trim();
+  const accountId = String(
+    reqBody?.accountId ||
+    payload?.accountId ||
+    ""
+  ).trim();
+  const symbol = String(
+    reqBody?.symbol ||
+    payload?.symbol ||
+    ""
+  ).trim().toUpperCase();
+  const decision = String(payload?.decision || "NO_TRADE").trim().toUpperCase();
+  const side = String(
+    payload?.candidateSide ||
+    getDecisionSideForThesis(decision) ||
+    reqBody?.side ||
+    payload?.side ||
+    ""
+  ).trim().toUpperCase();
+  const mode = String(
+    payload?.mode ||
+    payload?.trade_setup?.mode ||
+    reqBody?.pendingMode ||
+    "NORMAL"
+  ).trim().toUpperCase();
+  const candles = Array.isArray(reqBody?.candles) ? reqBody.candles : [];
+  const trigger = pickEntryThesisTriggerSummary(candles);
+  const payloadPattern = payload?.pattern || reqBody?.baseSignal?.pattern || null;
+  const payloadHistoricalVolume =
+    payload?.historicalVolume ??
+    reqBody?.baseSignal?.historicalVolume ??
+    null;
+
+  if (!firebaseUserId || !symbol || !side) {
+    return null;
+  }
+
+  return {
+    firebaseUserId,
+    accountId,
+    symbol,
+    side,
+    mode,
+    decision,
+    sourceEndpoint: String(sourceEndpoint || "signal").trim(),
+    thesisStage: String(thesisStage || "SIGNAL_ENTRY_CANDIDATE").trim(),
+    executionStatus: String(executionStatus || "PENDING_EXECUTION").trim(),
+    score: Number(payload?.score || 0),
+    confidence: Number(payload?.confidence || 0),
+    trend: String(payload?.trend || reqBody?.baseSignal?.trend || "NEUTRAL").trim().toUpperCase(),
+    reason: String(payload?.reason || "").trim(),
+    phase: payload?.phase ? String(payload.phase).trim() : null,
+    state: payload?.state ? String(payload.state).trim() : null,
+    activeHypothesis: payload?.activeHypothesis ? String(payload.activeHypothesis).trim() : null,
+    candidateSide: payload?.candidateSide ? String(payload.candidateSide).trim().toUpperCase() : null,
+    pattern: pickEntryThesisPatternSummary(payloadPattern),
+    historicalVolume:
+      payloadHistoricalVolume && typeof payloadHistoricalVolume === "object"
+        ? {
+          signal: String(payloadHistoricalVolume.signal || "").trim().toUpperCase(),
+          ratio: Number(payloadHistoricalVolume.ratio || 0) || null,
+          score: Number(payloadHistoricalVolume.score || 0) || null,
+        }
+        : payloadHistoricalVolume
+          ? { signal: String(payloadHistoricalVolume).trim().toUpperCase() }
+          : null,
+    defensiveFlags:
+      payload?.defensiveFlags && typeof payload.defensiveFlags === "object"
+        ? {
+          warningMatched: Boolean(payload.defensiveFlags.warningMatched),
+          lotMultiplier: Number(payload.defensiveFlags.lotMultiplier || 1),
+          tpMultiplier: Number(payload.defensiveFlags.tpMultiplier || 1),
+          reason: payload.defensiveFlags.reason || null,
+        }
+        : null,
+    tradeSetup: payload?.trade_setup && typeof payload.trade_setup === "object"
+      ? {
+        recommended_lot: Number(payload.trade_setup.recommended_lot || 0),
+        sl_points: Number(payload.trade_setup.sl_points || 0),
+        tp_points: Number(payload.trade_setup.tp_points || 0),
+        retrace_points: Number(payload.trade_setup.retrace_points || 0),
+        mode: String(payload.trade_setup.mode || mode).trim().toUpperCase(),
+      }
+      : null,
+    hypotheses:
+      payload?.hypotheses && typeof payload.hypotheses === "object"
+        ? payload.hypotheses
+        : null,
+    evidence: Array.isArray(payload?.evidence)
+      ? payload.evidence
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+      : [],
+    market: {
+      timeframe: String(reqBody?.timeframe || "M5").trim().toUpperCase(),
+      requestSide: String(reqBody?.side || "").trim().toUpperCase(),
+      requestedPrice: toNum(reqBody?.price, 0),
+      spreadPoints: toNum(reqBody?.market?.spreadPoints ?? reqBody?.spreadPoints, 0),
+      balance: toNum(reqBody?.balance, 0),
+      pendingAgeSec: toNum(reqBody?.refreshContext?.pendingAgeSec, 0),
+      refreshAttempt: toNum(reqBody?.refreshContext?.refreshAttempt ?? reqBody?.refreshAttempt, 0),
+      baseDecision: String(reqBody?.baseSignal?.decision || "").trim().toUpperCase(),
+      baseScore: Number(reqBody?.baseSignal?.score || 0),
+    },
+    trigger,
+    eventTime: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+function shouldPersistSignalEntryThesis(result = {}) {
+  return (
+    isOpenDecision(result?.decision) &&
+    result?.trade_setup &&
+    Number(result?.trade_setup?.recommended_lot || 0) > 0
+  );
+}
+
+function resolveRefreshEntryThesisStage(payload = {}) {
+  const action = String(payload?.action || "").toUpperCase();
+  const state = String(payload?.state || "").toUpperCase();
+
+  if (action === "EXECUTE_NOW" && state === "OPEN_REVERSAL") {
+    return "REFRESH_REVERSAL_ENTRY";
+  }
+
+  if (action === "EXECUTE_NOW") {
+    return "REFRESH_CONFIRMED_ENTRY";
+  }
+
+  return "";
+}
+
+function shouldPersistRefreshEntryThesis(payload = {}) {
+  return Boolean(resolveRefreshEntryThesisStage(payload));
+}
+
+function writeEntryThesisSnapshot(document) {
+  if (!document) return;
+
+  EntryThesisSnapshot.create(document).catch((error) => {
+    console.error("[entry-thesis] write failed:", error.message);
+  });
+}
+
+function linkLatestEntryThesisSnapshotToOpenOrder({
+  firebaseUserId,
+  accountId = "",
+  symbol = "",
+  side = "",
+  mode = "",
+  ticketId = "",
+  lot = 0,
+  price = 0,
+  sl = 0,
+  tp = 0,
+  eventTime = null,
+}) {
+  const safeFirebaseUserId = String(firebaseUserId || "").trim();
+  const safeAccountId = String(accountId || "").trim();
+  const safeSymbol = String(symbol || "").trim().toUpperCase();
+  const safeSide = String(side || "").trim().toUpperCase();
+  const safeMode = String(mode || "").trim().toUpperCase();
+  const safeTicketId = String(ticketId || "").trim();
+
+  if (!safeFirebaseUserId || !safeSymbol || !safeSide || !safeTicketId) {
+    return;
+  }
+
+  const filter = {
+    firebaseUserId: safeFirebaseUserId,
+    symbol: safeSymbol,
+    side: safeSide,
+    linkedTicketId: null,
+    eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 6) },
+  };
+
+  if (safeAccountId) {
+    filter.accountId = safeAccountId;
+  }
+
+  if (safeMode) {
+    filter.mode = safeMode;
+  }
+
+  EntryThesisSnapshot.findOneAndUpdate(
+    filter,
+    {
+      $set: {
+        linkedTicketId: safeTicketId,
+        linkedAt: eventTime ? new Date(eventTime) : new Date(),
+        executionStatus: "EXECUTED_OPEN_ORDER",
+        linkedOpenOrder: {
+          lot: toNum(lot, 0),
+          price: toNum(price, 0),
+          sl: toNum(sl, 0),
+          tp: toNum(tp, 0),
+          mode: safeMode || null,
+        },
+        updatedAt: new Date(),
+      },
+    },
+    {
+      sort: { eventTime: -1, _id: -1 },
+    }
+  ).catch((error) => {
+    console.error("[entry-thesis] link open order failed:", error.message);
+  });
+}
+
 function getAverageBody(candles = [], len = 5) {
   if (!Array.isArray(candles) || candles.length === 0) return 0;
   const recent = candles.slice(-len);
@@ -2992,6 +3272,18 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
 app.post("/signal", async (req, res) => {
   try {
     const result = await handleSignalCore(req, { isRefresh: false });
+
+    if (shouldPersistSignalEntryThesis(result)) {
+      writeEntryThesisSnapshot(
+        buildEntryThesisSnapshotDocument({
+          sourceEndpoint: "signal",
+          reqBody: req.body || {},
+          payload: result,
+          thesisStage: "SIGNAL_ENTRY_CANDIDATE",
+        })
+      );
+    }
+
     return res.json(result);
   } catch (error) {
     console.error("[/signal] error:", error);
@@ -4374,6 +4666,26 @@ app.post("/signal-refresh", async (req, res) => {
       payload,
     });
 
+    if (shouldPersistRefreshEntryThesis(payload)) {
+      writeEntryThesisSnapshot(
+        buildEntryThesisSnapshotDocument({
+          sourceEndpoint: "signal_refresh",
+          reqBody: req.body || {},
+          payload: {
+            ...payload,
+            pattern: result?.pattern || baseSignal?.pattern || null,
+            historicalVolume: result?.historicalVolume || baseSignal?.historicalVolume || null,
+            defensiveFlags: result?.defensiveFlags || baseSignal?.defensiveFlags || null,
+          },
+          thesisStage: resolveRefreshEntryThesisStage(payload),
+          executionStatus:
+            String(payload?.action || "").toUpperCase() === "EXECUTE_NOW"
+              ? "EXECUTION_TRIGGERED"
+              : "PENDING_EXECUTION",
+        })
+      );
+    }
+
     return res.json(payload);
   } catch (error) {
     console.error("[/signal-refresh] error:", error);
@@ -4790,6 +5102,22 @@ app.post("/trade-event", async (req, res) => {
   } catch (dbError) {
     dbInsertError = dbError;
     console.error("Insert trade_history error:", dbError.message);
+  }
+
+  if (type === "OPEN_ORDER") {
+    linkLatestEntryThesisSnapshotToOpenOrder({
+      firebaseUserId: resolvedUserId,
+      accountId,
+      symbol,
+      side,
+      mode,
+      ticketId: normalizedTicketId,
+      lot,
+      price,
+      sl,
+      tp,
+      eventTime,
+    });
   }
 
   return res.json({
