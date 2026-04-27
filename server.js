@@ -657,11 +657,26 @@ function normalizeCandles(input, minLength = 0) {
   return arr.length >= minLength ? arr : [];
 }
 
+function getSignalRefreshPatternText(result = {}, baseSignal = {}) {
+  return [
+    String(result?.pattern?.type || ""),
+    String(result?.pattern?.pattern || ""),
+    String(baseSignal?.pattern?.type || ""),
+    String(baseSignal?.pattern?.pattern || ""),
+  ]
+    .join(" ")
+    .toUpperCase();
+}
+
 function analyzeSignalRefreshBodyFlow({
   pendingSide = "",
   candles = [],
   liveCandle = null,
   breakoutState = {},
+  result = {},
+  baseSignal = {},
+  pendingAgeSec = 0,
+  refreshAttempt = 0,
 }) {
   const side = String(pendingSide || "").toUpperCase();
   const safeCandles = normalizeCandles(candles, 0);
@@ -701,13 +716,28 @@ function analyzeSignalRefreshBodyFlow({
   const breakoutZoneHigh = toNum(breakoutState?.breakoutZoneHigh);
   const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
   const compressionThreshold = avgBody > 0 ? avgBody * 0.60 : Math.max(lastBody, prevBody) * 0.75;
+  const patternText = getSignalRefreshPatternText(result, baseSignal);
   const evidence = [];
+
+  const firstLegPattern =
+    patternText.includes("FIRST_LEG_BREAKOUT") ||
+    patternText.includes("FIRST_LEG_BREAKDOWN");
+  const breakoutGraceActive = Boolean(
+    breakoutState?.isBreakoutLike &&
+    (firstLegPattern || breakoutState?.freshBreakout) &&
+    !breakoutState?.hasRetest &&
+    !breakoutState?.retestAccepted &&
+    !breakoutState?.retestRejected &&
+    Number(pendingAgeSec || 0) <= 20 &&
+    Number(refreshAttempt || 0) <= 2
+  );
 
   let supportiveProgression = false;
   let pullbackHolding = false;
   let followThroughConfirmed = false;
   let breakoutHoldByBody = false;
   let breakoutRejectedByBody = false;
+  let tentativeBreakoutRetest = false;
   let bodyTakeoverAgainstSide = false;
   let bodyCloseSupportive = false;
   let compression = false;
@@ -731,9 +761,26 @@ function analyzeSignalRefreshBodyFlow({
       lastBodyLow >= Math.max(breakoutLevel, prevBodyMid)
     );
 
-    breakoutRejectedByBody = Boolean(
+    const rawBreakoutReject = Boolean(
       (breakoutLevel > 0 && isBearish(last) && last.close < breakoutLevel) ||
       (breakoutZoneLow > 0 && lastBodyLow < breakoutZoneLow)
+    );
+    const hardBreakoutReject = Boolean(
+      (breakoutZoneLow > 0 &&
+        last.close < breakoutZoneLow &&
+        lastBodyLow < breakoutZoneLow) ||
+      (isBearish(last) &&
+        last.close <= prevBodyLow &&
+        lastBody >= Math.max(avgBody * 0.95, prevBody * 0.95))
+    );
+    tentativeBreakoutRetest = Boolean(
+      breakoutGraceActive &&
+      rawBreakoutReject &&
+      !hardBreakoutReject
+    );
+    breakoutRejectedByBody = Boolean(
+      hardBreakoutReject ||
+      (!breakoutGraceActive && rawBreakoutReject)
     );
 
     bodyTakeoverAgainstSide = Boolean(
@@ -775,6 +822,7 @@ function analyzeSignalRefreshBodyFlow({
     if (followThroughConfirmed) evidence.push("BODY_BUY_FOLLOW_THROUGH");
     if (breakoutHoldByBody) evidence.push("BODY_BUY_BREAKOUT_HOLD");
     if (breakoutRejectedByBody) evidence.push("BODY_BUY_BREAKOUT_REJECTED");
+    if (tentativeBreakoutRetest) evidence.push("BODY_BUY_BREAKOUT_RETEST_GRACE");
     if (bodyTakeoverAgainstSide) evidence.push("BODY_BUY_TAKEOVER_AGAINST");
     if (bodyCloseSupportive) evidence.push("BODY_BUY_CLOSE_SUPPORTIVE");
     if (compression) evidence.push("BODY_BUY_COMPRESSION");
@@ -797,9 +845,26 @@ function analyzeSignalRefreshBodyFlow({
       lastBodyHigh <= Math.min(breakoutLevel, prevBodyMid)
     );
 
-    breakoutRejectedByBody = Boolean(
+    const rawBreakoutReject = Boolean(
       (breakoutLevel > 0 && isBullish(last) && last.close > breakoutLevel) ||
       (breakoutZoneHigh > 0 && lastBodyHigh > breakoutZoneHigh)
+    );
+    const hardBreakoutReject = Boolean(
+      (breakoutZoneHigh > 0 &&
+        last.close > breakoutZoneHigh &&
+        lastBodyHigh > breakoutZoneHigh) ||
+      (isBullish(last) &&
+        last.close >= prevBodyHigh &&
+        lastBody >= Math.max(avgBody * 0.95, prevBody * 0.95))
+    );
+    tentativeBreakoutRetest = Boolean(
+      breakoutGraceActive &&
+      rawBreakoutReject &&
+      !hardBreakoutReject
+    );
+    breakoutRejectedByBody = Boolean(
+      hardBreakoutReject ||
+      (!breakoutGraceActive && rawBreakoutReject)
     );
 
     bodyTakeoverAgainstSide = Boolean(
@@ -845,6 +910,7 @@ function analyzeSignalRefreshBodyFlow({
     if (followThroughConfirmed) evidence.push("BODY_SELL_FOLLOW_THROUGH");
     if (breakoutHoldByBody) evidence.push("BODY_SELL_BREAKOUT_HOLD");
     if (breakoutRejectedByBody) evidence.push("BODY_SELL_BREAKOUT_REJECTED");
+    if (tentativeBreakoutRetest) evidence.push("BODY_SELL_BREAKOUT_RETEST_GRACE");
     if (bodyTakeoverAgainstSide) evidence.push("BODY_SELL_TAKEOVER_AGAINST");
     if (bodyCloseSupportive) evidence.push("BODY_SELL_CLOSE_SUPPORTIVE");
     if (compression) evidence.push("BODY_SELL_COMPRESSION");
@@ -856,6 +922,8 @@ function analyzeSignalRefreshBodyFlow({
     followThroughConfirmed,
     breakoutHoldByBody,
     breakoutRejectedByBody,
+    tentativeBreakoutRetest,
+    breakoutGraceActive,
     bodyTakeoverAgainstSide,
     bodyCloseSupportive,
     compression,
@@ -3873,6 +3941,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKOUT_RETEST_REJECTED");
+    } else if (bodyFlow?.tentativeBreakoutRetest) {
+      waiting = true;
+      reasons.push("WAIT_BREAKOUT_RETEST_BODY_GRACE");
     } else if (bodyFlow?.breakoutRejectedByBody) {
       invalidated = true;
       reasons.push("BODY_BREAKOUT_REJECTED");
@@ -3967,6 +4038,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKDOWN_RETEST_REJECTED");
+    } else if (bodyFlow?.tentativeBreakoutRetest) {
+      waiting = true;
+      reasons.push("WAIT_BREAKDOWN_RETEST_BODY_GRACE");
     } else if (bodyFlow?.breakoutRejectedByBody) {
       invalidated = true;
       reasons.push("BODY_BREAKDOWN_REJECTED");
@@ -5035,6 +5109,10 @@ app.post("/signal-refresh", async (req, res) => {
       candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
       liveCandle,
       breakoutState,
+      result,
+      baseSignal,
+      pendingAgeSec,
+      refreshAttempt,
     });
     const refreshValidation = evaluateSignalRefreshValidation({
       pendingSide: responseSide || pendingSide,
@@ -5280,6 +5358,8 @@ app.post("/signal-refresh", async (req, res) => {
         refreshBodyFollowThrough: bodyFlow.followThroughConfirmed,
         refreshBodyBreakoutHold: bodyFlow.breakoutHoldByBody,
         refreshBodyBreakoutRejected: bodyFlow.breakoutRejectedByBody,
+        refreshBodyTentativeBreakoutRetest: bodyFlow.tentativeBreakoutRetest,
+        refreshBodyBreakoutGraceActive: bodyFlow.breakoutGraceActive,
         refreshBodyTakeoverAgainst: bodyFlow.bodyTakeoverAgainstSide,
         refreshBodyCloseSupportive: bodyFlow.bodyCloseSupportive,
         refreshBodyCompression: bodyFlow.compression,
