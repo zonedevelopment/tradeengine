@@ -4339,6 +4339,124 @@ function evaluateSignalRefreshEntryPressure({
   };
 }
 
+function evaluateSignalRefreshFastTrackExecute({
+  pendingSide = "",
+  score = 0,
+  actionScoreFloor = 0,
+  momentum = {},
+  refreshValidation = {},
+  entryPressure = {},
+  bodyFlow = {},
+  breakoutState = {},
+  pendingAgeSec = 0,
+  refreshAttempt = 0,
+  pendingTarget = 0,
+  ask = 0,
+  bid = 0,
+  currentDistancePoints = 0,
+  immediateEntryThreshold = 0,
+  spreadPoints = 0,
+  pendingSlPoints = 0,
+  result = {},
+  baseSignal = {},
+  rehypothesis = null,
+}) {
+  const side = String(pendingSide || "").toUpperCase();
+  if (side !== "BUY" && side !== "SELL") {
+    return {
+      eligible: false,
+      reason: "",
+      evidence: [],
+    };
+  }
+
+  const patternText = getSignalRefreshPatternText(result, baseSignal);
+  const continuationLike =
+    patternText.includes("FIRST_LEG_BREAKOUT") ||
+    patternText.includes("FIRST_LEG_BREAKDOWN") ||
+    patternText.includes("BREAKOUT") ||
+    patternText.includes("BREAKDOWN") ||
+    patternText.includes("CONTINUATION");
+
+  const scoreReady =
+    Math.abs(Number(score || 0)) >=
+    Math.max(1.5, Number(actionScoreFloor || 0) * (continuationLike ? 0.78 : 0.86));
+
+  const earlyWindow =
+    Number(pendingAgeSec || 0) <= 25 ||
+    Number(refreshAttempt || 0) <= 4;
+
+  const spreadOk =
+    Number(spreadPoints || 0) <= Math.max(35, Number(pendingSlPoints || 0) * 0.08);
+
+  const notGrace = !bodyFlow?.tentativeBreakoutRetest;
+  const notReanalysis = !rehypothesis?.triggered;
+  const thesisClean =
+    !refreshValidation?.invalidated &&
+    !entryPressure?.heavyCounter &&
+    !bodyFlow?.breakoutRejectedByBody &&
+    !bodyFlow?.bodyTakeoverAgainstSide;
+
+  const bodySupport = Boolean(
+    bodyFlow?.followThroughConfirmed ||
+    bodyFlow?.supportiveProgression ||
+    refreshValidation?.strongFollowThrough ||
+    entryPressure?.lateContinuation
+  );
+
+  const priceAdvanced =
+    side === "BUY"
+      ? (
+        (pendingTarget > 0 && Number(ask || 0) > Number(pendingTarget || 0)) ||
+        (breakoutState?.breakoutLevel > 0 && Number(ask || 0) >= Number(breakoutState.breakoutLevel || 0)) ||
+        Number(currentDistancePoints || 0) >= Math.max(12, Number(immediateEntryThreshold || 0) * 0.85)
+      )
+      : (
+        (pendingTarget > 0 && Number(bid || 0) < Number(pendingTarget || 0)) ||
+        (breakoutState?.breakoutLevel > 0 && Number(bid || 0) <= Number(breakoutState.breakoutLevel || 0)) ||
+        Number(currentDistancePoints || 0) >= Math.max(12, Number(immediateEntryThreshold || 0) * 0.85)
+      );
+
+  const eligible = Boolean(
+    earlyWindow &&
+    spreadOk &&
+    notGrace &&
+    notReanalysis &&
+    thesisClean &&
+    momentum?.aligned &&
+    bodySupport &&
+    priceAdvanced &&
+    scoreReady
+  );
+
+  const evidence = [];
+  if (momentum?.aligned) evidence.push("FAST_TRACK_MOMENTUM_ALIGNED");
+  if (bodyFlow?.followThroughConfirmed) evidence.push("FAST_TRACK_BODY_FOLLOW_THROUGH");
+  if (bodyFlow?.supportiveProgression) evidence.push("FAST_TRACK_BODY_PROGRESSION");
+  if (entryPressure?.lateContinuation) evidence.push("FAST_TRACK_LATE_CONTINUATION");
+  if (priceAdvanced) evidence.push("FAST_TRACK_PRICE_AHEAD_OF_PENDING");
+  if (continuationLike) evidence.push("FAST_TRACK_CONTINUATION_PATTERN");
+  if (scoreReady) evidence.push("FAST_TRACK_SCORE_READY");
+
+  let reason = "";
+  if (eligible) {
+    if (bodyFlow?.followThroughConfirmed && continuationLike) {
+      reason = "REFRESH_FAST_TRACK_BREAKOUT_FOLLOW_THROUGH";
+    } else {
+      reason =
+        side === "BUY"
+          ? "REFRESH_FAST_TRACK_CONTINUATION_BUY"
+          : "REFRESH_FAST_TRACK_CONTINUATION_SELL";
+    }
+  }
+
+  return {
+    eligible,
+    reason,
+    evidence,
+  };
+}
+
 function buildSignalRefreshLifecycle({
   action = "KEEP_PENDING",
   reason = "",
@@ -5137,6 +5255,28 @@ app.post("/signal-refresh", async (req, res) => {
       actionScoreFloor,
       entryThesis,
     });
+    const fastTrackExecution = evaluateSignalRefreshFastTrackExecute({
+      pendingSide: responseSide || pendingSide,
+      score: Number(result?.score || baseScore || 0),
+      actionScoreFloor,
+      momentum,
+      refreshValidation,
+      entryPressure,
+      bodyFlow,
+      breakoutState,
+      pendingAgeSec,
+      refreshAttempt,
+      pendingTarget,
+      ask,
+      bid,
+      currentDistancePoints,
+      immediateEntryThreshold,
+      spreadPoints,
+      pendingSlPoints,
+      result,
+      baseSignal,
+      rehypothesis: null,
+    });
 
     const rehypothesis = evaluateSignalRefreshRehypothesis({
       pendingSide,
@@ -5147,6 +5287,13 @@ app.post("/signal-refresh", async (req, res) => {
       refreshValidation,
       breakoutState,
     });
+    fastTrackExecution.eligible = Boolean(
+      fastTrackExecution.eligible &&
+      !rehypothesis.triggered
+    );
+    if (!fastTrackExecution.eligible) {
+      fastTrackExecution.reason = "";
+    }
 
     const reversalConfirmation = evaluateSignalRefreshReversalConfirmation({
       rehypothesis,
@@ -5171,6 +5318,9 @@ app.post("/signal-refresh", async (req, res) => {
     } else if (refreshValidation.invalidated) {
       action = "CANCEL_PENDING";
       reason = refreshValidation.reason || "REFRESH_STRUCTURE_INVALIDATED";
+    } else if (fastTrackExecution.eligible) {
+      action = "EXECUTE_NOW";
+      reason = fastTrackExecution.reason || "REFRESH_FAST_TRACK_EXECUTE";
     } else if (
       windowExpired &&
       entryPressure.lateContinuation &&
@@ -5363,6 +5513,9 @@ app.post("/signal-refresh", async (req, res) => {
         refreshBodyTakeoverAgainst: bodyFlow.bodyTakeoverAgainstSide,
         refreshBodyCloseSupportive: bodyFlow.bodyCloseSupportive,
         refreshBodyCompression: bodyFlow.compression,
+        refreshFastTrackEligible: fastTrackExecution.eligible,
+        refreshFastTrackReason: fastTrackExecution.reason || null,
+        refreshFastTrackEvidence: fastTrackExecution.evidence,
         refreshEntryPressure: entryPressure.classification,
         refreshEntryPressureEvidence: entryPressure.evidence,
         refreshLightPullback: entryPressure.lightPullback,
