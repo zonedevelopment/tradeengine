@@ -705,11 +705,15 @@ function analyzeSignalRefreshBodyFlow({
   const prev2Body = getBodySize(prev2 || {});
   const lastBodyHigh = getBodyHigh(last);
   const lastBodyLow = getBodyLow(last);
+  const lastUpperWick = getUpperWick(last);
+  const lastLowerWick = getLowerWick(last);
   const prevBodyHigh = getBodyHigh(prev);
   const prevBodyLow = getBodyLow(prev);
   const prevBodyMid = getBodyMid(prev);
   const prev2BodyHigh = getBodyHigh(prev2 || {});
   const prev2BodyLow = getBodyLow(prev2 || {});
+  const prevUpperWick = getUpperWick(prev);
+  const prevLowerWick = getLowerWick(prev);
   const liveOpen = toNum(liveCandle?.open);
   const liveClose = toNum(liveCandle?.last ?? liveCandle?.close);
   const breakoutLevel = toNum(breakoutState?.breakoutLevel);
@@ -741,6 +745,8 @@ function analyzeSignalRefreshBodyFlow({
   let bodyTakeoverAgainstSide = false;
   let bodyCloseSupportive = false;
   let compression = false;
+  let strongBreakoutContinuation = false;
+  let continuationSequenceConfirmed = false;
 
   if (side === "BUY") {
     const liveReclaim = liveClose > 0 && liveClose >= Math.max(lastBodyLow, prevBodyMid);
@@ -761,6 +767,14 @@ function analyzeSignalRefreshBodyFlow({
       lastBodyLow >= Math.max(breakoutLevel, prevBodyMid)
     );
 
+    strongBreakoutContinuation = Boolean(
+      breakoutState?.breakoutDetected &&
+      isBullish(last) &&
+      last.close >= Math.max(breakoutLevel || 0, prevBodyHigh) &&
+      lastBody >= Math.max(avgBody * 0.95, prevBody * 0.95) &&
+      lastLowerWick <= Math.max(lastBody * 0.18, avgBody * 0.12)
+    );
+
     const rawBreakoutReject = Boolean(
       (breakoutLevel > 0 && isBearish(last) && last.close < breakoutLevel) ||
       (breakoutZoneLow > 0 && lastBodyLow < breakoutZoneLow)
@@ -776,11 +790,15 @@ function analyzeSignalRefreshBodyFlow({
     tentativeBreakoutRetest = Boolean(
       breakoutGraceActive &&
       rawBreakoutReject &&
-      !hardBreakoutReject
+      !hardBreakoutReject &&
+      !strongBreakoutContinuation
     );
     breakoutRejectedByBody = Boolean(
-      hardBreakoutReject ||
-      (!breakoutGraceActive && rawBreakoutReject)
+      !strongBreakoutContinuation &&
+      (
+        hardBreakoutReject ||
+        (!breakoutGraceActive && rawBreakoutReject)
+      )
     );
 
     bodyTakeoverAgainstSide = Boolean(
@@ -817,6 +835,25 @@ function analyzeSignalRefreshBodyFlow({
       prevBody <= Math.max(compressionThreshold, prev2Body * 1.05)
     );
 
+    continuationSequenceConfirmed = Boolean(
+      breakoutState?.breakoutDetected &&
+      !breakoutRejectedByBody &&
+      (
+        strongBreakoutContinuation ||
+        (
+          isBullish(prev) &&
+          prev.close >= Math.max(breakoutLevel || 0, prev2BodyHigh || 0) &&
+          prevBody >= Math.max(avgBody * 1.05, lastBody) &&
+          prevLowerWick <= Math.max(prevBody * 0.22, avgBody * 0.12) &&
+          lastBodyLow >= Math.max(
+            breakoutLevel > 0 ? breakoutLevel : lastBodyLow,
+            breakoutZoneLow > 0 ? breakoutZoneLow : lastBodyLow
+          ) &&
+          !bodyTakeoverAgainstSide
+        )
+      )
+    );
+
     if (supportiveProgression) evidence.push("BODY_BUY_PROGRESSION");
     if (pullbackHolding) evidence.push("BODY_BUY_PULLBACK_HOLD");
     if (followThroughConfirmed) evidence.push("BODY_BUY_FOLLOW_THROUGH");
@@ -826,6 +863,8 @@ function analyzeSignalRefreshBodyFlow({
     if (bodyTakeoverAgainstSide) evidence.push("BODY_BUY_TAKEOVER_AGAINST");
     if (bodyCloseSupportive) evidence.push("BODY_BUY_CLOSE_SUPPORTIVE");
     if (compression) evidence.push("BODY_BUY_COMPRESSION");
+    if (strongBreakoutContinuation) evidence.push("BODY_BUY_STRONG_BREAKOUT_CONTINUATION");
+    if (continuationSequenceConfirmed) evidence.push("BODY_BUY_CONTINUATION_SEQUENCE");
   } else if (side === "SELL") {
     const liveReclaim = liveClose > 0 && liveClose <= Math.min(lastBodyHigh, prevBodyMid);
 
@@ -845,6 +884,17 @@ function analyzeSignalRefreshBodyFlow({
       lastBodyHigh <= Math.min(breakoutLevel, prevBodyMid)
     );
 
+    strongBreakoutContinuation = Boolean(
+      breakoutState?.breakoutDetected &&
+      isBearish(last) &&
+      last.close <= Math.min(
+        breakoutLevel > 0 ? breakoutLevel : Number.MAX_SAFE_INTEGER,
+        prevBodyLow
+      ) &&
+      lastBody >= Math.max(avgBody * 0.95, prevBody * 0.95) &&
+      lastUpperWick <= Math.max(lastBody * 0.18, avgBody * 0.12)
+    );
+
     const rawBreakoutReject = Boolean(
       (breakoutLevel > 0 && isBullish(last) && last.close > breakoutLevel) ||
       (breakoutZoneHigh > 0 && lastBodyHigh > breakoutZoneHigh)
@@ -860,11 +910,15 @@ function analyzeSignalRefreshBodyFlow({
     tentativeBreakoutRetest = Boolean(
       breakoutGraceActive &&
       rawBreakoutReject &&
-      !hardBreakoutReject
+      !hardBreakoutReject &&
+      !strongBreakoutContinuation
     );
     breakoutRejectedByBody = Boolean(
-      hardBreakoutReject ||
-      (!breakoutGraceActive && rawBreakoutReject)
+      !strongBreakoutContinuation &&
+      (
+        hardBreakoutReject ||
+        (!breakoutGraceActive && rawBreakoutReject)
+      )
     );
 
     bodyTakeoverAgainstSide = Boolean(
@@ -905,6 +959,28 @@ function analyzeSignalRefreshBodyFlow({
       prevBody <= Math.max(compressionThreshold, prev2Body * 1.05)
     );
 
+    continuationSequenceConfirmed = Boolean(
+      breakoutState?.breakoutDetected &&
+      !breakoutRejectedByBody &&
+      (
+        strongBreakoutContinuation ||
+        (
+          isBearish(prev) &&
+          prev.close <= Math.min(
+            breakoutLevel > 0 ? breakoutLevel : Number.MAX_SAFE_INTEGER,
+            prev2BodyLow > 0 ? prev2BodyLow : Number.MAX_SAFE_INTEGER
+          ) &&
+          prevBody >= Math.max(avgBody * 1.05, lastBody) &&
+          prevUpperWick <= Math.max(prevBody * 0.22, avgBody * 0.12) &&
+          lastBodyHigh <= Math.min(
+            breakoutLevel > 0 ? breakoutLevel : lastBodyHigh,
+            breakoutZoneHigh > 0 ? breakoutZoneHigh : lastBodyHigh
+          ) &&
+          !bodyTakeoverAgainstSide
+        )
+      )
+    );
+
     if (supportiveProgression) evidence.push("BODY_SELL_PROGRESSION");
     if (pullbackHolding) evidence.push("BODY_SELL_PULLBACK_HOLD");
     if (followThroughConfirmed) evidence.push("BODY_SELL_FOLLOW_THROUGH");
@@ -914,6 +990,8 @@ function analyzeSignalRefreshBodyFlow({
     if (bodyTakeoverAgainstSide) evidence.push("BODY_SELL_TAKEOVER_AGAINST");
     if (bodyCloseSupportive) evidence.push("BODY_SELL_CLOSE_SUPPORTIVE");
     if (compression) evidence.push("BODY_SELL_COMPRESSION");
+    if (strongBreakoutContinuation) evidence.push("BODY_SELL_STRONG_BREAKDOWN_CONTINUATION");
+    if (continuationSequenceConfirmed) evidence.push("BODY_SELL_CONTINUATION_SEQUENCE");
   }
 
   return {
@@ -927,6 +1005,8 @@ function analyzeSignalRefreshBodyFlow({
     bodyTakeoverAgainstSide,
     bodyCloseSupportive,
     compression,
+    strongBreakoutContinuation,
+    continuationSequenceConfirmed,
     evidence,
   };
 }
@@ -3907,6 +3987,7 @@ function evaluateSignalRefreshValidation({
   if (side === "BUY") {
     strongFollowThrough = Boolean(
       bodyFlow?.followThroughConfirmed ||
+      bodyFlow?.continuationSequenceConfirmed ||
       bodyFlow?.breakoutHoldByBody ||
       (
         last &&
@@ -3962,6 +4043,9 @@ function evaluateSignalRefreshValidation({
       if (breakoutState.retestAccepted) {
         validated = true;
         reasons.push("BREAKOUT_RETEST_ACCEPTED");
+      } else if (bodyFlow?.continuationSequenceConfirmed && score >= actionScoreFloor * 0.82) {
+        validated = true;
+        reasons.push("BODY_BREAKOUT_CONTINUATION_SEQUENCE");
       } else if (bodyFlow?.followThroughConfirmed && score >= actionScoreFloor * 0.9) {
         validated = true;
         reasons.push("BODY_BREAKOUT_FOLLOW_THROUGH");
@@ -4004,6 +4088,7 @@ function evaluateSignalRefreshValidation({
   } else if (side === "SELL") {
     strongFollowThrough = Boolean(
       bodyFlow?.followThroughConfirmed ||
+      bodyFlow?.continuationSequenceConfirmed ||
       bodyFlow?.breakoutHoldByBody ||
       (
         last &&
@@ -4058,6 +4143,9 @@ function evaluateSignalRefreshValidation({
       if (breakoutState.retestAccepted) {
         validated = true;
         reasons.push("BREAKDOWN_RETEST_ACCEPTED");
+      } else if (bodyFlow?.continuationSequenceConfirmed && score <= -actionScoreFloor * 0.82) {
+        validated = true;
+        reasons.push("BODY_BREAKDOWN_CONTINUATION_SEQUENCE");
       } else if (bodyFlow?.followThroughConfirmed && score <= -actionScoreFloor * 0.9) {
         validated = true;
         reasons.push("BODY_BREAKDOWN_FOLLOW_THROUGH");
@@ -4210,6 +4298,7 @@ function evaluateSignalRefreshEntryPressure({
       refreshValidation?.validated &&
       effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
       (
+        bodyFlow?.continuationSequenceConfirmed ||
         bodyFlow?.followThroughConfirmed ||
         bodyFlow?.supportiveProgression ||
         refreshValidation?.strongFollowThrough ||
@@ -4278,6 +4367,7 @@ function evaluateSignalRefreshEntryPressure({
       refreshValidation?.validated &&
       effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
       (
+        bodyFlow?.continuationSequenceConfirmed ||
         bodyFlow?.followThroughConfirmed ||
         bodyFlow?.supportiveProgression ||
         refreshValidation?.strongFollowThrough ||
@@ -4398,6 +4488,7 @@ function evaluateSignalRefreshFastTrackExecute({
     !bodyFlow?.bodyTakeoverAgainstSide;
 
   const bodySupport = Boolean(
+    bodyFlow?.continuationSequenceConfirmed ||
     bodyFlow?.followThroughConfirmed ||
     bodyFlow?.supportiveProgression ||
     refreshValidation?.strongFollowThrough ||
@@ -4431,6 +4522,7 @@ function evaluateSignalRefreshFastTrackExecute({
 
   const evidence = [];
   if (momentum?.aligned) evidence.push("FAST_TRACK_MOMENTUM_ALIGNED");
+  if (bodyFlow?.continuationSequenceConfirmed) evidence.push("FAST_TRACK_CONTINUATION_SEQUENCE");
   if (bodyFlow?.followThroughConfirmed) evidence.push("FAST_TRACK_BODY_FOLLOW_THROUGH");
   if (bodyFlow?.supportiveProgression) evidence.push("FAST_TRACK_BODY_PROGRESSION");
   if (entryPressure?.lateContinuation) evidence.push("FAST_TRACK_LATE_CONTINUATION");
@@ -4440,7 +4532,12 @@ function evaluateSignalRefreshFastTrackExecute({
 
   let reason = "";
   if (eligible) {
-    if (bodyFlow?.followThroughConfirmed && continuationLike) {
+    if (bodyFlow?.continuationSequenceConfirmed && continuationLike) {
+      reason =
+        side === "BUY"
+          ? "REFRESH_FAST_TRACK_CONTINUATION_BUY"
+          : "REFRESH_FAST_TRACK_CONTINUATION_SELL";
+    } else if (bodyFlow?.followThroughConfirmed && continuationLike) {
       reason = "REFRESH_FAST_TRACK_BREAKOUT_FOLLOW_THROUGH";
     } else {
       reason =
@@ -5510,6 +5607,8 @@ app.post("/signal-refresh", async (req, res) => {
         refreshBodyBreakoutRejected: bodyFlow.breakoutRejectedByBody,
         refreshBodyTentativeBreakoutRetest: bodyFlow.tentativeBreakoutRetest,
         refreshBodyBreakoutGraceActive: bodyFlow.breakoutGraceActive,
+        refreshBodyStrongBreakoutContinuation: bodyFlow.strongBreakoutContinuation,
+        refreshBodyContinuationSequenceConfirmed: bodyFlow.continuationSequenceConfirmed,
         refreshBodyTakeoverAgainst: bodyFlow.bodyTakeoverAgainstSide,
         refreshBodyCloseSupportive: bodyFlow.bodyCloseSupportive,
         refreshBodyCompression: bodyFlow.compression,
