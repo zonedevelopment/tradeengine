@@ -501,8 +501,8 @@ function calculateSignalScores({ candles = [], spreadPoints = 0, trendContext = 
 
 function getDefaultScalpConfig() {
     return {
-        minScore: 42,
-        minScoreGap: 5,
+        minScore: 38,
+        minScoreGap: 4,
         maxHoldBars: 2,
         maxLossUsd: 1,
         minProfitToClose: 1.5,

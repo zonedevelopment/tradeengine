@@ -1429,8 +1429,8 @@ function getDynamicThresholdContext({
     const isScalp = normalizedMode === "SCALP";
     const gold = isGoldSymbol(symbol);
 
-    let buyThreshold = isScalp ? 1.68 : 1.88;
-    let sellThreshold = isScalp ? -1.68 : -1.88;
+    let buyThreshold = isScalp ? 1.64 : 1.86;
+    let sellThreshold = isScalp ? -1.64 : -1.86;
     const reasons = [];
 
     if (normalizedTrend === "NEUTRAL") {
@@ -2044,8 +2044,8 @@ function decision(evaluation, symbol) {
             hierarchical,
         });
 
-    const buyThreshold = Number(dynamicThreshold.buyThreshold || 1.88);
-    const sellThreshold = Number(dynamicThreshold.sellThreshold || -1.88);
+    const buyThreshold = Number(dynamicThreshold.buyThreshold || 1.86);
+    const sellThreshold = Number(dynamicThreshold.sellThreshold || -1.86);
     const normalizedPatternType = String(patternType || "").toUpperCase();
 
     const hasBreakoutType =
@@ -2100,6 +2100,39 @@ function decision(evaluation, symbol) {
         ? scoreBreakdown.some((item) => item?.label === "STRICT_REVERSAL_PINBAR" && Number(item?.value || 0) < 0)
         : false;
 
+    const isWeakPattern =
+        normalizedPatternType === "NONE" ||
+        normalizedPatternType === "UNKNOWN";
+
+    const isSoftReversalPattern =
+        normalizedPatternType.includes("PIERCING_PATTERN") ||
+        normalizedPatternType.includes("DARK_CLOUD_COVER") ||
+        normalizedPatternType.includes("BULLISH_ENGULFING") ||
+        normalizedPatternType.includes("BEARISH_ENGULFING");
+
+    let effectiveBuyThreshold = buyThreshold;
+    let effectiveSellThreshold = sellThreshold;
+
+    if (isWeakPattern) {
+        effectiveBuyThreshold += 0.18;
+        effectiveSellThreshold -= 0.18;
+    } else if (isSoftReversalPattern) {
+        effectiveBuyThreshold += 0.08;
+        effectiveSellThreshold -= 0.08;
+    }
+
+    if (
+        (hasBreakoutType || hasBreakdownType) &&
+        hasStrongEarlyMomentum &&
+        historicalVolumeSignal === "HIGH_VOLUME"
+    ) {
+        effectiveBuyThreshold -= 0.08;
+        effectiveSellThreshold += 0.08;
+    } else if ((hasBreakoutType || hasBreakdownType) && hasStrongEarlyMomentum) {
+        effectiveBuyThreshold -= 0.04;
+        effectiveSellThreshold += 0.04;
+    }
+
     const sellStructureReady = isSellStructureContinuationReady(
         hierarchical,
         trendFollow4
@@ -2111,19 +2144,19 @@ function decision(evaluation, symbol) {
     );
 
     const buyFastLane =
-        score >= buyThreshold ||
+        score >= effectiveBuyThreshold ||
         (
-            score >= buyThreshold - 0.22 &&
+            score >= effectiveBuyThreshold - 0.24 &&
             hasStrongEarlyMomentum &&
             (hasBreakoutType || hasRetestSupport)
         ) ||
         (
-            score >= buyThreshold - 0.18 &&
+            score >= effectiveBuyThreshold - 0.20 &&
             historicalVolumeSignal === "HIGH_VOLUME" &&
             hasBreakoutType
         ) ||
         (
-            score >= buyThreshold - 0.16 &&
+            score >= effectiveBuyThreshold - 0.16 &&
             hierarchical?.possibleReversal &&
             hasRetestSupport
         ) ||
@@ -2131,41 +2164,41 @@ function decision(evaluation, symbol) {
             side === "BUY" &&
             buyStructureReady &&
             mode === "SCALP" &&
-            score >= buyThreshold - 0.42
+            score >= effectiveBuyThreshold - 0.46
         ) ||
         (
             side === "BUY" &&
             hasAcceptedBreakoutRetest &&
-            score >= buyThreshold - 0.18
+            score >= effectiveBuyThreshold - 0.18
         ) ||
         (
             side === "BUY" &&
             buyStructureReady &&
             hasWeakPullbackContinuation &&
             mode === "SCALP" &&
-            score >= buyThreshold - 0.26
+            score >= effectiveBuyThreshold - 0.30
         ) ||
         (
             side === "BUY" &&
             hasStrictBullishReversal &&
             (hasRetestSupport || hierarchical?.possibleReversal) &&
-            score >= buyThreshold - 0.18
+            score >= effectiveBuyThreshold - 0.18
         );
 
     const sellFastLane =
-        score <= sellThreshold ||
+        score <= effectiveSellThreshold ||
         (
-            score <= sellThreshold + 0.22 &&
+            score <= effectiveSellThreshold + 0.24 &&
             hasStrongEarlyMomentum &&
             (hasBreakdownType || hasRetestResistance)
         ) ||
         (
-            score <= sellThreshold + 0.18 &&
+            score <= effectiveSellThreshold + 0.20 &&
             historicalVolumeSignal === "HIGH_VOLUME" &&
             hasBreakdownType
         ) ||
         (
-            score <= sellThreshold + 0.16 &&
+            score <= effectiveSellThreshold + 0.16 &&
             hierarchical?.possibleReversal &&
             hasRetestResistance
         ) ||
@@ -2173,25 +2206,25 @@ function decision(evaluation, symbol) {
             side === "SELL" &&
             sellStructureReady &&
             mode === "SCALP" &&
-            score <= sellThreshold + 0.42
+            score <= effectiveSellThreshold + 0.46
         ) ||
         (
             side === "SELL" &&
             hasAcceptedBreakoutRetest &&
-            score <= sellThreshold + 0.18
+            score <= effectiveSellThreshold + 0.18
         ) ||
         (
             side === "SELL" &&
             sellStructureReady &&
             hasWeakPullbackContinuation &&
             mode === "SCALP" &&
-            score <= sellThreshold + 0.26
+            score <= effectiveSellThreshold + 0.30
         ) ||
         (
             side === "SELL" &&
             hasStrictBearishReversal &&
             (hasRetestResistance || hierarchical?.possibleReversal) &&
-            score <= sellThreshold + 0.18
+            score <= effectiveSellThreshold + 0.18
         );
 
     if (hasRejectedBreakoutRetest) {
@@ -2199,10 +2232,10 @@ function decision(evaluation, symbol) {
     }
 
     if (hasFreshBreakoutNoRetest) {
-        if (side === "BUY" && !hasRetestSupport && score < buyThreshold) {
+        if (side === "BUY" && !hasRetestSupport && score < effectiveBuyThreshold) {
             return "NO_TRADE";
         }
-        if (side === "SELL" && !hasRetestResistance && score > sellThreshold) {
+        if (side === "SELL" && !hasRetestResistance && score > effectiveSellThreshold) {
             return "NO_TRADE";
         }
     }

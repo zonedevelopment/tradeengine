@@ -528,7 +528,7 @@ function mapMicroScoreToMainScore(microScore, side) {
 
   // แปลง 45..100 ให้ใกล้ช่วง score เดิมของระบบหลัก
   // 45 => 2.45, 100 => 5.20
-  const normalized = 2.45 + Math.max(0, raw - 45) * 0.05;
+  const normalized = 2.05 + Math.max(0, raw - 38) * 0.05;
   const rounded = Number(normalized.toFixed(2));
 
   return String(side || "").toUpperCase() === "SELL" ? -rounded : rounded;
@@ -1307,7 +1307,7 @@ function buildUserAdaptiveProfile({
     profile.stage = "DEFENSIVE";
     profile.reason = "RECENT_PERFORMANCE_WEAK";
 
-    profile.minScoreBoost = isScalp ? 0.40 : 0.32;
+    profile.minScoreBoost = isScalp ? 0.28 : 0.32;
     profile.lotMultiplier = isScalp ? 0.58 : 0.68;
     profile.slMultiplier = 0.96;
     profile.tpMultiplier = isScalp ? 0.90 : 0.94;
@@ -1325,7 +1325,7 @@ function buildUserAdaptiveProfile({
     profile.stage = "CAUTIOUS";
     profile.reason = "RECENT_PERFORMANCE_SOFT";
 
-    profile.minScoreBoost = isScalp ? 0.18 : 0.12;
+    profile.minScoreBoost = isScalp ? 0.10 : 0.12;
     profile.lotMultiplier = isScalp ? 0.78 : 0.86;
     profile.slMultiplier = 0.99;
     profile.tpMultiplier = isScalp ? 0.95 : 0.98;
@@ -2109,7 +2109,7 @@ function buildColdStartProfile({
       enabled: true,
       stage: "BOOTSTRAP",
       closedTradesCount: closedTrades,
-      minRequiredStrength: isMicro ? 2.15 : isScalp ? 2.45 : 2.75,
+      minRequiredStrength: isMicro ? 2.00 : isScalp ? 2.35 : 2.75,
       lotMultiplier: 0.50,
       slMultiplier: 1.05,
       tpMultiplier: 0.84,
@@ -2121,7 +2121,7 @@ function buildColdStartProfile({
       enabled: true,
       stage: "EARLY",
       closedTradesCount: closedTrades,
-      minRequiredStrength: isMicro ? 2.00 : isScalp ? 2.30 : 2.55,
+      minRequiredStrength: isMicro ? 1.88 : isScalp ? 2.18 : 2.55,
       lotMultiplier: 0.68,
       slMultiplier: 1.03,
       tpMultiplier: 0.90,
@@ -2133,7 +2133,7 @@ function buildColdStartProfile({
       enabled: true,
       stage: "WARM",
       closedTradesCount: closedTrades,
-      minRequiredStrength: isMicro ? 1.90 : isScalp ? 2.15 : 2.35,
+      minRequiredStrength: isMicro ? 1.80 : isScalp ? 2.05 : 2.35,
       lotMultiplier: 0.85,
       slMultiplier: 1.01,
       tpMultiplier: 0.96,
