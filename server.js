@@ -616,6 +616,18 @@ function getBodySize(candle = {}) {
   return Math.abs(toNum(candle.close) - toNum(candle.open));
 }
 
+function getBodyHigh(candle = {}) {
+  return Math.max(toNum(candle.open), toNum(candle.close));
+}
+
+function getBodyLow(candle = {}) {
+  return Math.min(toNum(candle.open), toNum(candle.close));
+}
+
+function getBodyMid(candle = {}) {
+  return (getBodyHigh(candle) + getBodyLow(candle)) / 2;
+}
+
 function isBullish(candle = {}) {
   return toNum(candle.close) > toNum(candle.open);
 }
@@ -643,6 +655,212 @@ function normalizeCandle(c = {}) {
 function normalizeCandles(input, minLength = 0) {
   const arr = Array.isArray(input) ? input.map(normalizeCandle) : [];
   return arr.length >= minLength ? arr : [];
+}
+
+function analyzeSignalRefreshBodyFlow({
+  pendingSide = "",
+  candles = [],
+  liveCandle = null,
+  breakoutState = {},
+}) {
+  const side = String(pendingSide || "").toUpperCase();
+  const safeCandles = normalizeCandles(candles, 0);
+  const last = getLastCandle(safeCandles, 1);
+  const prev = getLastCandle(safeCandles, 2);
+  const prev2 = getLastCandle(safeCandles, 3);
+  const priorSample = safeCandles.slice(-7, -1);
+  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+
+  if (!side || !last || !prev) {
+    return {
+      supportiveProgression: false,
+      pullbackHolding: false,
+      followThroughConfirmed: false,
+      breakoutHoldByBody: false,
+      breakoutRejectedByBody: false,
+      bodyTakeoverAgainstSide: false,
+      bodyCloseSupportive: false,
+      compression: false,
+      evidence: [],
+    };
+  }
+
+  const lastBody = getBodySize(last);
+  const prevBody = getBodySize(prev);
+  const prev2Body = getBodySize(prev2 || {});
+  const lastBodyHigh = getBodyHigh(last);
+  const lastBodyLow = getBodyLow(last);
+  const prevBodyHigh = getBodyHigh(prev);
+  const prevBodyLow = getBodyLow(prev);
+  const prevBodyMid = getBodyMid(prev);
+  const prev2BodyHigh = getBodyHigh(prev2 || {});
+  const prev2BodyLow = getBodyLow(prev2 || {});
+  const liveOpen = toNum(liveCandle?.open);
+  const liveClose = toNum(liveCandle?.last ?? liveCandle?.close);
+  const breakoutLevel = toNum(breakoutState?.breakoutLevel);
+  const breakoutZoneHigh = toNum(breakoutState?.breakoutZoneHigh);
+  const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
+  const compressionThreshold = avgBody > 0 ? avgBody * 0.60 : Math.max(lastBody, prevBody) * 0.75;
+  const evidence = [];
+
+  let supportiveProgression = false;
+  let pullbackHolding = false;
+  let followThroughConfirmed = false;
+  let breakoutHoldByBody = false;
+  let breakoutRejectedByBody = false;
+  let bodyTakeoverAgainstSide = false;
+  let bodyCloseSupportive = false;
+  let compression = false;
+
+  if (side === "BUY") {
+    const liveReclaim = liveClose > 0 && liveClose >= Math.max(lastBodyLow, prevBodyMid);
+
+    bodyCloseSupportive = last.close >= prevBodyMid;
+    supportiveProgression = Boolean(
+      lastBodyLow >= prevBodyMid &&
+      last.close >= Number(prev.close || 0) &&
+      (
+        lastBodyHigh > prevBodyHigh ||
+        (prev2 && prevBodyLow >= prev2BodyLow && prevBodyHigh >= prev2BodyHigh)
+      )
+    );
+
+    breakoutHoldByBody = Boolean(
+      breakoutLevel > 0 &&
+      last.close >= breakoutLevel &&
+      lastBodyLow >= Math.max(breakoutLevel, prevBodyMid)
+    );
+
+    breakoutRejectedByBody = Boolean(
+      (breakoutLevel > 0 && isBearish(last) && last.close < breakoutLevel) ||
+      (breakoutZoneLow > 0 && lastBodyLow < breakoutZoneLow)
+    );
+
+    bodyTakeoverAgainstSide = Boolean(
+      (isBearish(last) && last.close <= prevBodyLow) ||
+      (isBearish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow) ||
+      breakoutRejectedByBody
+    );
+
+    followThroughConfirmed = Boolean(
+      isBullish(last) &&
+      lastBody >= avgBody * 0.85 &&
+      (
+        last.close > prevBodyHigh ||
+        breakoutHoldByBody ||
+        (breakoutLevel > 0 && last.close >= breakoutLevel)
+      )
+    );
+
+    pullbackHolding = Boolean(
+      isBearish(last) &&
+      lastBody > 0 &&
+      lastBody <= Math.max(avgBody * 1.05, prevBody * 1.08) &&
+      !bodyTakeoverAgainstSide &&
+      (
+        last.close >= Math.max(prevBodyMid, breakoutLevel || 0, breakoutZoneLow || 0) ||
+        liveReclaim
+      )
+    );
+
+    compression = Boolean(
+      lastBody > 0 &&
+      prevBody > 0 &&
+      lastBody <= compressionThreshold &&
+      prevBody <= Math.max(compressionThreshold, prev2Body * 1.05)
+    );
+
+    if (supportiveProgression) evidence.push("BODY_BUY_PROGRESSION");
+    if (pullbackHolding) evidence.push("BODY_BUY_PULLBACK_HOLD");
+    if (followThroughConfirmed) evidence.push("BODY_BUY_FOLLOW_THROUGH");
+    if (breakoutHoldByBody) evidence.push("BODY_BUY_BREAKOUT_HOLD");
+    if (breakoutRejectedByBody) evidence.push("BODY_BUY_BREAKOUT_REJECTED");
+    if (bodyTakeoverAgainstSide) evidence.push("BODY_BUY_TAKEOVER_AGAINST");
+    if (bodyCloseSupportive) evidence.push("BODY_BUY_CLOSE_SUPPORTIVE");
+    if (compression) evidence.push("BODY_BUY_COMPRESSION");
+  } else if (side === "SELL") {
+    const liveReclaim = liveClose > 0 && liveClose <= Math.min(lastBodyHigh, prevBodyMid);
+
+    bodyCloseSupportive = last.close <= prevBodyMid;
+    supportiveProgression = Boolean(
+      lastBodyHigh <= prevBodyMid &&
+      last.close <= Number(prev.close || 0) &&
+      (
+        lastBodyLow < prevBodyLow ||
+        (prev2 && prevBodyHigh <= prev2BodyHigh && prevBodyLow <= prev2BodyLow)
+      )
+    );
+
+    breakoutHoldByBody = Boolean(
+      breakoutLevel > 0 &&
+      last.close <= breakoutLevel &&
+      lastBodyHigh <= Math.min(breakoutLevel, prevBodyMid)
+    );
+
+    breakoutRejectedByBody = Boolean(
+      (breakoutLevel > 0 && isBullish(last) && last.close > breakoutLevel) ||
+      (breakoutZoneHigh > 0 && lastBodyHigh > breakoutZoneHigh)
+    );
+
+    bodyTakeoverAgainstSide = Boolean(
+      (isBullish(last) && last.close >= prevBodyHigh) ||
+      (isBullish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow) ||
+      breakoutRejectedByBody
+    );
+
+    followThroughConfirmed = Boolean(
+      isBearish(last) &&
+      lastBody >= avgBody * 0.85 &&
+      (
+        last.close < prevBodyLow ||
+        breakoutHoldByBody ||
+        (breakoutLevel > 0 && last.close <= breakoutLevel)
+      )
+    );
+
+    pullbackHolding = Boolean(
+      isBullish(last) &&
+      lastBody > 0 &&
+      lastBody <= Math.max(avgBody * 1.05, prevBody * 1.08) &&
+      !bodyTakeoverAgainstSide &&
+      (
+        last.close <= Math.min(
+          prevBodyMid,
+          breakoutLevel > 0 ? breakoutLevel : prevBodyMid,
+          breakoutZoneHigh > 0 ? breakoutZoneHigh : prevBodyMid
+        ) ||
+        liveReclaim
+      )
+    );
+
+    compression = Boolean(
+      lastBody > 0 &&
+      prevBody > 0 &&
+      lastBody <= compressionThreshold &&
+      prevBody <= Math.max(compressionThreshold, prev2Body * 1.05)
+    );
+
+    if (supportiveProgression) evidence.push("BODY_SELL_PROGRESSION");
+    if (pullbackHolding) evidence.push("BODY_SELL_PULLBACK_HOLD");
+    if (followThroughConfirmed) evidence.push("BODY_SELL_FOLLOW_THROUGH");
+    if (breakoutHoldByBody) evidence.push("BODY_SELL_BREAKOUT_HOLD");
+    if (breakoutRejectedByBody) evidence.push("BODY_SELL_BREAKOUT_REJECTED");
+    if (bodyTakeoverAgainstSide) evidence.push("BODY_SELL_TAKEOVER_AGAINST");
+    if (bodyCloseSupportive) evidence.push("BODY_SELL_CLOSE_SUPPORTIVE");
+    if (compression) evidence.push("BODY_SELL_COMPRESSION");
+  }
+
+  return {
+    supportiveProgression,
+    pullbackHolding,
+    followThroughConfirmed,
+    breakoutHoldByBody,
+    breakoutRejectedByBody,
+    bodyTakeoverAgainstSide,
+    bodyCloseSupportive,
+    compression,
+    evidence,
+  };
 }
 
 function normalizeSignalBody(body = {}) {
@@ -3581,6 +3799,7 @@ function evaluateSignalRefreshValidation({
   result = {},
   baseSignal = {},
   breakoutState = {},
+  bodyFlow = {},
   score = 0,
   actionScoreFloor = 0,
 }) {
@@ -3619,16 +3838,22 @@ function evaluateSignalRefreshValidation({
 
   if (side === "BUY") {
     strongFollowThrough = Boolean(
-      last &&
-      isBullish(last) &&
-      lastBody >= avgBody * 0.9 &&
+      bodyFlow?.followThroughConfirmed ||
+      bodyFlow?.breakoutHoldByBody ||
       (
-        (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
-        (breakoutState.breakoutDetected && Number(last.close || 0) >= Number(breakoutState.breakoutLevel || 0))
+        last &&
+        isBullish(last) &&
+        lastBody >= avgBody * 0.9 &&
+        (
+          (prev && Number(last.close || 0) > Number(prev.high || 0)) ||
+          (breakoutState.breakoutDetected && Number(last.close || 0) >= Number(breakoutState.breakoutLevel || 0))
+        )
       )
     );
 
     strongCounterImpulse = Boolean(
+      bodyFlow?.bodyTakeoverAgainstSide ||
+      bodyFlow?.breakoutRejectedByBody ||
       (last &&
         isBearish(last) &&
         lastBody >= avgBody * 1.2 &&
@@ -3648,6 +3873,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKOUT_RETEST_REJECTED");
+    } else if (bodyFlow?.breakoutRejectedByBody) {
+      invalidated = true;
+      reasons.push("BODY_BREAKOUT_REJECTED");
     } else if (
       breakoutState.breakoutDetected &&
       breakoutState.breakoutZoneLow > 0 &&
@@ -3663,9 +3891,18 @@ function evaluateSignalRefreshValidation({
       if (breakoutState.retestAccepted) {
         validated = true;
         reasons.push("BREAKOUT_RETEST_ACCEPTED");
+      } else if (bodyFlow?.followThroughConfirmed && score >= actionScoreFloor * 0.9) {
+        validated = true;
+        reasons.push("BODY_BREAKOUT_FOLLOW_THROUGH");
       } else if (breakoutState.freshBreakout && !breakoutState.hasRetest) {
         waiting = true;
         reasons.push("WAIT_BREAKOUT_RETEST");
+      } else if (bodyFlow?.pullbackHolding) {
+        waiting = true;
+        reasons.push("WAIT_BODY_PULLBACK_CONFIRMATION");
+      } else if (bodyFlow?.compression) {
+        waiting = true;
+        reasons.push("WAIT_BODY_COMPRESSION_CONFIRMATION");
       } else if (strongFollowThrough && score >= actionScoreFloor) {
         validated = true;
         reasons.push("BREAKOUT_FOLLOW_THROUGH_CONFIRMED");
@@ -3677,23 +3914,40 @@ function evaluateSignalRefreshValidation({
       invalidated = true;
       reasons.push("BUY_SETUP_LOST_TO_COUNTER_IMPULSE");
     } else {
-      validated = !strongCounterImpulse;
+      validated = !strongCounterImpulse && (
+        bodyFlow?.supportiveProgression ||
+        bodyFlow?.bodyCloseSupportive ||
+        !bodyFlow?.bodyTakeoverAgainstSide
+      );
       if (validated) {
-        reasons.push("NON_BREAKOUT_BUY_STRUCTURE_OK");
+        reasons.push(
+          bodyFlow?.supportiveProgression
+            ? "BODY_NON_BREAKOUT_BUY_PROGRESSIVE"
+            : "NON_BREAKOUT_BUY_STRUCTURE_OK"
+        );
+      } else if (bodyFlow?.compression || bodyFlow?.pullbackHolding) {
+        waiting = true;
+        reasons.push("WAIT_BODY_CONFIRMATION");
       }
     }
   } else if (side === "SELL") {
     strongFollowThrough = Boolean(
-      last &&
-      isBearish(last) &&
-      lastBody >= avgBody * 0.9 &&
+      bodyFlow?.followThroughConfirmed ||
+      bodyFlow?.breakoutHoldByBody ||
       (
-        (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
-        (breakoutState.breakoutDetected && Number(last.close || 0) <= Number(breakoutState.breakoutLevel || 0))
+        last &&
+        isBearish(last) &&
+        lastBody >= avgBody * 0.9 &&
+        (
+          (prev && Number(last.close || 0) < Number(prev.low || 0)) ||
+          (breakoutState.breakoutDetected && Number(last.close || 0) <= Number(breakoutState.breakoutLevel || 0))
+        )
       )
     );
 
     strongCounterImpulse = Boolean(
+      bodyFlow?.bodyTakeoverAgainstSide ||
+      bodyFlow?.breakoutRejectedByBody ||
       (last &&
         isBullish(last) &&
         lastBody >= avgBody * 1.2 &&
@@ -3713,6 +3967,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKDOWN_RETEST_REJECTED");
+    } else if (bodyFlow?.breakoutRejectedByBody) {
+      invalidated = true;
+      reasons.push("BODY_BREAKDOWN_REJECTED");
     } else if (
       breakoutState.breakoutDetected &&
       breakoutState.breakoutZoneHigh > 0 &&
@@ -3727,9 +3984,18 @@ function evaluateSignalRefreshValidation({
       if (breakoutState.retestAccepted) {
         validated = true;
         reasons.push("BREAKDOWN_RETEST_ACCEPTED");
+      } else if (bodyFlow?.followThroughConfirmed && score <= -actionScoreFloor * 0.9) {
+        validated = true;
+        reasons.push("BODY_BREAKDOWN_FOLLOW_THROUGH");
       } else if (breakoutState.freshBreakout && !breakoutState.hasRetest) {
         waiting = true;
         reasons.push("WAIT_BREAKDOWN_RETEST");
+      } else if (bodyFlow?.pullbackHolding) {
+        waiting = true;
+        reasons.push("WAIT_BODY_PULLBACK_CONFIRMATION");
+      } else if (bodyFlow?.compression) {
+        waiting = true;
+        reasons.push("WAIT_BODY_COMPRESSION_CONFIRMATION");
       } else if (strongFollowThrough && score <= -actionScoreFloor) {
         validated = true;
         reasons.push("BREAKDOWN_FOLLOW_THROUGH_CONFIRMED");
@@ -3741,9 +4007,20 @@ function evaluateSignalRefreshValidation({
       invalidated = true;
       reasons.push("SELL_SETUP_LOST_TO_COUNTER_IMPULSE");
     } else {
-      validated = !strongCounterImpulse;
+      validated = !strongCounterImpulse && (
+        bodyFlow?.supportiveProgression ||
+        bodyFlow?.bodyCloseSupportive ||
+        !bodyFlow?.bodyTakeoverAgainstSide
+      );
       if (validated) {
-        reasons.push("NON_BREAKOUT_SELL_STRUCTURE_OK");
+        reasons.push(
+          bodyFlow?.supportiveProgression
+            ? "BODY_NON_BREAKOUT_SELL_PROGRESSIVE"
+            : "NON_BREAKOUT_SELL_STRUCTURE_OK"
+        );
+      } else if (bodyFlow?.compression || bodyFlow?.pullbackHolding) {
+        waiting = true;
+        reasons.push("WAIT_BODY_CONFIRMATION");
       }
     }
   }
@@ -3765,6 +4042,7 @@ function evaluateSignalRefreshEntryPressure({
   liveCandle = null,
   breakoutState = {},
   refreshValidation = {},
+  bodyFlow = {},
   score = 0,
   actionScoreFloor = 0,
   entryThesis = null,
@@ -3824,6 +4102,7 @@ function evaluateSignalRefreshEntryPressure({
       );
 
     lightPullback = Boolean(
+      bodyFlow?.pullbackHolding ||
       isBearish(last) &&
       bodyRatio > 0 &&
       bodyRatio <= 1.08 &&
@@ -3836,6 +4115,8 @@ function evaluateSignalRefreshEntryPressure({
     );
 
     heavyCounter = Boolean(
+      bodyFlow?.bodyTakeoverAgainstSide ||
+      bodyFlow?.breakoutRejectedByBody ||
       refreshValidation?.invalidated ||
       (isBearish(last) &&
         bodyRatio >= 1.18 &&
@@ -3855,6 +4136,8 @@ function evaluateSignalRefreshEntryPressure({
       refreshValidation?.validated &&
       effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
       (
+        bodyFlow?.followThroughConfirmed ||
+        bodyFlow?.supportiveProgression ||
         refreshValidation?.strongFollowThrough ||
         (isBullish(last) &&
           bodyRatio >= 0.85 &&
@@ -3887,6 +4170,7 @@ function evaluateSignalRefreshEntryPressure({
       );
 
     lightPullback = Boolean(
+      bodyFlow?.pullbackHolding ||
       isBullish(last) &&
       bodyRatio > 0 &&
       bodyRatio <= 1.08 &&
@@ -3899,6 +4183,8 @@ function evaluateSignalRefreshEntryPressure({
     );
 
     heavyCounter = Boolean(
+      bodyFlow?.bodyTakeoverAgainstSide ||
+      bodyFlow?.breakoutRejectedByBody ||
       refreshValidation?.invalidated ||
       (isBullish(last) &&
         bodyRatio >= 1.18 &&
@@ -3918,6 +4204,8 @@ function evaluateSignalRefreshEntryPressure({
       refreshValidation?.validated &&
       effectiveScore >= Math.max(scoreFloor * 0.9, 1.55) &&
       (
+        bodyFlow?.followThroughConfirmed ||
+        bodyFlow?.supportiveProgression ||
         refreshValidation?.strongFollowThrough ||
         (isBearish(last) &&
           bodyRatio >= 0.85 &&
@@ -3940,6 +4228,8 @@ function evaluateSignalRefreshEntryPressure({
     (
       refreshValidation?.validated ||
       refreshValidation?.waiting ||
+      bodyFlow?.bodyCloseSupportive ||
+      bodyFlow?.supportiveProgression ||
       lightPullback ||
       lateContinuation
     )
@@ -3958,6 +4248,12 @@ function evaluateSignalRefreshEntryPressure({
     classification = "THESIS_INTACT";
     evidence.push(`${side}_THESIS_INTACT`);
   }
+
+  if (Array.isArray(bodyFlow?.evidence) && bodyFlow.evidence.length > 0) {
+    evidence.push(...bodyFlow.evidence);
+  }
+
+  evidence.splice(0, evidence.length, ...Array.from(new Set(evidence.filter(Boolean))));
 
   return {
     lightPullback,
@@ -4734,6 +5030,12 @@ app.post("/signal-refresh", async (req, res) => {
       getSignalRefreshBreakoutState(result, baseSignal),
       entryThesis
     );
+    const bodyFlow = analyzeSignalRefreshBodyFlow({
+      pendingSide: responseSide || pendingSide,
+      candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
+      liveCandle,
+      breakoutState,
+    });
     const refreshValidation = evaluateSignalRefreshValidation({
       pendingSide: responseSide || pendingSide,
       candles: Array.isArray(req.body?.candles) ? req.body.candles : [],
@@ -4741,6 +5043,7 @@ app.post("/signal-refresh", async (req, res) => {
       result,
       baseSignal,
       breakoutState,
+      bodyFlow,
       score: Number(result?.score || baseScore || 0),
       actionScoreFloor,
     });
@@ -4751,6 +5054,7 @@ app.post("/signal-refresh", async (req, res) => {
       liveCandle,
       breakoutState,
       refreshValidation,
+      bodyFlow,
       score: Number(result?.score || baseScore || 0),
       actionScoreFloor,
       entryThesis,
@@ -4970,6 +5274,15 @@ app.post("/signal-refresh", async (req, res) => {
         refreshValidationEvidence: refreshValidation.evidence,
         refreshStrongCounterImpulse: refreshValidation.strongCounterImpulse,
         refreshStrongFollowThrough: refreshValidation.strongFollowThrough,
+        refreshBodyFlowEvidence: bodyFlow.evidence,
+        refreshBodySupportiveProgression: bodyFlow.supportiveProgression,
+        refreshBodyPullbackHolding: bodyFlow.pullbackHolding,
+        refreshBodyFollowThrough: bodyFlow.followThroughConfirmed,
+        refreshBodyBreakoutHold: bodyFlow.breakoutHoldByBody,
+        refreshBodyBreakoutRejected: bodyFlow.breakoutRejectedByBody,
+        refreshBodyTakeoverAgainst: bodyFlow.bodyTakeoverAgainstSide,
+        refreshBodyCloseSupportive: bodyFlow.bodyCloseSupportive,
+        refreshBodyCompression: bodyFlow.compression,
         refreshEntryPressure: entryPressure.classification,
         refreshEntryPressureEvidence: entryPressure.evidence,
         refreshLightPullback: entryPressure.lightPullback,
