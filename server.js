@@ -5617,7 +5617,6 @@ app.post("/check-exit-signal", async (req, res) => {
       candles,
       mode: resolvedMode,
       price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
-      slPoints: Number.isFinite(resolvedSlPoints) ? resolvedSlPoints : 0,
       timeframe: String(req.body?.timeframe || "M5").toUpperCase(),
       historicalVolume,
       pattern,
