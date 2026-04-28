@@ -1233,6 +1233,15 @@ function shouldEngineTakeSmallProfit({
 
     if (failedPatternRule && profit >= profile.failedPatternTakeProfitMin) return true;
 
+    const healthyBodyContinuation =
+        !bodyFlow.takeoverAgainst &&
+        !bodyFlow.deterioration &&
+        (bodyFlow.supportive || bodyFlow.pullbackContained) &&
+        confirmation.level !== "HIGH" &&
+        reversalScore < profile.strongStructureScore + 0.2;
+
+    if (healthyBodyContinuation) return false;
+
     const strongRisk =
         bodyFlow.takeoverAgainst ||
         bodyFlow.score >= 1.05 ||
@@ -1263,6 +1272,15 @@ function shouldEngineMoveToBE({
     if (peakProfit <= profit) return false;
     if (retraceRatio < profile.beMinRetraceRatio) return false;
     if (retraceRatio >= profile.tpMinRetraceRatio) return false;
+
+    const healthyBodyContinuation =
+        !bodyFlow.takeoverAgainst &&
+        !bodyFlow.deterioration &&
+        (bodyFlow.supportive || bodyFlow.pullbackContained) &&
+        confirmation.level === "LOW" &&
+        reversalScore < profile.strongStructureScore;
+
+    if (healthyBodyContinuation) return false;
 
     const moderateRisk =
         bodyFlow.deterioration ||
@@ -1641,6 +1659,23 @@ async function analyzeEarlyExit({
         return {
             action: "HOLD",
             reason: `${normalizedMode}_CONTINUATION_HOLD`,
+            riskLevel: "LOW",
+            score: adjustedScore,
+            meta: commonMeta,
+        };
+    }
+
+    if (
+        profit > 0 &&
+        !bodyFlow.deterioration &&
+        !bodyFlow.takeoverAgainst &&
+        (bodyFlow.supportive || bodyFlow.pullbackContained) &&
+        confirmation.level !== "HIGH" &&
+        adjustedScore < profile.reversalCutScore
+    ) {
+        return {
+            action: "HOLD",
+            reason: `${normalizedMode}_BODY_CONTINUATION_HOLD`,
             riskLevel: "LOW",
             score: adjustedScore,
             meta: commonMeta,
