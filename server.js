@@ -36,6 +36,7 @@ const {
   getTradeHistoryDetailFromCommands,
   getTodayTradeStatsByUserAndAccount,
   getRecentClosedTradePerformance,
+  getRecentCloseOrderCooldownState,
 } = require("./tradeHistory.repo");
 
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
@@ -75,7 +76,8 @@ const {
 const {
   syncActivePositionsToMongo,
   getActivePositionsByUserAndSymbol,
-  countOpenPositionsByUserAccountAndSymbol
+  countOpenPositionsByUserAccountAndSymbol,
+  countOpenPositionsByUserAccount
 } = require("./activePosition.mongo.repo");
 
 const {
@@ -2639,6 +2641,12 @@ function normalizeCandleArray(input) {
   );
 }
 
+function shouldApplyTradeOutcomeCooldown(symbol = "") {
+  const safeSymbol = String(symbol || "").trim().toUpperCase();
+  if (!safeSymbol) return false;
+  return !safeSymbol.includes("BTC");
+}
+
 function resolveHigherTimeframes(body = {}) {
   const candlesM15 = normalizeCandleArray(body.candles_m15);
   const candlesM30 = normalizeCandleArray(body.candles_m30);
@@ -3120,6 +3128,38 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       });
     }
 
+    if (!isRefresh && resolvedUserId && shouldApplyTradeOutcomeCooldown(resolvedSymbol)) {
+      try {
+        const closeOrderCooldown = await getRecentCloseOrderCooldownState({
+          firebaseUserId: resolvedUserId,
+          accountId: accountId ?? null,
+          symbol: resolvedSymbol,
+          windowSeconds: 180,
+          cooldownSeconds: 120,
+        });
+
+        if (closeOrderCooldown?.active) {
+          return {
+            ...buildBlockedSignalResponse({
+              reason: closeOrderCooldown.reason,
+              score: 0,
+              firebaseUserId: resolvedUserId,
+              mode: "NORMAL",
+              trend: "NEUTRAL",
+              pattern: null,
+              historicalVolume: null,
+              defensiveFlags: null,
+              trade_setup: null,
+              currentOpenPositionsCount: 0,
+            }),
+            trade_outcome_cooldown: closeOrderCooldown,
+          };
+        }
+      } catch (cooldownError) {
+        console.error("Load trade outcome cooldown error:", cooldownError.message);
+      }
+    }
+
     let totalClosedTrades = 0;
     try {
       if (resolvedUserId) {
@@ -3382,10 +3422,9 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           }
 
           const currentOpenPositionsCount =
-            await countOpenPositionsByUserAccountAndSymbol({
+            await countOpenPositionsByUserAccount({
               firebaseUserId: resolvedUserId,
               accountId,
-              symbol: resolvedSymbol,
             });
 
           if (
@@ -3617,6 +3656,38 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       };
     }
 
+    let currentOpenPositionsCount = 0;
+    if (!isRefresh && isOpenDecision(finalDecision)) {
+      try {
+        currentOpenPositionsCount = await countOpenPositionsByUserAccount({
+          firebaseUserId: resolvedUserId,
+          accountId,
+        });
+      } catch (openPositionCountError) {
+        console.error("Load open position count error:", openPositionCountError.message);
+      }
+
+      if (
+        isMaxOpenPositionsReached(
+          currentOpenPositionsCount,
+          tradingPreferences.max_open_positions
+        )
+      ) {
+        return buildBlockedSignalResponse({
+          reason: "MAX_OPEN_POSITIONS_REACHED",
+          score,
+          firebaseUserId: resolvedUserId,
+          mode: effectiveTradeMode,
+          trend: evaluateResult.trend || "NEUTRAL",
+          pattern,
+          historicalVolume,
+          defensiveFlags: evaluateResult.defensiveFlags || null,
+          trade_setup: null,
+          currentOpenPositionsCount,
+        });
+      }
+    }
+
     if (finalDecisionResult?.setupTuning) {
       trade_setup.tp_points = Math.round(
         Number(trade_setup.tp_points || 0) *
@@ -3644,6 +3715,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       historicalVolume,
       defensiveFlags,
       trade_setup,
+      currentOpenPositionsCount,
       cold_start_profile: coldStartProfile,
       user_adaptive_profile: mainUserAdaptiveProfile,
       recent_performance: mainUserRecentPerformance,

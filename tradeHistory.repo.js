@@ -590,6 +590,140 @@ async function getRecentClosedTradePerformance({
   };
 }
 
+async function getRecentCloseOrderCooldownState({
+  firebaseUserId,
+  accountId = null,
+  symbol = null,
+  windowSeconds = 180,
+  cooldownSeconds = 120,
+} = {}) {
+  const safeFirebaseUserId = normalizeString(firebaseUserId);
+  if (!safeFirebaseUserId) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+    };
+  }
+
+  const conditions = [`firebase_user_id = ?`, `event_type = 'CLOSE_ORDER'`];
+  const params = [safeFirebaseUserId];
+
+  if (accountId !== undefined && accountId !== null && String(accountId).trim() !== "") {
+    conditions.push(`account_id = ?`);
+    params.push(Number(accountId));
+  }
+
+  const safeSymbol = normalizeString(symbol).toUpperCase();
+  if (safeSymbol) {
+    conditions.push(`UPPER(symbol) = ?`);
+    params.push(safeSymbol);
+  }
+
+  const sql = `
+    SELECT
+      id,
+      profit,
+      symbol,
+      account_id,
+      created_at,
+      event_time
+    FROM trade_history
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY COALESCE(event_time, created_at) DESC, id DESC
+    LIMIT 2
+  `;
+
+  const rows = await query(sql, params);
+  const events = Array.isArray(rows) ? rows : [];
+
+  if (events.length < 2) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      sampleCount: events.length,
+    };
+  }
+
+  const latest = events[0];
+  const previous = events[1];
+  const latestProfit = Number(latest?.profit || 0);
+  const previousProfit = Number(previous?.profit || 0);
+
+  if (latestProfit === 0 || previousProfit === 0) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      sampleCount: events.length,
+    };
+  }
+
+  const sameWin = latestProfit > 0 && previousProfit > 0;
+  const sameLoss = latestProfit < 0 && previousProfit < 0;
+
+  if (!sameWin && !sameLoss) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      sampleCount: events.length,
+    };
+  }
+
+  const latestTime = normalizeDate(latest?.event_time || latest?.created_at);
+  const previousTime = normalizeDate(previous?.event_time || previous?.created_at);
+  const closeGapSeconds = Math.max(
+    0,
+    Math.round((latestTime.getTime() - previousTime.getTime()) / 1000)
+  );
+
+  if (closeGapSeconds > Number(windowSeconds || 180)) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      sampleCount: events.length,
+      latestEventTime: latestTime,
+      previousEventTime: previousTime,
+      closeGapSeconds,
+      windowSeconds: Number(windowSeconds || 180),
+      cooldownSeconds: Number(cooldownSeconds || 120),
+    };
+  }
+
+  const elapsedSinceLatestSeconds = Math.max(
+    0,
+    Math.round((Date.now() - latestTime.getTime()) / 1000)
+  );
+  const remainingSeconds = Math.max(
+    0,
+    Number(cooldownSeconds || 120) - elapsedSinceLatestSeconds
+  );
+  const reason = sameWin
+    ? "WIN_STREAK_COOLDOWN_ACTIVE"
+    : "LOSS_STREAK_COOLDOWN_ACTIVE";
+
+  return {
+    active: remainingSeconds > 0,
+    triggered: true,
+    reason,
+    sampleCount: events.length,
+    streakType: sameWin ? "WIN" : "LOSS",
+    latestProfit,
+    previousProfit,
+    latestEventTime: latestTime,
+    previousEventTime: previousTime,
+    closeGapSeconds,
+    elapsedSinceLatestSeconds,
+    remainingSeconds,
+    windowSeconds: Number(windowSeconds || 180),
+    cooldownSeconds: Number(cooldownSeconds || 120),
+    symbol: safeSymbol || null,
+  };
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
@@ -600,5 +734,6 @@ module.exports = {
   getTodayTradeStatsByUserAndAccount,
   getTodayTradeStatsByUser,
   getHistoryLearnWeight,
-  getRecentClosedTradePerformance
+  getRecentClosedTradePerformance,
+  getRecentCloseOrderCooldownState,
 };

@@ -220,8 +220,31 @@ async function countOpenPositionsByUserAccountAndSymbol({
     return await ActivePosition.countDocuments(filter);
 }
 
+async function countOpenPositionsByUserAccount({
+    firebaseUserId,
+    accountId = "",
+} = {}) {
+    const safeFirebaseUserId = normalizeString(firebaseUserId);
+    const safeAccountId = normalizeString(accountId, "");
+
+    if (!safeFirebaseUserId) {
+        return 0;
+    }
+
+    const filter = {
+        firebaseUserId: safeFirebaseUserId,
+    };
+
+    if (safeAccountId) {
+        filter.accountId = safeAccountId;
+    }
+
+    return await ActivePosition.countDocuments(filter);
+}
+
 module.exports = {
     syncActivePositionsToMongo,
     getActivePositionsByUserAndSymbol,
-    countOpenPositionsByUserAccountAndSymbol
+    countOpenPositionsByUserAccountAndSymbol,
+    countOpenPositionsByUserAccount
 };
