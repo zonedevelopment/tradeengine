@@ -5402,6 +5402,52 @@ app.post("/signal-refresh", async (req, res) => {
     let action = "KEEP_PENDING";
     let reason = String(result?.reason || "REFRESH_KEEP_PENDING");
     const windowExpired = windowSec > 0 && pendingAgeSec >= windowSec;
+    const hasRefreshWindow = windowSec > 0;
+    const windowProgress = hasRefreshWindow
+      ? Number(pendingAgeSec || 0) / Math.max(1, Number(windowSec || 0))
+      : 0;
+    const midRetracementWindow = hasRefreshWindow && windowProgress >= 0.35 && windowProgress < 0.7;
+    const lateRetracementWindow = hasRefreshWindow && windowProgress >= 0.7 && !windowExpired;
+    const retracementMissedDistance = Number(currentDistancePoints || 0) >= Math.max(
+      18,
+      Math.round(Number(immediateEntryThreshold || 0) * 1.05),
+      Math.round(Math.max(Number(pendingRetracePoints || 0), Number(immediateEntryThreshold || 0)) * 0.55)
+    );
+    const continuationBodyReady = Boolean(
+      bodyFlow?.continuationSequenceConfirmed ||
+      bodyFlow?.followThroughConfirmed ||
+      refreshValidation?.strongFollowThrough
+    );
+    const midTimedExecuteReady = Boolean(
+      midRetracementWindow &&
+      momentum.aligned &&
+      !momentum.opposed &&
+      retracementMissedDistance &&
+      entryPressure.thesisIntact &&
+      !entryPressure.heavyCounter &&
+      spreadPoints <= Math.max(35, pendingSlPoints * 0.08) &&
+      Number(result?.score || 0) >= Math.max(1.5, actionScoreFloor * 0.9) &&
+      (
+        entryPressure.lateContinuation ||
+        bodyFlow?.continuationSequenceConfirmed ||
+        bodyFlow?.followThroughConfirmed
+      )
+    );
+    const lateTimedExecuteReady = Boolean(
+      lateRetracementWindow &&
+      momentum.aligned &&
+      !momentum.opposed &&
+      retracementMissedDistance &&
+      entryPressure.thesisIntact &&
+      !entryPressure.heavyCounter &&
+      spreadPoints <= Math.max(35, pendingSlPoints * 0.08) &&
+      Number(result?.score || 0) >= Math.max(1.5, actionScoreFloor * 0.84) &&
+      (
+        continuationBodyReady ||
+        entryPressure.lateContinuation ||
+        bodyFlow?.supportiveProgression
+      )
+    );
 
     if (!pendingSide) {
       action = "CANCEL_PENDING";
@@ -5418,6 +5464,12 @@ app.post("/signal-refresh", async (req, res) => {
     } else if (fastTrackExecution.eligible) {
       action = "EXECUTE_NOW";
       reason = fastTrackExecution.reason || "REFRESH_FAST_TRACK_EXECUTE";
+    } else if (midTimedExecuteReady) {
+      action = "EXECUTE_NOW";
+      reason = "REFRESH_MID_WINDOW_EXECUTE_CONTINUATION";
+    } else if (lateTimedExecuteReady) {
+      action = "EXECUTE_NOW";
+      reason = "REFRESH_LATE_WINDOW_EXECUTE_CONTINUATION";
     } else if (
       windowExpired &&
       entryPressure.lateContinuation &&
@@ -5585,6 +5637,15 @@ app.post("/signal-refresh", async (req, res) => {
         responseSide,
         pendingAgeSec,
         refreshAttempt,
+        windowSec,
+        refreshWindowProgress: Number.isFinite(windowProgress)
+          ? Number(windowProgress.toFixed(3))
+          : 0,
+        refreshMidRetracementWindow: midRetracementWindow,
+        refreshLateRetracementWindow: lateRetracementWindow,
+        refreshRetracementMissedDistance: retracementMissedDistance,
+        refreshMidTimedExecuteReady: midTimedExecuteReady,
+        refreshLateTimedExecuteReady: lateTimedExecuteReady,
         currentDistancePoints: Number.isFinite(currentDistancePoints)
           ? Number(currentDistancePoints.toFixed(1))
           : 0,
