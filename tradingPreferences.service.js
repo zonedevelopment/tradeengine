@@ -13,6 +13,8 @@ const OPEN_DECISIONS = new Set([
     "ALLOW_SELL_SCALP",
     "ALLOW_BUY_PYRAMID",
     "ALLOW_SELL_PYRAMID",
+    "ALLOW_BUY_MICRO_SCALP",
+    "ALLOW_SELL_MICRO_SCALP",
 ]);
 
 function toNumber(value, fallback = 0) {

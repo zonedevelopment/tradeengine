@@ -503,6 +503,8 @@ function isPrimaryTradeDecision(decisionValue) {
     "ALLOW_SELL_SCALP",
     "ALLOW_BUY_PYRAMID",
     "ALLOW_SELL_PYRAMID",
+    "ALLOW_BUY_MICRO_SCALP",
+    "ALLOW_SELL_MICRO_SCALP",
   ].includes(String(decisionValue || "").toUpperCase());
 }
 
@@ -522,6 +524,13 @@ function isPyramidDecision(decisionValue) {
     "ALLOW_BUY_PYRAMID",
     "ALLOW_SELL_PYRAMID",
   ].includes(String(decisionValue || "").toUpperCase());
+}
+
+function mapDecisionToMicroScalp(decisionValue = "") {
+  const upper = String(decisionValue || "").trim().toUpperCase();
+  if (upper.includes("BUY")) return "ALLOW_BUY_MICRO_SCALP";
+  if (upper.includes("SELL")) return "ALLOW_SELL_MICRO_SCALP";
+  return upper;
 }
 
 function normalizeComparableAccountId(value) {
@@ -757,6 +766,9 @@ function analyzeSignalRefreshBodyFlow({
     return {
       supportiveProgression: false,
       pullbackHolding: false,
+      pullbackPauseActive: false,
+      pullbackPauseNeedsFollow: false,
+      pullbackPauseSwingIntact: false,
       followThroughConfirmed: false,
       breakoutHoldByBody: false,
       breakoutRejectedByBody: false,
@@ -788,6 +800,13 @@ function analyzeSignalRefreshBodyFlow({
   const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
   const compressionThreshold = avgBody > 0 ? avgBody * 0.60 : Math.max(lastBody, prevBody) * 0.75;
   const patternText = getSignalRefreshPatternText(result, baseSignal);
+  const priorSwingSample = safeCandles.slice(-10, -1);
+  const priorSwingHigh = priorSwingSample.length
+    ? Math.max(...priorSwingSample.map((c) => Number(c.high || 0)))
+    : Number(prev.high || 0);
+  const priorSwingLow = priorSwingSample.length
+    ? Math.min(...priorSwingSample.map((c) => Number(c.low || 0)))
+    : Number(prev.low || 0);
   const evidence = [];
 
   const firstLegPattern =
@@ -805,6 +824,9 @@ function analyzeSignalRefreshBodyFlow({
 
   let supportiveProgression = false;
   let pullbackHolding = false;
+  let pullbackPauseActive = false;
+  let pullbackPauseNeedsFollow = false;
+  let pullbackPauseSwingIntact = false;
   let followThroughConfirmed = false;
   let breakoutHoldByBody = false;
   let breakoutRejectedByBody = false;
@@ -814,9 +836,30 @@ function analyzeSignalRefreshBodyFlow({
   let compression = false;
   let strongBreakoutContinuation = false;
   let continuationSequenceConfirmed = false;
+  const pauseWindowActive = Boolean(
+    Number(pendingAgeSec || 0) <= 120 ||
+    Number(refreshAttempt || 0) <= 2 ||
+    Number(breakoutState?.barsSinceBreakout ?? 99) <= 2
+  );
 
   if (side === "BUY") {
     const liveReclaim = liveClose > 0 && liveClose >= Math.max(lastBodyLow, prevBodyMid);
+    const liveProxyLow = liveClose > 0 && liveOpen > 0
+      ? Math.min(liveOpen, liveClose, Number(liveCandle?.low ?? Math.min(liveOpen, liveClose)))
+      : Number(last.low || 0);
+    const rapidCounterMove = Boolean(
+      (isBearish(last) && lastBody >= Math.max(avgBody * 0.9, prevBody * 0.9)) ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose < liveOpen &&
+        liveBody >= Math.max(avgBody * 0.75, lastBody * 0.7) &&
+        liveClose < Number(last.close || 0))
+    );
+    pullbackPauseSwingIntact = Boolean(
+      priorSwingLow > 0 &&
+      Number(last.low || 0) > priorSwingLow &&
+      liveProxyLow > priorSwingLow
+    );
 
     bodyCloseSupportive = last.close >= prevBodyMid;
     supportiveProgression = Boolean(
@@ -868,9 +911,29 @@ function analyzeSignalRefreshBodyFlow({
       )
     );
 
+    pullbackPauseActive = Boolean(
+      pauseWindowActive &&
+      rapidCounterMove &&
+      pullbackPauseSwingIntact &&
+      !hardBreakoutReject &&
+      (
+        breakoutState?.breakoutDetected ||
+        supportiveProgression ||
+        strongBreakoutContinuation ||
+        continuationSequenceConfirmed ||
+        isBullish(prev)
+      )
+    );
+    pullbackPauseNeedsFollow = pullbackPauseActive;
+
     bodyTakeoverAgainstSide = Boolean(
-      (isBearish(last) && last.close <= prevBodyLow) ||
-      (isBearish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow) ||
+      (
+        !pullbackPauseActive &&
+        (
+          (isBearish(last) && last.close <= prevBodyLow) ||
+          (isBearish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow)
+        )
+      ) ||
       breakoutRejectedByBody
     );
 
@@ -932,8 +995,25 @@ function analyzeSignalRefreshBodyFlow({
     if (compression) evidence.push("BODY_BUY_COMPRESSION");
     if (strongBreakoutContinuation) evidence.push("BODY_BUY_STRONG_BREAKOUT_CONTINUATION");
     if (continuationSequenceConfirmed) evidence.push("BODY_BUY_CONTINUATION_SEQUENCE");
+    if (pullbackPauseActive) evidence.push("BODY_BUY_PULLBACK_PAUSE_ACTIVE");
   } else if (side === "SELL") {
     const liveReclaim = liveClose > 0 && liveClose <= Math.min(lastBodyHigh, prevBodyMid);
+    const liveProxyHigh = liveClose > 0 && liveOpen > 0
+      ? Math.max(liveOpen, liveClose, Number(liveCandle?.high ?? Math.max(liveOpen, liveClose)))
+      : Number(last.high || 0);
+    const rapidCounterMove = Boolean(
+      (isBullish(last) && lastBody >= Math.max(avgBody * 0.9, prevBody * 0.9)) ||
+      (liveClose > 0 &&
+        liveOpen > 0 &&
+        liveClose > liveOpen &&
+        liveBody >= Math.max(avgBody * 0.75, lastBody * 0.7) &&
+        liveClose > Number(last.close || 0))
+    );
+    pullbackPauseSwingIntact = Boolean(
+      priorSwingHigh > 0 &&
+      Number(last.high || 0) < priorSwingHigh &&
+      liveProxyHigh < priorSwingHigh
+    );
 
     bodyCloseSupportive = last.close <= prevBodyMid;
     supportiveProgression = Boolean(
@@ -988,9 +1068,29 @@ function analyzeSignalRefreshBodyFlow({
       )
     );
 
+    pullbackPauseActive = Boolean(
+      pauseWindowActive &&
+      rapidCounterMove &&
+      pullbackPauseSwingIntact &&
+      !hardBreakoutReject &&
+      (
+        breakoutState?.breakoutDetected ||
+        supportiveProgression ||
+        strongBreakoutContinuation ||
+        continuationSequenceConfirmed ||
+        isBearish(prev)
+      )
+    );
+    pullbackPauseNeedsFollow = pullbackPauseActive;
+
     bodyTakeoverAgainstSide = Boolean(
-      (isBullish(last) && last.close >= prevBodyHigh) ||
-      (isBullish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow) ||
+      (
+        !pullbackPauseActive &&
+        (
+          (isBullish(last) && last.close >= prevBodyHigh) ||
+          (isBullish(last) && lastBodyHigh >= prevBodyHigh && lastBodyLow <= prevBodyLow)
+        )
+      ) ||
       breakoutRejectedByBody
     );
 
@@ -1059,11 +1159,15 @@ function analyzeSignalRefreshBodyFlow({
     if (compression) evidence.push("BODY_SELL_COMPRESSION");
     if (strongBreakoutContinuation) evidence.push("BODY_SELL_STRONG_BREAKDOWN_CONTINUATION");
     if (continuationSequenceConfirmed) evidence.push("BODY_SELL_CONTINUATION_SEQUENCE");
+    if (pullbackPauseActive) evidence.push("BODY_SELL_PULLBACK_PAUSE_ACTIVE");
   }
 
   return {
     supportiveProgression,
     pullbackHolding,
+    pullbackPauseActive,
+    pullbackPauseNeedsFollow,
+    pullbackPauseSwingIntact,
     followThroughConfirmed,
     breakoutHoldByBody,
     breakoutRejectedByBody,
@@ -3324,8 +3428,19 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       { tradingPreferences }
     );
 
-    const finalDecision = finalDecisionResult.decision;
+    let finalDecision = finalDecisionResult.decision;
     const finalDecisionReason = finalDecisionResult.reason || null;
+    const patternScore = Number(pattern?.score || 0);
+
+    const forceMicroScalpByPattern = Boolean(
+      !isPyramidDecision(finalDecision) &&
+      isOpenDecision(finalDecision) &&
+      patternScore >= 4
+    );
+
+    if (forceMicroScalpByPattern) {
+      finalDecision = mapDecisionToMicroScalp(finalDecision);
+    }
 
     try {
       if (Array.isArray(candles) && candles.length > 0) {
@@ -3365,11 +3480,13 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       finalDecision,
     });
 
-    const effectiveTradeMode = isPyramidDecision(finalDecision)
+    const effectiveTradeMode = forceMicroScalpByPattern
+      ? "MICRO_SCALP"
+      : isPyramidDecision(finalDecision)
       ? "MICRO_SCALP"
       : String(evaluateResult.mode || "NORMAL").toUpperCase();
 
-    if (isPyramidDecision(finalDecision) && resolvedUserId) {
+    if ((isPyramidDecision(finalDecision) || forceMicroScalpByPattern) && resolvedUserId) {
       try {
         mainUserRecentPerformance = await getRecentClosedTradePerformance({
           firebaseUserId: resolvedUserId,
@@ -4159,6 +4276,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKOUT_RETEST_REJECTED");
+    } else if (bodyFlow?.pullbackPauseActive) {
+      waiting = true;
+      reasons.push("WAIT_PULLBACK_PAUSE_FOLLOW");
     } else if (bodyFlow?.tentativeBreakoutRetest) {
       waiting = true;
       reasons.push("WAIT_BREAKOUT_RETEST_BODY_GRACE");
@@ -4260,6 +4380,9 @@ function evaluateSignalRefreshValidation({
     if (breakoutState.retestRejected) {
       invalidated = true;
       reasons.push("BREAKDOWN_RETEST_REJECTED");
+    } else if (bodyFlow?.pullbackPauseActive) {
+      waiting = true;
+      reasons.push("WAIT_PULLBACK_PAUSE_FOLLOW");
     } else if (bodyFlow?.tentativeBreakoutRetest) {
       waiting = true;
       reasons.push("WAIT_BREAKDOWN_RETEST_BODY_GRACE");
@@ -4364,6 +4487,7 @@ function evaluateSignalRefreshEntryPressure({
   let lightPullback = false;
   let heavyCounter = false;
   let lateContinuation = false;
+  let pausePullback = false;
   let thesisIntact = false;
   let classification = "NEUTRAL";
   const evidence = [];
@@ -4383,6 +4507,7 @@ function evaluateSignalRefreshEntryPressure({
   const safeScore = Math.abs(Number(score || 0));
   const scoreFloor = Math.max(1.4, Number(actionScoreFloor || 0));
   const effectiveScore = Math.max(safeScore, Math.abs(thesisScore));
+  pausePullback = Boolean(bodyFlow?.pullbackPauseActive);
 
   if (side === "BUY") {
     const lowerWick = Math.max(
@@ -4414,21 +4539,24 @@ function evaluateSignalRefreshEntryPressure({
     );
 
     heavyCounter = Boolean(
-      bodyFlow?.bodyTakeoverAgainstSide ||
-      bodyFlow?.breakoutRejectedByBody ||
-      refreshValidation?.invalidated ||
-      (isBearish(last) &&
-        bodyRatio >= 1.18 &&
-        (
-          (breakoutZoneLow > 0 && Number(last.close || 0) < breakoutZoneLow) ||
-          (prev && Number(last.close || 0) < Number(prev.low || 0))
-        )) ||
-      (liveClose > 0 &&
-        liveOpen > 0 &&
-        liveClose < liveOpen &&
-        liveBody >= avgBody * 1.0 &&
-        breakoutLevel > 0 &&
-        liveClose < breakoutLevel)
+      !pausePullback &&
+      (
+        bodyFlow?.bodyTakeoverAgainstSide ||
+        bodyFlow?.breakoutRejectedByBody ||
+        refreshValidation?.invalidated ||
+        (isBearish(last) &&
+          bodyRatio >= 1.18 &&
+          (
+            (breakoutZoneLow > 0 && Number(last.close || 0) < breakoutZoneLow) ||
+            (prev && Number(last.close || 0) < Number(prev.low || 0))
+          )) ||
+        (liveClose > 0 &&
+          liveOpen > 0 &&
+          liveClose < liveOpen &&
+          liveBody >= avgBody * 1.0 &&
+          breakoutLevel > 0 &&
+          liveClose < breakoutLevel)
+      )
     );
 
     lateContinuation = Boolean(
@@ -4483,21 +4611,24 @@ function evaluateSignalRefreshEntryPressure({
     );
 
     heavyCounter = Boolean(
-      bodyFlow?.bodyTakeoverAgainstSide ||
-      bodyFlow?.breakoutRejectedByBody ||
-      refreshValidation?.invalidated ||
-      (isBullish(last) &&
-        bodyRatio >= 1.18 &&
-        (
-          (breakoutZoneHigh > 0 && Number(last.close || 0) > breakoutZoneHigh) ||
-          (prev && Number(last.close || 0) > Number(prev.high || 0))
-        )) ||
-      (liveClose > 0 &&
-        liveOpen > 0 &&
-        liveClose > liveOpen &&
-        liveBody >= avgBody * 1.0 &&
-        breakoutLevel > 0 &&
-        liveClose > breakoutLevel)
+      !pausePullback &&
+      (
+        bodyFlow?.bodyTakeoverAgainstSide ||
+        bodyFlow?.breakoutRejectedByBody ||
+        refreshValidation?.invalidated ||
+        (isBullish(last) &&
+          bodyRatio >= 1.18 &&
+          (
+            (breakoutZoneHigh > 0 && Number(last.close || 0) > breakoutZoneHigh) ||
+            (prev && Number(last.close || 0) > Number(prev.high || 0))
+          )) ||
+        (liveClose > 0 &&
+          liveOpen > 0 &&
+          liveClose > liveOpen &&
+          liveBody >= avgBody * 1.0 &&
+          breakoutLevel > 0 &&
+          liveClose > breakoutLevel)
+      )
     );
 
     lateContinuation = Boolean(
@@ -4531,6 +4662,7 @@ function evaluateSignalRefreshEntryPressure({
       refreshValidation?.waiting ||
       bodyFlow?.bodyCloseSupportive ||
       bodyFlow?.supportiveProgression ||
+      pausePullback ||
       lightPullback ||
       lateContinuation
     )
@@ -4539,6 +4671,9 @@ function evaluateSignalRefreshEntryPressure({
   if (heavyCounter) {
     classification = "HEAVY_COUNTER";
     evidence.push(`${side}_HEAVY_COUNTER`);
+  } else if (pausePullback) {
+    classification = "PULLBACK_PAUSE";
+    evidence.push(`${side}_PULLBACK_PAUSE`);
   } else if (lateContinuation) {
     classification = "LATE_CONTINUATION";
     evidence.push(`${side}_LATE_CONTINUATION`);
@@ -4560,6 +4695,7 @@ function evaluateSignalRefreshEntryPressure({
     lightPullback,
     heavyCounter,
     lateContinuation,
+    pausePullback,
     thesisIntact,
     classification,
     evidence,
@@ -5626,9 +5762,11 @@ app.post("/signal-refresh", async (req, res) => {
         : "REFRESH_THESIS_INTACT_FREEZE_PENDING";
     } else if (refreshValidation.waiting) {
       action = "KEEP_PENDING";
-      reason = entryPressure.lightPullback
-        ? "REFRESH_WAIT_PULLBACK_ENTRY"
-        : refreshValidation.reason || "REFRESH_WAIT_CONFIRMATION";
+      reason = entryPressure.pausePullback
+        ? "REFRESH_WAIT_PULLBACK_PAUSE_FOLLOW"
+        : entryPressure.lightPullback
+          ? "REFRESH_WAIT_PULLBACK_ENTRY"
+          : refreshValidation.reason || "REFRESH_WAIT_CONFIRMATION";
     } else if (
       momentum.opposed &&
       pendingAgeSec >= Math.max(5, Math.round(windowSec * 0.4)) &&
@@ -5800,6 +5938,9 @@ app.post("/signal-refresh", async (req, res) => {
         refreshBodyFlowEvidence: bodyFlow.evidence,
         refreshBodySupportiveProgression: bodyFlow.supportiveProgression,
         refreshBodyPullbackHolding: bodyFlow.pullbackHolding,
+        refreshBodyPullbackPauseActive: bodyFlow.pullbackPauseActive,
+        refreshBodyPullbackPauseNeedsFollow: bodyFlow.pullbackPauseNeedsFollow,
+        refreshBodyPullbackPauseSwingIntact: bodyFlow.pullbackPauseSwingIntact,
         refreshBodyFollowThrough: bodyFlow.followThroughConfirmed,
         refreshBodyBreakoutHold: bodyFlow.breakoutHoldByBody,
         refreshBodyBreakoutRejected: bodyFlow.breakoutRejectedByBody,
@@ -5816,6 +5957,7 @@ app.post("/signal-refresh", async (req, res) => {
         refreshEntryPressure: entryPressure.classification,
         refreshEntryPressureEvidence: entryPressure.evidence,
         refreshLightPullback: entryPressure.lightPullback,
+        refreshPausePullback: entryPressure.pausePullback,
         refreshHeavyCounter: entryPressure.heavyCounter,
         refreshLateContinuation: entryPressure.lateContinuation,
         refreshThesisIntact: entryPressure.thesisIntact,
