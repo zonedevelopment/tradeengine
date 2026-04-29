@@ -90,6 +90,7 @@ const ActivePosition = require("./models/ActivePosition");
 const CandleTrainingData = require("./models/CandleTrainingData");
 const EntryThesisSnapshot = require("./models/EntryThesisSnapshot");
 const SignalRefreshAuditLog = require("./models/SignalRefreshAuditLog");
+const UserSymbolConfig = require("./models/UserSymbolConfig");
 
 const microScalpEngine = require("./microScalpEngine-v4");
 
@@ -195,39 +196,39 @@ const MANGMAO_CONFIG = {
 
 const symbolConfig = {
   NORMAL: {
-    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 600, maxSL: 850, minTP: 1000, maxTP: 1250 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 600, maxSL: 850, minTP: 1000, maxTP: 1250 },
-    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 600, maxSL: 850, minTP: 1000, maxTP: 1250 },
-    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 600, maxSL: 850, minTP: 1000, maxTP: 1250 },
-    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 600, maxSL: 850, minTP: 1000, maxTP: 1250 },
-    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 1200, maxTP: 1500 },
-    "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 100, maxSL: 2000, minTP: 150, maxTP: 4000 }
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 600, maxTP: 850 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 600, maxTP: 850 },
+    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 600, maxTP: 850 },
+    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 600, maxTP: 850 },
+    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 600, maxTP: 850 },
+    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 850, maxTP: 1100 },
+    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 850, maxTP: 1100 },
+    "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 850, maxTP: 1100 },
+    "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 250, maxSL: 2000, minTP: 100, maxTP: 1500 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 420, maxSL: 480, minTP: 600, maxTP: 680 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 420, maxSL: 480, minTP: 600, maxTP: 680 },
-    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 420, maxSL: 480, minTP: 600, maxTP: 680 },
-    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 420, maxSL: 480, minTP: 600, maxTP: 680 },
-    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 420, maxSL: 480, minTP: 600, maxTP: 680 },
-    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "BTCUSDc": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "BTCUSDC": { maxSpread: 80, pipMultiplier: 100, minSL: 800, maxSL: 1000, minTP: 850, maxTP: 1250 },
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 300, maxSL: 1000, minTP: 600, maxTP: 2000 }
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 340, maxTP: 440 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 340, maxTP: 440 },
+    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 340, maxTP: 440 },
+    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 340, maxTP: 440 },
+    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 340, maxTP: 440 },
+    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 650, maxTP: 900 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 650, maxTP: 900 },
+    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 650, maxTP: 900 },
+    "BTCUSDc": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 650, maxTP: 900 },
+    "BTCUSDC": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 650, maxTP: 900 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 420, maxSL: 1000, minTP: 220, maxTP: 600 }
   },
   MICRO_SCALP: {
-    "XAUUSD": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 200, minTP: 150, maxTP: 300 },
-    "XAUUSDm": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 200, minTP: 150, maxTP: 300 },
-    "XAUUSDM": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 200, minTP: 150, maxTP: 300 },
-    "XAUUSDc": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 200, minTP: 150, maxTP: 300 },
-    "XAUUSDC": { maxSpread: 35, pipMultiplier: 100, minSL: 120, maxSL: 200, minTP: 150, maxTP: 300 },
-    "BTCUSD": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
-    "BTCUSDm": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
-    "BTCUSDM": { maxSpread: 60, pipMultiplier: 100, minSL: 180, maxSL: 320, minTP: 100, maxTP: 200 },
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 100, maxSL: 250, minTP: 100, maxTP: 200 }
+    "XAUUSD": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 110, maxTP: 170 },
+    "XAUUSDm": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 110, maxTP: 170 },
+    "XAUUSDM": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 110, maxTP: 170 },
+    "XAUUSDc": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 110, maxTP: 170 },
+    "XAUUSDC": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 110, maxTP: 170 },
+    "BTCUSD": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 120, maxTP: 190 },
+    "BTCUSDm": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 120, maxTP: 190 },
+    "BTCUSDM": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 120, maxTP: 190 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 140, maxSL: 280, minTP: 90, maxTP: 140 }
   },
 };
 
@@ -253,6 +254,70 @@ function getActiveSymbolConfig(symbol, mode = "NORMAL") {
   const safeMode = String(mode || "NORMAL").toUpperCase();
   const configByMode = symbolConfig[safeMode] || symbolConfig.NORMAL;
   return configByMode[symbol] || configByMode.DEFAULT;
+}
+
+function normalizeSymbolKey(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function normalizeModeConfigInput(input = {}, fallback = {}) {
+  const source = input && typeof input === "object" ? input : {};
+  const base = fallback && typeof fallback === "object" ? fallback : {};
+
+  return {
+    maxSpread: toPositiveInt(source.maxSpread, toPositiveInt(base.maxSpread, 0)),
+    pipMultiplier: toPositiveInt(source.pipMultiplier, toPositiveInt(base.pipMultiplier, 100)),
+    minSL: toPositiveInt(source.minSL, toPositiveInt(base.minSL, 0)),
+    maxSL: toPositiveInt(source.maxSL, toPositiveInt(base.maxSL, 0)),
+    minTP: toPositiveInt(source.minTP, toPositiveInt(base.minTP, 0)),
+    maxTP: toPositiveInt(source.maxTP, toPositiveInt(base.maxTP, 0)),
+  };
+}
+
+function getSymbolConfigTemplate(symbol = "") {
+  const safeSymbol = normalizeSymbolKey(symbol);
+
+  return {
+    symbol: safeSymbol,
+    normal: normalizeModeConfigInput(
+      {},
+      getActiveSymbolConfig(safeSymbol, "NORMAL")
+    ),
+    scalp: normalizeModeConfigInput(
+      {},
+      getActiveSymbolConfig(safeSymbol, "SCALP")
+    ),
+    microScalp: normalizeModeConfigInput(
+      {},
+      getActiveSymbolConfig(safeSymbol, "MICRO_SCALP")
+    ),
+  };
+}
+
+function validateModeConfigBounds(modeConfig = {}, label = "mode") {
+  if (!modeConfig || typeof modeConfig !== "object") {
+    return `${label} config is required`;
+  }
+
+  const {
+    maxSpread = 0,
+    pipMultiplier = 0,
+    minSL = 0,
+    maxSL = 0,
+    minTP = 0,
+    maxTP = 0,
+  } = modeConfig;
+
+  if (maxSpread <= 0) return `${label}.maxSpread must be greater than 0`;
+  if (pipMultiplier <= 0) return `${label}.pipMultiplier must be greater than 0`;
+  if (minSL <= 0) return `${label}.minSL must be greater than 0`;
+  if (maxSL <= 0) return `${label}.maxSL must be greater than 0`;
+  if (minTP <= 0) return `${label}.minTP must be greater than 0`;
+  if (maxTP <= 0) return `${label}.maxTP must be greater than 0`;
+  if (maxSL < minSL) return `${label}.maxSL must be greater than or equal to ${label}.minSL`;
+  if (maxTP < minTP) return `${label}.maxTP must be greater than or equal to ${label}.minTP`;
+
+  return null;
 }
 
 function getCandleRange(candle = {}) {
@@ -7735,6 +7800,150 @@ app.get("/trading-preferences", async (req, res) => {
     });
   } catch (error) {
     console.error("trading-preferences get error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+app.post("/symbol-config-preferences", async (req, res) => {
+  try {
+    const {
+      firebaseUserId,
+      accountId = null,
+      symbol,
+      normal = null,
+      scalp = null,
+      microScalp = null,
+      changedBy = null,
+      note = null,
+    } = req.body || {};
+
+    const safeFirebaseUserId = normalizeNullable(firebaseUserId);
+    const safeAccountId = normalizeNullable(accountId) || "";
+    const safeSymbol = normalizeSymbolKey(symbol);
+    const template = getSymbolConfigTemplate(safeSymbol);
+
+    if (!safeFirebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required",
+      });
+    }
+
+    if (!safeSymbol) {
+      return res.status(400).json({
+        success: false,
+        error: "symbol is required",
+      });
+    }
+
+    const safeNormal = normalizeModeConfigInput(normal, template.normal);
+    const safeScalp = normalizeModeConfigInput(scalp, template.scalp);
+    const safeMicroScalp = normalizeModeConfigInput(microScalp, template.microScalp);
+
+    const boundErrors = [
+      validateModeConfigBounds(safeNormal, "normal"),
+      validateModeConfigBounds(safeScalp, "scalp"),
+      validateModeConfigBounds(safeMicroScalp, "microScalp"),
+    ].filter(Boolean);
+
+    if (boundErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: boundErrors[0],
+      });
+    }
+
+    const doc = await UserSymbolConfig.findOneAndUpdate(
+      {
+        firebaseUserId: safeFirebaseUserId,
+        accountId: safeAccountId,
+        symbol: safeSymbol,
+      },
+      {
+        $set: {
+          normal: safeNormal,
+          scalp: safeScalp,
+          microScalp: safeMicroScalp,
+          changedBy: normalizeNullable(changedBy) || "",
+          note: normalizeNullable(note) || "",
+        },
+        $setOnInsert: {
+          firebaseUserId: safeFirebaseUserId,
+          accountId: safeAccountId,
+          symbol: safeSymbol,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      }
+    ).lean();
+
+    return res.json({
+      success: true,
+      message: "Symbol config preferences saved successfully",
+      data: doc,
+    });
+  } catch (error) {
+    console.error("symbol-config-preferences save error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+app.get("/symbol-config-preferences", async (req, res) => {
+  try {
+    const firebaseUserId = normalizeNullable(req.query.firebaseUserId);
+    const accountId = normalizeNullable(req.query.accountId) || "";
+    const symbol = normalizeSymbolKey(req.query.symbol);
+
+    if (!firebaseUserId) {
+      return res.status(400).json({
+        success: false,
+        error: "firebaseUserId is required",
+      });
+    }
+
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        error: "symbol is required",
+      });
+    }
+
+    const row = await UserSymbolConfig.findOne({
+      firebaseUserId,
+      accountId,
+      symbol,
+    }).lean();
+
+    if (row) {
+      return res.json({
+        success: true,
+        data: row,
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        firebaseUserId,
+        accountId,
+        ...getSymbolConfigTemplate(symbol),
+        changedBy: "",
+        note: "",
+        createdAt: null,
+        updatedAt: null,
+      },
+    });
+  } catch (error) {
+    console.error("symbol-config-preferences get error:", error);
     return res.status(500).json({
       success: false,
       error: error.message || "Internal server error",
