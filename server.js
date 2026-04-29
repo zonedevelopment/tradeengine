@@ -196,39 +196,39 @@ const MANGMAO_CONFIG = {
 
 const symbolConfig = {
   NORMAL: {
-    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 320, maxTP: 520 },
-    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 320, maxTP: 520 },
-    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 320, maxTP: 520 },
-    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 320, maxTP: 520 },
-    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 900, maxSL: 1200, minTP: 320, maxTP: 520 },
-    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 520, maxTP: 760 },
-    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 520, maxTP: 760 },
-    "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 1200, maxSL: 1600, minTP: 520, maxTP: 760 },
-    "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 250, maxSL: 2000, minTP: 80, maxTP: 900 }
+    "XAUUSD": { maxSpread: 100, pipMultiplier: 100, minSL: 550, maxSL: 800, minTP: 950, maxTP: 1200 },
+    "XAUUSDm": { maxSpread: 100, pipMultiplier: 100, minSL: 550, maxSL: 800, minTP: 950, maxTP: 1200 },
+    "XAUUSDM": { maxSpread: 100, pipMultiplier: 100, minSL: 550, maxSL: 800, minTP: 950, maxTP: 1200 },
+    "XAUUSDc": { maxSpread: 100, pipMultiplier: 100, minSL: 550, maxSL: 800, minTP: 950, maxTP: 1200 },
+    "XAUUSDC": { maxSpread: 100, pipMultiplier: 100, minSL: 550, maxSL: 800, minTP: 950, maxTP: 1200 },
+    "BTCUSD": { maxSpread: 200, pipMultiplier: 100, minSL: 850, maxSL: 1150, minTP: 1150, maxTP: 1450 },
+    "BTCUSDm": { maxSpread: 200, pipMultiplier: 100, minSL: 850, maxSL: 1150, minTP: 1150, maxTP: 1450 },
+    "BTCUSDM": { maxSpread: 200, pipMultiplier: 100, minSL: 850, maxSL: 1150, minTP: 1150, maxTP: 1450 },
+    "DEFAULT": { maxSpread: 30, pipMultiplier: 100, minSL: 50, maxSL: 1950, minTP: 100, maxTP: 3950 }
   },
   SCALP: {
-    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 260, maxTP: 340 },
-    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 260, maxTP: 340 },
-    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 260, maxTP: 340 },
-    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 260, maxTP: 340 },
-    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 520, maxSL: 620, minTP: 260, maxTP: 340 },
-    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 500, maxTP: 700 },
-    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 500, maxTP: 700 },
-    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 500, maxTP: 700 },
-    "BTCUSDc": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 500, maxTP: 700 },
-    "BTCUSDC": { maxSpread: 80, pipMultiplier: 100, minSL: 1050, maxSL: 1250, minTP: 500, maxTP: 700 },
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 420, maxSL: 1000, minTP: 180, maxTP: 420 }
+    "XAUUSD": { maxSpread: 50, pipMultiplier: 100, minSL: 370, maxSL: 430, minTP: 550, maxTP: 630 },
+    "XAUUSDm": { maxSpread: 50, pipMultiplier: 100, minSL: 370, maxSL: 430, minTP: 550, maxTP: 630 },
+    "XAUUSDM": { maxSpread: 50, pipMultiplier: 100, minSL: 370, maxSL: 430, minTP: 550, maxTP: 630 },
+    "XAUUSDc": { maxSpread: 50, pipMultiplier: 100, minSL: 370, maxSL: 430, minTP: 550, maxTP: 630 },
+    "XAUUSDC": { maxSpread: 50, pipMultiplier: 100, minSL: 370, maxSL: 430, minTP: 550, maxTP: 630 },
+    "BTCUSD": { maxSpread: 80, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1200 },
+    "BTCUSDm": { maxSpread: 80, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1200 },
+    "BTCUSDM": { maxSpread: 80, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1200 },
+    "BTCUSDc": { maxSpread: 80, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1200 },
+    "BTCUSDC": { maxSpread: 80, pipMultiplier: 100, minSL: 750, maxSL: 950, minTP: 800, maxTP: 1200 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 250, maxSL: 950, minTP: 550, maxTP: 1950 }
   },
   MICRO_SCALP: {
-    "XAUUSD": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 85, maxTP: 120 },
-    "XAUUSDm": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 85, maxTP: 120 },
-    "XAUUSDM": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 85, maxTP: 120 },
-    "XAUUSDc": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 85, maxTP: 120 },
-    "XAUUSDC": { maxSpread: 35, pipMultiplier: 100, minSL: 180, maxSL: 260, minTP: 85, maxTP: 120 },
-    "BTCUSD": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 100, maxTP: 140 },
-    "BTCUSDm": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 100, maxTP: 140 },
-    "BTCUSDM": { maxSpread: 60, pipMultiplier: 100, minSL: 240, maxSL: 360, minTP: 100, maxTP: 140 },
-    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 140, maxSL: 280, minTP: 70, maxTP: 110 }
+    "XAUUSD": { maxSpread: 35, pipMultiplier: 100, minSL: 70, maxSL: 150, minTP: 100, maxTP: 250 },
+    "XAUUSDm": { maxSpread: 35, pipMultiplier: 100, minSL: 70, maxSL: 150, minTP: 100, maxTP: 250 },
+    "XAUUSDM": { maxSpread: 35, pipMultiplier: 100, minSL: 70, maxSL: 150, minTP: 100, maxTP: 250 },
+    "XAUUSDc": { maxSpread: 35, pipMultiplier: 100, minSL: 70, maxSL: 150, minTP: 100, maxTP: 250 },
+    "XAUUSDC": { maxSpread: 35, pipMultiplier: 100, minSL: 70, maxSL: 150, minTP: 100, maxTP: 250 },
+    "BTCUSD": { maxSpread: 60, pipMultiplier: 100, minSL: 130, maxSL: 270, minTP: 50, maxTP: 150 },
+    "BTCUSDm": { maxSpread: 60, pipMultiplier: 100, minSL: 130, maxSL: 270, minTP: 50, maxTP: 150 },
+    "BTCUSDM": { maxSpread: 60, pipMultiplier: 100, minSL: 130, maxSL: 270, minTP: 50, maxTP: 150 },
+    "DEFAULT": { maxSpread: 20, pipMultiplier: 100, minSL: 50, maxSL: 200, minTP: 50, maxTP: 150 }
   },
 };
 
