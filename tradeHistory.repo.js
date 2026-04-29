@@ -596,6 +596,8 @@ async function getRecentCloseOrderCooldownState({
   symbol = null,
   windowSeconds = 180,
   cooldownSeconds = 120,
+  winStreakThreshold = 3,
+  lossStreakThreshold = 2,
 } = {}) {
   const safeFirebaseUserId = normalizeString(firebaseUserId);
   if (!safeFirebaseUserId) {
@@ -631,8 +633,16 @@ async function getRecentCloseOrderCooldownState({
     FROM trade_history
     WHERE ${conditions.join(" AND ")}
     ORDER BY COALESCE(event_time, created_at) DESC, id DESC
-    LIMIT 2
+    LIMIT ?
   `;
+
+  const requiredSample = Math.max(
+    2,
+    Number(winStreakThreshold || 3),
+    Number(lossStreakThreshold || 2)
+  );
+
+  params.push(requiredSample);
 
   const rows = await query(sql, params);
   const events = Array.isArray(rows) ? rows : [];
@@ -646,81 +656,100 @@ async function getRecentCloseOrderCooldownState({
     };
   }
 
-  const latest = events[0];
-  const previous = events[1];
-  const latestProfit = Number(latest?.profit || 0);
-  const previousProfit = Number(previous?.profit || 0);
+  const evaluateStreak = (targetSign, threshold, reason) => {
+    const safeThreshold = Math.max(2, Number(threshold || 0));
+    if (events.length < safeThreshold) return null;
 
-  if (latestProfit === 0 || previousProfit === 0) {
+    const subset = events.slice(0, safeThreshold);
+    const profits = subset.map((row) => Number(row?.profit || 0));
+    const allMatched = profits.every((profit) =>
+      targetSign === "WIN" ? profit > 0 : profit < 0
+    );
+
+    if (!allMatched) return null;
+
+    const times = subset.map((row) =>
+      normalizeDate(row?.event_time || row?.created_at)
+    );
+
+    const adjacentGaps = [];
+    for (let i = 0; i < times.length - 1; i += 1) {
+      adjacentGaps.push(
+        Math.max(0, Math.round((times[i].getTime() - times[i + 1].getTime()) / 1000))
+      );
+    }
+
+    const withinWindow = adjacentGaps.every(
+      (gap) => gap <= Number(windowSeconds || 180)
+    );
+
+    if (!withinWindow) {
+      return {
+        active: false,
+        triggered: false,
+        reason: null,
+        sampleCount: events.length,
+        streakType: targetSign,
+        threshold: safeThreshold,
+        adjacentGaps,
+      };
+    }
+
+    const latest = subset[0];
+    const latestTime = times[0];
+    const elapsedSinceLatestSeconds = Math.max(
+      0,
+      Math.round((Date.now() - latestTime.getTime()) / 1000)
+    );
+    const remainingSeconds = Math.max(
+      0,
+      Number(cooldownSeconds || 120) - elapsedSinceLatestSeconds
+    );
+
     return {
-      active: false,
-      triggered: false,
-      reason: null,
+      active: remainingSeconds > 0,
+      triggered: true,
+      reason,
       sampleCount: events.length,
-    };
-  }
-
-  const sameWin = latestProfit > 0 && previousProfit > 0;
-  const sameLoss = latestProfit < 0 && previousProfit < 0;
-
-  if (!sameWin && !sameLoss) {
-    return {
-      active: false,
-      triggered: false,
-      reason: null,
-      sampleCount: events.length,
-    };
-  }
-
-  const latestTime = normalizeDate(latest?.event_time || latest?.created_at);
-  const previousTime = normalizeDate(previous?.event_time || previous?.created_at);
-  const closeGapSeconds = Math.max(
-    0,
-    Math.round((latestTime.getTime() - previousTime.getTime()) / 1000)
-  );
-
-  if (closeGapSeconds > Number(windowSeconds || 180)) {
-    return {
-      active: false,
-      triggered: false,
-      reason: null,
-      sampleCount: events.length,
+      streakType: targetSign,
+      threshold: safeThreshold,
+      latestProfit: Number(latest?.profit || 0),
       latestEventTime: latestTime,
-      previousEventTime: previousTime,
-      closeGapSeconds,
+      oldestEventTime: times[times.length - 1],
+      adjacentGaps,
+      elapsedSinceLatestSeconds,
+      remainingSeconds,
       windowSeconds: Number(windowSeconds || 180),
       cooldownSeconds: Number(cooldownSeconds || 120),
+      symbol: safeSymbol || null,
     };
+  };
+
+  const winCooldown = evaluateStreak(
+    "WIN",
+    winStreakThreshold,
+    "WIN_STREAK_COOLDOWN_ACTIVE"
+  );
+  if (winCooldown?.triggered) {
+    return winCooldown;
   }
 
-  const elapsedSinceLatestSeconds = Math.max(
-    0,
-    Math.round((Date.now() - latestTime.getTime()) / 1000)
+  const lossCooldown = evaluateStreak(
+    "LOSS",
+    lossStreakThreshold,
+    "LOSS_STREAK_COOLDOWN_ACTIVE"
   );
-  const remainingSeconds = Math.max(
-    0,
-    Number(cooldownSeconds || 120) - elapsedSinceLatestSeconds
-  );
-  const reason = sameWin
-    ? "WIN_STREAK_COOLDOWN_ACTIVE"
-    : "LOSS_STREAK_COOLDOWN_ACTIVE";
+  if (lossCooldown?.triggered) {
+    return lossCooldown;
+  }
 
   return {
-    active: remainingSeconds > 0,
-    triggered: true,
-    reason,
+    active: false,
+    triggered: false,
+    reason: null,
     sampleCount: events.length,
-    streakType: sameWin ? "WIN" : "LOSS",
-    latestProfit,
-    previousProfit,
-    latestEventTime: latestTime,
-    previousEventTime: previousTime,
-    closeGapSeconds,
-    elapsedSinceLatestSeconds,
-    remainingSeconds,
     windowSeconds: Number(windowSeconds || 180),
     cooldownSeconds: Number(cooldownSeconds || 120),
-    symbol: safeSymbol || null,
   };
 }
 
