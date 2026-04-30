@@ -37,6 +37,7 @@ const {
   getTodayTradeStatsByUserAndAccount,
   getRecentClosedTradePerformance,
   getRecentCloseOrderCooldownState,
+  getTradeBatchCooldownState,
 } = require("./tradeHistory.repo");
 
 const { evaluateCurrentVolumeAgainstHistory } = require("./brain/volume-history.service");
@@ -3362,17 +3363,17 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
     }
 
     if (!isRefresh && resolvedUserId && shouldApplyTradeOutcomeCooldown(resolvedSymbol)) {
-      try {
-        const closeOrderCooldown = await getRecentCloseOrderCooldownState({
-          firebaseUserId: resolvedUserId,
-          accountId: accountId ?? null,
-          symbol: resolvedSymbol,
-          windowSeconds: 180,
-          cooldownSeconds: 120,
-        });
+        try {
+          const closeOrderCooldown = await getRecentCloseOrderCooldownState({
+            firebaseUserId: resolvedUserId,
+            accountId: accountId ?? null,
+            symbol: resolvedSymbol,
+            windowSeconds: 180,
+            cooldownSeconds: 120,
+          });
 
-        if (closeOrderCooldown?.active) {
-          return {
+          if (closeOrderCooldown?.active) {
+            return {
             ...buildBlockedSignalResponse({
               reason: closeOrderCooldown.reason,
               score: 0,
@@ -3385,13 +3386,39 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               trade_setup: null,
               currentOpenPositionsCount: 0,
             }),
-            trade_outcome_cooldown: closeOrderCooldown,
-          };
+              trade_outcome_cooldown: closeOrderCooldown,
+            };
+          }
+
+          const tradeBatchCooldown = await getTradeBatchCooldownState({
+            firebaseUserId: resolvedUserId,
+            accountId: accountId ?? null,
+            symbol: resolvedSymbol,
+            batchSize: 10,
+            cooldownSeconds: 300,
+          });
+
+          if (tradeBatchCooldown?.active) {
+            return {
+              ...buildBlockedSignalResponse({
+                reason: tradeBatchCooldown.reason,
+                score: 0,
+                firebaseUserId: resolvedUserId,
+                mode: "NORMAL",
+                trend: "NEUTRAL",
+                pattern: null,
+                historicalVolume: null,
+                defensiveFlags: null,
+                trade_setup: null,
+                currentOpenPositionsCount: 0,
+              }),
+              trade_batch_cooldown: tradeBatchCooldown,
+            };
+          }
+        } catch (cooldownError) {
+          console.error("Load trade outcome cooldown error:", cooldownError.message);
         }
-      } catch (cooldownError) {
-        console.error("Load trade outcome cooldown error:", cooldownError.message);
       }
-    }
 
     let totalClosedTrades = 0;
     try {

@@ -754,6 +754,103 @@ async function getRecentCloseOrderCooldownState({
   };
 }
 
+async function getTradeBatchCooldownState({
+  firebaseUserId,
+  accountId = null,
+  symbol = null,
+  batchSize = 10,
+  cooldownSeconds = 300,
+} = {}) {
+  const safeFirebaseUserId = normalizeString(firebaseUserId);
+  if (!safeFirebaseUserId) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      totalClosedTrades: 0,
+      batchSize: Number(batchSize || 10),
+      cooldownSeconds: Number(cooldownSeconds || 300),
+    };
+  }
+
+  const safeBatchSize = Math.max(1, Number(batchSize || 10));
+  const safeCooldownSeconds = Math.max(0, Number(cooldownSeconds || 300));
+  const conditions = [`firebase_user_id = ?`, `event_type IN ('CLOSE_ORDER', 'CLOSE_EMERGENCY')`];
+  const params = [safeFirebaseUserId];
+
+  if (accountId !== undefined && accountId !== null && String(accountId).trim() !== "") {
+    conditions.push(`account_id = ?`);
+    params.push(Number(accountId));
+  }
+
+  const safeSymbol = normalizeString(symbol).toUpperCase();
+  if (safeSymbol) {
+    conditions.push(`UPPER(symbol) = ?`);
+    params.push(safeSymbol);
+  }
+
+  const sql = `
+    SELECT COUNT(*) AS totalClosedTrades, MAX(event_time) AS latestEventTime
+    FROM trade_history
+    WHERE ${conditions.join(" AND ")}
+  `;
+
+  const rows = await query(sql, params);
+  const totalClosedTrades = Number(rows?.[0]?.totalClosedTrades || 0);
+  const latestEventTimeRaw = rows?.[0]?.latestEventTime || null;
+
+  if (
+    totalClosedTrades <= 0 ||
+    totalClosedTrades % safeBatchSize !== 0 ||
+    !latestEventTimeRaw
+  ) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      totalClosedTrades,
+      latestEventTime: latestEventTimeRaw,
+      batchSize: safeBatchSize,
+      cooldownSeconds: safeCooldownSeconds,
+      symbol: safeSymbol || null,
+    };
+  }
+
+  const latestTime = new Date(latestEventTimeRaw);
+  const latestTs = latestTime.getTime();
+  if (!Number.isFinite(latestTs) || latestTs <= 0) {
+    return {
+      active: false,
+      triggered: false,
+      reason: null,
+      totalClosedTrades,
+      latestEventTime: latestEventTimeRaw,
+      batchSize: safeBatchSize,
+      cooldownSeconds: safeCooldownSeconds,
+      symbol: safeSymbol || null,
+    };
+  }
+
+  const elapsedSinceLatestSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - latestTs) / 1000)
+  );
+  const remainingSeconds = Math.max(0, safeCooldownSeconds - elapsedSinceLatestSeconds);
+
+  return {
+    active: remainingSeconds > 0,
+    triggered: true,
+    reason: "TRADE_BATCH_COOLDOWN_ACTIVE",
+    totalClosedTrades,
+    latestEventTime: latestTime,
+    elapsedSinceLatestSeconds,
+    remainingSeconds,
+    batchSize: safeBatchSize,
+    cooldownSeconds: safeCooldownSeconds,
+    symbol: safeSymbol || null,
+  };
+}
+
 module.exports = {
   insertTradeHistory,
   getTradeHistoryByUser,
@@ -766,4 +863,5 @@ module.exports = {
   getHistoryLearnWeight,
   getRecentClosedTradePerformance,
   getRecentCloseOrderCooldownState,
+  getTradeBatchCooldownState,
 };
