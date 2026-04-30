@@ -543,6 +543,98 @@ function analyzeExitBodyFlow(candles = [], side = "") {
     };
 }
 
+function classifyEntryExitPolicy({
+    entryThesis = null,
+    pattern = null,
+    mode = "NORMAL",
+}) {
+    const normalizedMode = normalizeMode(mode);
+    const sourcePattern = entryThesis?.pattern || pattern || null;
+    const patternType = String(
+        sourcePattern?.type ||
+        sourcePattern?.pattern ||
+        sourcePattern?.name ||
+        ""
+    ).trim().toUpperCase();
+    const patternName = String(
+        sourcePattern?.name ||
+        sourcePattern?.pattern ||
+        sourcePattern?.type ||
+        ""
+    ).trim().toUpperCase();
+    const combined = `${patternType} ${patternName}`;
+
+    const breakoutRetest = sourcePattern?.breakoutRetest || null;
+    const structure = sourcePattern?.structure || null;
+
+    const continuationLike =
+        combined.includes("FIRST_LEG_BREAKOUT") ||
+        combined.includes("FIRST_LEG_BREAKDOWN") ||
+        combined.includes("CONTINUATION") ||
+        combined.includes("BREAKOUT") ||
+        combined.includes("BREAKDOWN") ||
+        combined.includes("ROCKET") ||
+        combined.includes("WATERFALL") ||
+        Boolean(breakoutRetest?.breakoutDetected) ||
+        Boolean(breakoutRetest?.freshBreakout);
+
+    const reversalLike =
+        combined.includes("PIERCING") ||
+        combined.includes("DARK_CLOUD") ||
+        combined.includes("ENGULF") ||
+        combined.includes("HAMMER") ||
+        combined.includes("SHOOTING") ||
+        combined.includes("PIN") ||
+        combined.includes("STAR") ||
+        combined.includes("REVERSAL") ||
+        Boolean(structure?.possibleReversal);
+
+    let policyType = "DEFAULT";
+
+    if (continuationLike) {
+        policyType = "CONTINUATION";
+    } else if (reversalLike || normalizedMode === "MICRO_SCALP" || normalizedMode === "SCALP") {
+        policyType = "REVERSAL_SCALP";
+    }
+
+    return {
+        policyType,
+        continuationLike,
+        reversalLike,
+        sourcePatternType: patternType || null,
+        sourcePatternName: patternName || null,
+    };
+}
+
+function applyEntryExitPolicyToProfile(profile = {}, policy = {}) {
+    const safeProfile = { ...profile };
+    const policyType = String(policy?.policyType || "DEFAULT").toUpperCase();
+
+    if (policyType === "CONTINUATION") {
+        safeProfile.armProfitMin = Number((safeProfile.armProfitMin * 1.10).toFixed(4));
+        safeProfile.moveToBeMinProfit = Number((safeProfile.moveToBeMinProfit * 1.22).toFixed(4));
+        safeProfile.takeProfitMinProfit = Number((safeProfile.takeProfitMinProfit * 1.22).toFixed(4));
+        safeProfile.minPeakBeforeProtect = Number((safeProfile.minPeakBeforeProtect * 1.15).toFixed(4));
+        safeProfile.beMinRetraceRatio = Number(Math.min(safeProfile.beMinRetraceRatio * 1.12, 0.45).toFixed(4));
+        safeProfile.tpMinRetraceRatio = Number(Math.min(safeProfile.tpMinRetraceRatio * 1.12, 0.55).toFixed(4));
+        safeProfile.lowVolumeProfitMinutes = Number((safeProfile.lowVolumeProfitMinutes * 1.2).toFixed(4));
+        return safeProfile;
+    }
+
+    if (policyType === "REVERSAL_SCALP") {
+        safeProfile.armProfitMin = Number((safeProfile.armProfitMin * 0.92).toFixed(4));
+        safeProfile.moveToBeMinProfit = Number((safeProfile.moveToBeMinProfit * 0.86).toFixed(4));
+        safeProfile.takeProfitMinProfit = Number((safeProfile.takeProfitMinProfit * 0.88).toFixed(4));
+        safeProfile.minPeakBeforeProtect = Number((safeProfile.minPeakBeforeProtect * 0.90).toFixed(4));
+        safeProfile.beMinRetraceRatio = Number(Math.max(safeProfile.beMinRetraceRatio * 0.90, 0.10).toFixed(4));
+        safeProfile.tpMinRetraceRatio = Number(Math.max(safeProfile.tpMinRetraceRatio * 0.90, 0.18).toFixed(4));
+        safeProfile.lowVolumeProfitMinutes = Number((safeProfile.lowVolumeProfitMinutes * 0.85).toFixed(4));
+        return safeProfile;
+    }
+
+    return safeProfile;
+}
+
 function detectExitConfirmation(candles = [], side = "") {
     if (!Array.isArray(candles) || candles.length < 2) {
         return { level: "LOW", score: 0 };
@@ -1189,12 +1281,13 @@ function shouldTakeProfitOnLowVolume({
     holdingMinutes = 0,
     currentProfit = 0,
     mode = "NORMAL",
+    profileOverride = null,
 }) {
     const hv = String(historicalVolumeSignal || "").toUpperCase();
     if (hv !== "LOW_VOLUME") return false;
     if (currentProfit <= 0) return false;
 
-    const profile = getExitProfile(mode);
+    const profile = profileOverride || getExitProfile(mode);
     return holdingMinutes >= profile.lowVolumeProfitMinutes;
 }
 
@@ -1390,8 +1483,9 @@ function shouldEngineTakeSmallProfit({
     failedPatternRule = null,
     mode = "NORMAL",
     bodyFlow = { deterioration: false, takeoverAgainst: false, score: 0 },
+    profileOverride = null,
 }) {
-    const profile = getExitProfile(mode);
+    const profile = profileOverride || getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const peakProfit = getPeakProfit(openPosition, profit);
     const retraceRatio = getProfitRetractionRatio(openPosition, profit);
@@ -1431,8 +1525,9 @@ function shouldEngineMoveToBE({
     failedPatternRule = null,
     mode = "NORMAL",
     bodyFlow = { deterioration: false, takeoverAgainst: false, score: 0 },
+    profileOverride = null,
 }) {
-    const profile = getExitProfile(mode);
+    const profile = profileOverride || getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const peakProfit = getPeakProfit(openPosition, profit);
     const retraceRatio = getProfitRetractionRatio(openPosition, profit);
@@ -1508,6 +1603,7 @@ function buildCutMeta({
     bodyFlow,
     higherTfContext,
     lowerTfContext,
+    entryExitPolicy,
     softInvalidation,
     hardInvalidation,
     confirmation,
@@ -1541,6 +1637,11 @@ function buildCutMeta({
         lowerTfExitSupportive: Boolean(lowerTfContext?.supportive),
         lowerTfExitNoiseCounter: Boolean(lowerTfContext?.noiseCounter),
         lowerTfExitTakeoverAgainst: Boolean(lowerTfContext?.takeoverAgainst),
+        entryExitPolicyType: String(entryExitPolicy?.policyType || "DEFAULT").toUpperCase(),
+        entryExitPolicyContinuationLike: Boolean(entryExitPolicy?.continuationLike),
+        entryExitPolicyReversalLike: Boolean(entryExitPolicy?.reversalLike),
+        entryExitPatternType: entryExitPolicy?.sourcePatternType || null,
+        entryExitPatternName: entryExitPolicy?.sourcePatternName || null,
         softInvalidation,
         hardInvalidation,
         confirmation: confirmation.level,
@@ -1567,6 +1668,7 @@ async function analyzeEarlyExit({
     candlesM30 = [],
     candlesH1 = [],
     candlesH4 = [],
+    entryThesis = null,
 }) {
     openPosition = openPosition || {};
 
@@ -1576,6 +1678,12 @@ async function analyzeEarlyExit({
 
     const normalizedMode = normalizeMode(mode || openPosition.mode || "NORMAL");
     const profile = getExitProfile(normalizedMode);
+    const entryExitPolicy = classifyEntryExitPolicy({
+        entryThesis,
+        pattern,
+        mode: normalizedMode,
+    });
+    const protectProfile = applyEntryExitPolicyToProfile(profile, entryExitPolicy);
     const profit = toNumber(currentProfit, 0);
     const historicalVolumeSignal = historicalVolume?.signal || historicalVolume || null;
 
@@ -1689,6 +1797,7 @@ async function analyzeEarlyExit({
         bodyFlow,
         higherTfContext,
         lowerTfContext,
+        entryExitPolicy,
         softInvalidation,
         hardInvalidation,
         confirmation,
@@ -1911,13 +2020,14 @@ async function analyzeEarlyExit({
             holdingMinutes,
             currentProfit: profit,
             mode: normalizedMode,
+            profileOverride: protectProfile,
         }) &&
-        getPeakProfit(openPosition, profit) >= profile.minPeakBeforeProtect &&
-        getProfitRetractionRatio(openPosition, profit) >= profile.beMinRetraceRatio
+        getPeakProfit(openPosition, profit) >= protectProfile.minPeakBeforeProtect &&
+        getProfitRetractionRatio(openPosition, profit) >= protectProfile.beMinRetraceRatio
     ) {
         return {
             action: "TAKE_SMALL_PROFIT",
-            reason: `${normalizedMode}_LOW_VOLUME_PROTECT`,
+            reason: `${normalizedMode}_${entryExitPolicy.policyType}_LOW_VOLUME_PROTECT`,
             riskLevel,
             score: adjustedScore,
         };
@@ -1933,6 +2043,7 @@ async function analyzeEarlyExit({
             failedPatternRule,
             mode: normalizedMode,
             bodyFlow,
+            profileOverride: protectProfile,
         })
     ) {
         if (
@@ -1952,7 +2063,7 @@ async function analyzeEarlyExit({
 
         return {
             action: "TAKE_SMALL_PROFIT",
-            reason: `${normalizedMode}_REVERSAL_PROFIT_PROTECT`,
+            reason: `${normalizedMode}_${entryExitPolicy.policyType}_REVERSAL_PROFIT_PROTECT`,
             riskLevel,
             score: adjustedScore,
             meta: {
@@ -1976,6 +2087,7 @@ async function analyzeEarlyExit({
             failedPatternRule,
             mode: normalizedMode,
             bodyFlow,
+            profileOverride: protectProfile,
         })
     ) {
         if (
@@ -1996,7 +2108,7 @@ async function analyzeEarlyExit({
 
         return {
             action: "MOVE_TO_BE",
-            reason: `${normalizedMode}_CONTEXTUAL_BREAKEVEN_PROTECT`,
+            reason: `${normalizedMode}_${entryExitPolicy.policyType}_CONTEXTUAL_BREAKEVEN_PROTECT`,
             riskLevel,
             score: adjustedScore,
             meta: {

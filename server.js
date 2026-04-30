@@ -3105,6 +3105,70 @@ async function getLatestEntryThesisSnapshotForRefresh({
   }
 }
 
+async function getLatestEntryThesisSnapshotForExit({
+  firebaseUserId,
+  accountId = "",
+  symbol = "",
+  side = "",
+  mode = "",
+  ticketId = "",
+}) {
+  const safeFirebaseUserId = String(firebaseUserId || "").trim();
+  const safeAccountId = String(accountId || "").trim();
+  const safeSymbol = String(symbol || "").trim().toUpperCase();
+  const safeSide = String(side || "").trim().toUpperCase();
+  const safeMode = String(mode || "").trim().toUpperCase();
+  const safeTicketId = String(ticketId || "").trim();
+
+  if (!safeFirebaseUserId || !safeSymbol || !safeSide) {
+    return null;
+  }
+
+  try {
+    if (safeTicketId) {
+      const ticketFilter = {
+        firebaseUserId: safeFirebaseUserId,
+        symbol: safeSymbol,
+        side: safeSide,
+        linkedTicketId: safeTicketId,
+      };
+
+      if (safeAccountId) {
+        ticketFilter.accountId = safeAccountId;
+      }
+
+      const linked = await EntryThesisSnapshot.findOne(ticketFilter)
+        .sort({ eventTime: -1, _id: -1 })
+        .lean();
+
+      if (linked) return linked;
+    }
+
+    const fallbackFilter = {
+      firebaseUserId: safeFirebaseUserId,
+      symbol: safeSymbol,
+      side: safeSide,
+      sourceEndpoint: { $in: ["signal", "signal_refresh"] },
+      eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
+    };
+
+    if (safeAccountId) {
+      fallbackFilter.accountId = safeAccountId;
+    }
+
+    if (safeMode) {
+      fallbackFilter.mode = safeMode;
+    }
+
+    return await EntryThesisSnapshot.findOne(fallbackFilter)
+      .sort({ eventTime: -1, _id: -1 })
+      .lean();
+  } catch (error) {
+    console.error("[entry-thesis] load exit snapshot failed:", error.message);
+    return null;
+  }
+}
+
 function writeEntryThesisSnapshot(document) {
   if (!document) return;
 
@@ -6599,6 +6663,23 @@ app.post("/check-exit-signal", async (req, res) => {
       floatingProfit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
     };
 
+    const resolvedTicketId = String(
+      openPosition?.ticketId ??
+      openPosition?.ticket_id ??
+      openPosition?.positionTicket ??
+      openPosition?.position_ticket ??
+      ""
+    ).trim();
+
+    const entryThesis = await getLatestEntryThesisSnapshotForExit({
+      firebaseUserId: resolvedUserId,
+      accountId,
+      symbol: resolvedSymbol,
+      side: String(openPosition?.side || openPosition?.type || "").trim().toUpperCase(),
+      mode: resolvedMode,
+      ticketId: resolvedTicketId,
+    });
+
     const result = await analyzeEarlyExit({
       firebaseUserId: resolvedUserId,
       symbol: resolvedSymbol,
@@ -6615,7 +6696,8 @@ app.post("/check-exit-signal", async (req, res) => {
       timeframe: String(req.body?.timeframe || "M5").toUpperCase(),
       historicalVolume,
       pattern,
-      accountId
+      accountId,
+      entryThesis
     });
 
     // const exitResult = await analyzeEarlyExit({
