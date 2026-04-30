@@ -1012,6 +1012,178 @@ function detectOppositeTakeover(candles = [], side = "") {
     };
 }
 
+function analyzeHigherTimeframeExitContext({
+    side = "",
+    candlesM15 = [],
+    candlesM30 = [],
+    candlesH1 = [],
+    candlesH4 = [],
+}) {
+    const s = normalizeSide(side);
+    const primary = Array.isArray(candlesM15) && candlesM15.length >= 3
+        ? candlesM15
+        : Array.isArray(candlesM30) && candlesM30.length >= 3
+            ? candlesM30
+            : Array.isArray(candlesH1) && candlesH1.length >= 3
+                ? candlesH1
+                : Array.isArray(candlesH4) && candlesH4.length >= 3
+                    ? candlesH4
+                    : [];
+
+    if (!primary.length || (s !== "BUY" && s !== "SELL")) {
+        return {
+            supportive: false,
+            opposing: false,
+            continuationSupport: false,
+            structureBreakAgainst: false,
+            score: 0,
+            evidence: [],
+        };
+    }
+
+    const sample = primary.slice(-5);
+    const recent3 = sample.slice(-3);
+    const last = sample[sample.length - 1] || {};
+    const prev = sample[sample.length - 2] || {};
+    const prev2 = sample[sample.length - 3] || {};
+    const evidence = [];
+
+    let supportive = false;
+    let opposing = false;
+    let continuationSupport = false;
+    let structureBreakAgainst = false;
+    let score = 0;
+
+    if (s === "BUY") {
+        const higherLowFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].low, 0) >= toNumber(recent3[1].low, 0) &&
+            toNumber(recent3[1].low, 0) >= toNumber(recent3[0].low, 0);
+
+        const higherCloseFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].close, 0) >= toNumber(recent3[1].close, 0) &&
+            toNumber(recent3[1].close, 0) >= toNumber(recent3[0].close, 0);
+
+        supportive = higherLowFlow || higherCloseFlow;
+        continuationSupport =
+            isBullish(last) &&
+            toNumber(last.close, 0) >= toNumber(prev.close, 0) &&
+            toNumber(last.low, 0) >= Math.min(toNumber(prev.low, 0), toNumber(prev2.low, 0));
+
+        structureBreakAgainst =
+            toNumber(last.close, 0) < Math.min(toNumber(prev.low, 0), toNumber(prev2.low, 0));
+
+        opposing =
+            structureBreakAgainst ||
+            (isBearish(last) && isBearish(prev) && toNumber(last.close, 0) < toNumber(prev.close, 0));
+    } else {
+        const lowerHighFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].high, 0) <= toNumber(recent3[1].high, 0) &&
+            toNumber(recent3[1].high, 0) <= toNumber(recent3[0].high, 0);
+
+        const lowerCloseFlow =
+            recent3.length >= 3 &&
+            toNumber(recent3[2].close, 0) <= toNumber(recent3[1].close, 0) &&
+            toNumber(recent3[1].close, 0) <= toNumber(recent3[0].close, 0);
+
+        supportive = lowerHighFlow || lowerCloseFlow;
+        continuationSupport =
+            isBearish(last) &&
+            toNumber(last.close, 0) <= toNumber(prev.close, 0) &&
+            toNumber(last.high, 0) <= Math.max(toNumber(prev.high, 0), toNumber(prev2.high, 0));
+
+        structureBreakAgainst =
+            toNumber(last.close, 0) > Math.max(toNumber(prev.high, 0), toNumber(prev2.high, 0));
+
+        opposing =
+            structureBreakAgainst ||
+            (isBullish(last) && isBullish(prev) && toNumber(last.close, 0) > toNumber(prev.close, 0));
+    }
+
+    if (supportive) {
+        score -= 0.22;
+        evidence.push(`${s}_HTF_SUPPORTIVE`);
+    }
+    if (continuationSupport) {
+        score -= 0.18;
+        evidence.push(`${s}_HTF_CONTINUATION_SUPPORT`);
+    }
+    if (opposing) {
+        score += 0.28;
+        evidence.push(`${s}_HTF_OPPOSING`);
+    }
+    if (structureBreakAgainst) {
+        score += 0.34;
+        evidence.push(`${s}_HTF_STRUCTURE_BREAK_AGAINST`);
+    }
+
+    return {
+        supportive,
+        opposing,
+        continuationSupport,
+        structureBreakAgainst,
+        score: Number(score.toFixed(4)),
+        evidence,
+    };
+}
+
+function analyzeLowerTimeframeExitContext({ side = "", candlesM1 = [] }) {
+    const s = normalizeSide(side);
+    const sample = Array.isArray(candlesM1) ? candlesM1.slice(-6) : [];
+
+    if (sample.length < 3 || (s !== "BUY" && s !== "SELL")) {
+        return {
+            supportive: false,
+            noiseCounter: false,
+            takeoverAgainst: false,
+            score: 0,
+            evidence: [],
+        };
+    }
+
+    const bodyFlow = analyzeExitBodyFlow(sample, s);
+    const wrongWay = detectWrongWayFlowScore(sample, s);
+    const takeover = detectOppositeTakeover(sample, s);
+    const evidence = [...bodyFlow.evidence];
+
+    const supportive = bodyFlow.supportive;
+    const noiseCounter =
+        bodyFlow.pullbackContained &&
+        !bodyFlow.takeoverAgainst &&
+        !bodyFlow.deterioration &&
+        wrongWay.score < 1.6 &&
+        !takeover.detected;
+    const takeoverAgainst =
+        bodyFlow.takeoverAgainst ||
+        bodyFlow.deterioration ||
+        takeover.detected ||
+        wrongWay.score >= 2.1;
+
+    let score = 0;
+    if (supportive) {
+        score -= 0.12;
+        evidence.push(`${s}_M1_SUPPORTIVE`);
+    }
+    if (noiseCounter) {
+        score -= 0.08;
+        evidence.push(`${s}_M1_NOISE_COUNTER`);
+    }
+    if (takeoverAgainst) {
+        score += 0.18;
+        evidence.push(`${s}_M1_TAKEOVER_AGAINST`);
+    }
+
+    return {
+        supportive,
+        noiseCounter,
+        takeoverAgainst,
+        score: Number(score.toFixed(4)),
+        evidence,
+    };
+}
+
 function shouldTakeProfitOnLowVolume({
     historicalVolumeSignal = null,
     holdingMinutes = 0,
@@ -1334,6 +1506,8 @@ function buildCutMeta({
     noFollowThrough,
     takeover,
     bodyFlow,
+    higherTfContext,
+    lowerTfContext,
     softInvalidation,
     hardInvalidation,
     confirmation,
@@ -1356,6 +1530,17 @@ function buildCutMeta({
         bodyFlowDeterioration: Boolean(bodyFlow?.deterioration),
         bodyFlowTakeoverAgainst: Boolean(bodyFlow?.takeoverAgainst),
         bodyFlowCompression: Boolean(bodyFlow?.compression),
+        higherTfExitScore: higherTfContext?.score ?? 0,
+        higherTfExitEvidence: higherTfContext?.evidence ?? [],
+        higherTfExitSupportive: Boolean(higherTfContext?.supportive),
+        higherTfExitOpposing: Boolean(higherTfContext?.opposing),
+        higherTfExitContinuationSupport: Boolean(higherTfContext?.continuationSupport),
+        higherTfExitStructureBreakAgainst: Boolean(higherTfContext?.structureBreakAgainst),
+        lowerTfExitScore: lowerTfContext?.score ?? 0,
+        lowerTfExitEvidence: lowerTfContext?.evidence ?? [],
+        lowerTfExitSupportive: Boolean(lowerTfContext?.supportive),
+        lowerTfExitNoiseCounter: Boolean(lowerTfContext?.noiseCounter),
+        lowerTfExitTakeoverAgainst: Boolean(lowerTfContext?.takeoverAgainst),
         softInvalidation,
         hardInvalidation,
         confirmation: confirmation.level,
@@ -1377,6 +1562,11 @@ async function analyzeEarlyExit({
     historicalVolume = null,
     pattern = null,
     accountId = null,
+    candlesM1 = [],
+    candlesM15 = [],
+    candlesM30 = [],
+    candlesH1 = [],
+    candlesH4 = [],
 }) {
     openPosition = openPosition || {};
 
@@ -1413,11 +1603,24 @@ async function analyzeEarlyExit({
     const noFollowThrough = detectNoFollowThrough(candles, side);
     const takeover = detectOppositeTakeover(candles, side);
     const bodyFlow = analyzeExitBodyFlow(candles, side);
+    const higherTfContext = analyzeHigherTimeframeExitContext({
+        side,
+        candlesM15,
+        candlesM30,
+        candlesH1,
+        candlesH4,
+    });
+    const lowerTfContext = analyzeLowerTimeframeExitContext({
+        side,
+        candlesM1,
+    });
 
     let adjustedScore =
         detectReversalScore(candles, side, normalizedMode) +
         toNumber(confirmation.score, 0) * 0.25 -
-        toNumber(continuation.strength, 0) * 0.35;
+        toNumber(continuation.strength, 0) * 0.35 +
+        toNumber(higherTfContext.score, 0) +
+        toNumber(lowerTfContext.score, 0);
 
     if (!Number.isFinite(adjustedScore)) adjustedScore = 0;
 
@@ -1484,6 +1687,8 @@ async function analyzeEarlyExit({
         noFollowThrough,
         takeover,
         bodyFlow,
+        higherTfContext,
+        lowerTfContext,
         softInvalidation,
         hardInvalidation,
         confirmation,
@@ -1656,6 +1861,21 @@ async function analyzeEarlyExit({
     }
 
     if (continuation.continuation && !bodyFlow.deterioration && !bodyFlow.takeoverAgainst) {
+        if (
+            higherTfContext.supportive ||
+            higherTfContext.continuationSupport ||
+            lowerTfContext.supportive ||
+            lowerTfContext.noiseCounter
+        ) {
+            return {
+                action: "HOLD",
+                reason: `${normalizedMode}_MULTI_TF_CONTINUATION_HOLD`,
+                riskLevel: "LOW",
+                score: adjustedScore,
+                meta: commonMeta,
+            };
+        }
+
         return {
             action: "HOLD",
             reason: `${normalizedMode}_CONTINUATION_HOLD`,
@@ -1670,6 +1890,9 @@ async function analyzeEarlyExit({
         !bodyFlow.deterioration &&
         !bodyFlow.takeoverAgainst &&
         (bodyFlow.supportive || bodyFlow.pullbackContained) &&
+        !higherTfContext.opposing &&
+        !higherTfContext.structureBreakAgainst &&
+        !lowerTfContext.takeoverAgainst &&
         confirmation.level !== "HIGH" &&
         adjustedScore < profile.reversalCutScore
     ) {
@@ -1712,6 +1935,21 @@ async function analyzeEarlyExit({
             bodyFlow,
         })
     ) {
+        if (
+            higherTfContext.supportive &&
+            !higherTfContext.opposing &&
+            (lowerTfContext.supportive || lowerTfContext.noiseCounter) &&
+            !lowerTfContext.takeoverAgainst
+        ) {
+            return {
+                action: "HOLD",
+                reason: `${normalizedMode}_MULTI_TF_PROFIT_HOLD`,
+                riskLevel: "LOW",
+                score: adjustedScore,
+                meta: commonMeta,
+            };
+        }
+
         return {
             action: "TAKE_SMALL_PROFIT",
             reason: `${normalizedMode}_REVERSAL_PROFIT_PROTECT`,
@@ -1740,6 +1978,22 @@ async function analyzeEarlyExit({
             bodyFlow,
         })
     ) {
+        if (
+            higherTfContext.supportive &&
+            !higherTfContext.opposing &&
+            !higherTfContext.structureBreakAgainst &&
+            (lowerTfContext.supportive || lowerTfContext.noiseCounter) &&
+            !lowerTfContext.takeoverAgainst
+        ) {
+            return {
+                action: "HOLD",
+                reason: `${normalizedMode}_MULTI_TF_HOLD_INSTEAD_OF_BE`,
+                riskLevel: "LOW",
+                score: adjustedScore,
+                meta: commonMeta,
+            };
+        }
+
         return {
             action: "MOVE_TO_BE",
             reason: `${normalizedMode}_CONTEXTUAL_BREAKEVEN_PROTECT`,
