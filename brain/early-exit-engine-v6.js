@@ -185,6 +185,7 @@ function buildHardCutGate({
     noFollowThroughScore,
     hardInvalidation,
     softInvalidation,
+    lossPressureContext = null,
 }) {
     const safeMode = normalizeMode(mode);
     const mins = toSafeNumber(holdingMinutes, 0);
@@ -194,20 +195,21 @@ function buildHardCutGate({
     const damageRatio = profit < 0 ? Math.abs(profit) / sl : 0;
 
     if (safeMode === "SCALP") {
-        const timeReady = mins >= 7;
+        const timeReady = mins >= 7 * toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
 
         const damageReady =
-            damageRatio >= 0.42 ||
-            profit <= -Math.max(220, Math.min(sl * 0.45, 300));
+            damageRatio >= 0.42 * toSafeNumber(lossPressureContext?.damageRatioMultiplier, 1) ||
+            profit <= -Math.max(220, Math.min(sl * 0.45, 300)) * toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
 
         const structureReady =
             Boolean(hardInvalidation) ||
             (Boolean(failedPatternRule) && mins >= 7) ||
-            toSafeNumber(reversalScore, 0) >= 2.75;
+            toSafeNumber(reversalScore, 0) >= 2.75 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            Boolean(lossPressureContext?.severeAgainst);
 
         const flowReady =
-            toSafeNumber(wrongWayFlowScore, 0) >= 2.75 ||
-            toSafeNumber(noFollowThroughScore, 0) >= 2.50;
+            toSafeNumber(wrongWayFlowScore, 0) >= 2.75 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            toSafeNumber(noFollowThroughScore, 0) >= 2.50 - toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
         const emergencyCut =
             mins >= 3 &&
@@ -246,16 +248,18 @@ function buildHardCutGate({
     }
 
     if (safeMode === "MICRO_SCALP") {
-        const timeReady = mins >= 2;
+        const timeReady = mins >= 2 * toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
         const damageReady =
-            damageRatio >= 0.33 || profit <= -Math.max(100, Math.min(sl * 0.35, 160));
+            damageRatio >= 0.33 * toSafeNumber(lossPressureContext?.damageRatioMultiplier, 1) ||
+            profit <= -Math.max(100, Math.min(sl * 0.35, 160)) * toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
         const structureReady =
             Boolean(hardInvalidation) ||
             Boolean(failedPatternRule) ||
-            toSafeNumber(reversalScore, 0) >= 2.2;
+            toSafeNumber(reversalScore, 0) >= 2.2 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            Boolean(lossPressureContext?.severeAgainst);
         const flowReady =
-            toSafeNumber(wrongWayFlowScore, 0) >= 2.25 ||
-            toSafeNumber(noFollowThroughScore, 0) >= 2.0;
+            toSafeNumber(wrongWayFlowScore, 0) >= 2.25 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            toSafeNumber(noFollowThroughScore, 0) >= 2.0 - toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
         return {
             allowHardCut: countTrue([timeReady, damageReady, structureReady, flowReady]) >= 2,
@@ -270,16 +274,18 @@ function buildHardCutGate({
         };
     }
 
-    const timeReady = mins >= 4;
+    const timeReady = mins >= 4 * toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
     const damageReady =
-        damageRatio >= 0.35 || profit <= -Math.max(220, Math.min(sl * 0.38, 320));
+        damageRatio >= 0.35 * toSafeNumber(lossPressureContext?.damageRatioMultiplier, 1) ||
+        profit <= -Math.max(220, Math.min(sl * 0.38, 320)) * toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
     const structureReady =
         Boolean(hardInvalidation) ||
         Boolean(failedPatternRule) ||
-        toSafeNumber(reversalScore, 0) >= 2.45;
+        toSafeNumber(reversalScore, 0) >= 2.45 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+        Boolean(lossPressureContext?.severeAgainst);
     const flowReady =
-        toSafeNumber(wrongWayFlowScore, 0) >= 2.45 ||
-        toSafeNumber(noFollowThroughScore, 0) >= 2.2;
+        toSafeNumber(wrongWayFlowScore, 0) >= 2.45 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+        toSafeNumber(noFollowThroughScore, 0) >= 2.2 - toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
     return {
         allowHardCut: countTrue([timeReady, damageReady, structureReady, flowReady]) >= 2,
@@ -1290,6 +1296,66 @@ function analyzeLowerTimeframeExitContext({ side = "", candlesM1 = [] }) {
     };
 }
 
+function buildLossPressureContext({
+    bodyFlow = null,
+    higherTfContext = null,
+    lowerTfContext = null,
+    confirmation = { level: "LOW", score: 0 },
+    wrongWayFlow = null,
+    noFollowThrough = null,
+    takeover = null,
+    softInvalidation = false,
+    hardInvalidation = false,
+}) {
+    const severeSignalCount = countTrue([
+        Boolean(hardInvalidation),
+        Boolean(higherTfContext?.structureBreakAgainst),
+        Boolean(higherTfContext?.opposing),
+        Boolean(lowerTfContext?.takeoverAgainst),
+        Boolean(bodyFlow?.takeoverAgainst),
+        Boolean(bodyFlow?.deterioration),
+        Boolean(takeover?.detected),
+        toNumber(wrongWayFlow?.score, 0) >= 2.3,
+        Boolean(noFollowThrough?.detected) && toNumber(noFollowThrough?.score, 0) >= 2.0,
+        String(confirmation?.level || "LOW").toUpperCase() === "HIGH",
+    ]);
+
+    const alignedAgainst = Boolean(
+        severeSignalCount >= 2 ||
+        (
+            (higherTfContext?.opposing || higherTfContext?.structureBreakAgainst) &&
+            (
+                lowerTfContext?.takeoverAgainst ||
+                bodyFlow?.takeoverAgainst ||
+                bodyFlow?.deterioration ||
+                softInvalidation
+            )
+        )
+    );
+
+    const severeAgainst = Boolean(
+        severeSignalCount >= 3 ||
+        (
+            hardInvalidation &&
+            (
+                higherTfContext?.structureBreakAgainst ||
+                lowerTfContext?.takeoverAgainst ||
+                bodyFlow?.takeoverAgainst
+            )
+        )
+    );
+
+    return {
+        alignedAgainst,
+        severeAgainst,
+        severeSignalCount,
+        cutProfitMultiplier: severeAgainst ? 0.72 : alignedAgainst ? 0.85 : 1,
+        minuteMultiplier: severeAgainst ? 0.55 : alignedAgainst ? 0.75 : 1,
+        damageRatioMultiplier: severeAgainst ? 0.82 : alignedAgainst ? 0.90 : 1,
+        scoreBonus: severeAgainst ? 0.28 : alignedAgainst ? 0.14 : 0,
+    };
+}
+
 function shouldTakeProfitOnLowVolume({
     historicalVolumeSignal = null,
     holdingMinutes = 0,
@@ -1313,15 +1379,19 @@ function shouldSimpleWrongWayCut({
     confirmation = { level: "LOW", score: 0 },
     softInvalidation = false,
     hardInvalidation = false,
+    lossPressureContext = null,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
     const normalizedMode = normalizeMode(mode);
+    const scoreBonus = toSafeNumber(lossPressureContext?.scoreBonus, 0);
+    const cutProfitMultiplier = toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+    const minuteMultiplier = toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
 
     if (
-        profit <= profile.strongCutProfit &&
-        reversalScore >= profile.reversalCutScore &&
+        profit <= profile.strongCutProfit * cutProfitMultiplier &&
+        reversalScore >= profile.reversalCutScore - scoreBonus &&
         (softInvalidation || hardInvalidation || confirmation.level !== "LOW")
     ) {
         return {
@@ -1331,8 +1401,8 @@ function shouldSimpleWrongWayCut({
     }
 
     if (
-        mins >= profile.simpleCutMinutes &&
-        profit <= profile.simpleCutProfit &&
+        mins >= profile.simpleCutMinutes * minuteMultiplier &&
+        profit <= profile.simpleCutProfit * cutProfitMultiplier &&
         (softInvalidation || hardInvalidation || confirmation.level === "HIGH")
     ) {
         return {
@@ -1352,19 +1422,23 @@ function shouldNormalFastWrongWayCut({
     candles = [],
     side = "",
     confirmation = { level: "LOW", score: 0 },
+    lossPressureContext = null,
 }) {
     if (normalizeMode(mode) !== "NORMAL") return null;
 
     const profile = getExitProfile("NORMAL");
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
+    const scoreBonus = toSafeNumber(lossPressureContext?.scoreBonus, 0);
+    const cutProfitMultiplier = toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+    const minuteMultiplier = toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
 
     const hardInvalidation = hasHardInvalidation(candles, side);
     const softInvalidation = hasSoftInvalidation(candles, side);
 
     if (
-        mins >= profile.normalFastCutMinutes &&
-        profit <= profile.normalStructureBreakProfit &&
+        mins >= profile.normalFastCutMinutes * minuteMultiplier &&
+        profit <= profile.normalStructureBreakProfit * cutProfitMultiplier &&
         (hardInvalidation || (softInvalidation && confirmation.level !== "LOW"))
     ) {
         return {
@@ -1374,9 +1448,9 @@ function shouldNormalFastWrongWayCut({
     }
 
     if (
-        mins >= profile.normalFastCutMinutes &&
-        profit <= profile.normalFastCutProfit &&
-        reversalScore >= profile.normalFastReversalScore &&
+        mins >= profile.normalFastCutMinutes * minuteMultiplier &&
+        profit <= profile.normalFastCutProfit * cutProfitMultiplier &&
+        reversalScore >= profile.normalFastReversalScore - scoreBonus &&
         (hardInvalidation || softInvalidation)
     ) {
         return {
@@ -1396,25 +1470,29 @@ function shouldWrongWayFlowCut({
     hardInvalidation = false,
     confirmation = { level: "LOW", score: 0 },
     mode = "NORMAL",
+    lossPressureContext = null,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
     const normalizedMode = normalizeMode(mode);
+    const cutProfitMultiplier = toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+    const minuteMultiplier = toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
+    const scoreBonus = toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
     if (profit > 0) return null;
-    if (mins < profile.wrongWayMinMinutes) return null;
+    if (mins < profile.wrongWayMinMinutes * minuteMultiplier) return null;
 
     const confidenceBoost =
         (softInvalidation ? 0.25 : 0) +
         (hardInvalidation ? 0.5 : 0) +
         (confirmation.level === "HIGH" ? 0.35 : confirmation.level === "MEDIUM" ? 0.18 : 0);
 
-    const effectiveFlowScore = wrongWayFlowScore + confidenceBoost;
+    const effectiveFlowScore = wrongWayFlowScore + confidenceBoost + scoreBonus;
 
     if (
-        profit <= profile.wrongWayHardCutProfit &&
-        effectiveFlowScore >= profile.wrongWayFlowHardScore
+        profit <= profile.wrongWayHardCutProfit * cutProfitMultiplier &&
+        effectiveFlowScore >= profile.wrongWayFlowHardScore - scoreBonus
     ) {
         return {
             action: "CUT_LOSS_NOW",
@@ -1424,8 +1502,8 @@ function shouldWrongWayFlowCut({
     }
 
     if (
-        profit <= profile.wrongWayCutProfit &&
-        effectiveFlowScore >= profile.wrongWayFlowCutScore
+        profit <= profile.wrongWayCutProfit * cutProfitMultiplier &&
+        effectiveFlowScore >= profile.wrongWayFlowCutScore - scoreBonus
     ) {
         return {
             action: "CUT_LOSS_NOW",
@@ -1442,18 +1520,22 @@ function shouldNoFollowThroughCut({
     holdingMinutes = 0,
     noFollowThrough = { score: 0, detected: false },
     mode = "NORMAL",
+    lossPressureContext = null,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const mins = toNumber(holdingMinutes, 0);
     const normalizedMode = normalizeMode(mode);
+    const cutProfitMultiplier = toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+    const minuteMultiplier = toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
+    const scoreBonus = toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
     if (profit > 0) return null;
-    if (mins < profile.noFollowThroughMinMinutes) return null;
+    if (mins < profile.noFollowThroughMinMinutes * minuteMultiplier) return null;
 
     if (
-        profit <= profile.noFollowThroughCutProfit &&
-        toNumber(noFollowThrough.score, 0) >= profile.noFollowThroughScore
+        profit <= profile.noFollowThroughCutProfit * cutProfitMultiplier &&
+        toNumber(noFollowThrough.score, 0) >= profile.noFollowThroughScore - scoreBonus
     ) {
         return {
             action: "CUT_LOSS_NOW",
@@ -1468,16 +1550,19 @@ function shouldTakeoverCut({
     currentProfit = 0,
     takeover = { score: 0, detected: false },
     mode = "NORMAL",
+    lossPressureContext = null,
 }) {
     const profile = getExitProfile(mode);
     const profit = toNumber(currentProfit, 0);
     const normalizedMode = normalizeMode(mode);
+    const cutProfitMultiplier = toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+    const scoreBonus = toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
     if (profit > 0) return null;
 
     if (
-        profit <= profile.takeoverCutProfit &&
-        toNumber(takeover.score, 0) >= profile.takeoverCutScore
+        profit <= profile.takeoverCutProfit * cutProfitMultiplier &&
+        toNumber(takeover.score, 0) >= profile.takeoverCutScore - scoreBonus
     ) {
         return {
             action: "CUT_LOSS_NOW",
@@ -1618,6 +1703,7 @@ function buildCutMeta({
     higherTfContext,
     lowerTfContext,
     entryExitPolicy,
+    lossPressureContext,
     softInvalidation,
     hardInvalidation,
     confirmation,
@@ -1656,6 +1742,12 @@ function buildCutMeta({
         entryExitPolicyReversalLike: Boolean(entryExitPolicy?.reversalLike),
         entryExitPatternType: entryExitPolicy?.sourcePatternType || null,
         entryExitPatternName: entryExitPolicy?.sourcePatternName || null,
+        lossPressureAlignedAgainst: Boolean(lossPressureContext?.alignedAgainst),
+        lossPressureSevereAgainst: Boolean(lossPressureContext?.severeAgainst),
+        lossPressureSevereSignalCount: Number(lossPressureContext?.severeSignalCount || 0),
+        lossPressureCutProfitMultiplier: Number(lossPressureContext?.cutProfitMultiplier || 1),
+        lossPressureMinuteMultiplier: Number(lossPressureContext?.minuteMultiplier || 1),
+        lossPressureScoreBonus: Number(lossPressureContext?.scoreBonus || 0),
         softInvalidation,
         hardInvalidation,
         confirmation: confirmation.level,
@@ -1736,6 +1828,17 @@ async function analyzeEarlyExit({
         side,
         candlesM1,
     });
+    const lossPressureContext = buildLossPressureContext({
+        bodyFlow,
+        higherTfContext,
+        lowerTfContext,
+        confirmation,
+        wrongWayFlow,
+        noFollowThrough,
+        takeover,
+        softInvalidation,
+        hardInvalidation,
+    });
 
     let adjustedScore =
         detectReversalScore(candles, side, normalizedMode) +
@@ -1771,6 +1874,7 @@ async function analyzeEarlyExit({
         noFollowThroughScore: noFollowThrough.score,
         hardInvalidation,
         softInvalidation,
+        lossPressureContext,
     });
 
     if (
@@ -1801,6 +1905,7 @@ async function analyzeEarlyExit({
         noFollowThroughScore: noFollowThrough.score,
         hardInvalidation,
         softInvalidation,
+        lossPressureContext,
     });
 
     const commonMeta = buildCutMeta({
@@ -1812,6 +1917,7 @@ async function analyzeEarlyExit({
         higherTfContext,
         lowerTfContext,
         entryExitPolicy,
+        lossPressureContext,
         softInvalidation,
         hardInvalidation,
         confirmation,
@@ -1842,6 +1948,7 @@ async function analyzeEarlyExit({
             currentProfit: profit,
             takeover,
             mode: normalizedMode,
+            lossPressureContext,
         });
 
         if (takeoverCut) {
@@ -1866,6 +1973,7 @@ async function analyzeEarlyExit({
             holdingMinutes,
             noFollowThrough,
             mode: normalizedMode,
+            lossPressureContext,
         });
 
         if (noFollowThroughCut) {
@@ -1893,6 +2001,7 @@ async function analyzeEarlyExit({
             hardInvalidation,
             confirmation,
             mode: normalizedMode,
+            lossPressureContext,
         });
 
         if (wrongWayCut) {
@@ -1924,6 +2033,7 @@ async function analyzeEarlyExit({
             confirmation,
             softInvalidation,
             hardInvalidation,
+            lossPressureContext,
         });
 
         if (simpleCut) {
@@ -1951,6 +2061,7 @@ async function analyzeEarlyExit({
             candles,
             side,
             confirmation,
+            lossPressureContext,
         });
 
         if (normalFastCut) {
