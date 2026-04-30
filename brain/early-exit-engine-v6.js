@@ -635,6 +635,20 @@ function applyEntryExitPolicyToProfile(profile = {}, policy = {}) {
     return safeProfile;
 }
 
+function buildPartialExitMeta({
+    closeFraction = 0.5,
+    moveToBeAfterPartial = true,
+    keepRunner = true,
+    extra = {},
+}) {
+    return {
+        partialCloseFraction: Number(closeFraction),
+        moveToBeAfterPartial: Boolean(moveToBeAfterPartial),
+        keepRunner: Boolean(keepRunner),
+        ...extra,
+    };
+}
+
 function detectExitConfirmation(candles = [], side = "") {
     if (!Array.isArray(candles) || candles.length < 2) {
         return { level: "LOW", score: 0 };
@@ -2025,6 +2039,23 @@ async function analyzeEarlyExit({
         getPeakProfit(openPosition, profit) >= protectProfile.minPeakBeforeProtect &&
         getProfitRetractionRatio(openPosition, profit) >= protectProfile.beMinRetraceRatio
     ) {
+        if (entryExitPolicy.policyType === "CONTINUATION") {
+            return {
+                action: "TAKE_PARTIAL",
+                reason: `${normalizedMode}_CONTINUATION_LOW_VOLUME_PARTIAL`,
+                riskLevel,
+                score: adjustedScore,
+                meta: {
+                    ...commonMeta,
+                    ...buildPartialExitMeta({
+                        closeFraction: 0.5,
+                        moveToBeAfterPartial: true,
+                        keepRunner: true,
+                    }),
+                },
+            };
+        }
+
         return {
             action: "TAKE_SMALL_PROFIT",
             reason: `${normalizedMode}_${entryExitPolicy.policyType}_LOW_VOLUME_PROTECT`,
@@ -2058,6 +2089,29 @@ async function analyzeEarlyExit({
                 riskLevel: "LOW",
                 score: adjustedScore,
                 meta: commonMeta,
+            };
+        }
+
+        if (entryExitPolicy.policyType === "CONTINUATION") {
+            return {
+                action: "TAKE_PARTIAL",
+                reason: `${normalizedMode}_CONTINUATION_PARTIAL_PROTECT`,
+                riskLevel,
+                score: adjustedScore,
+                meta: {
+                    ...commonMeta,
+                    peakProfit: getPeakProfit(openPosition, profit),
+                    retractionRatio: getProfitRetractionRatio(openPosition, profit),
+                    confirmation: confirmation.level,
+                    continuation: continuation.strength,
+                    bodyFlowScore: bodyFlow.score,
+                    bodyFlowEvidence: bodyFlow.evidence,
+                    ...buildPartialExitMeta({
+                        closeFraction: 0.5,
+                        moveToBeAfterPartial: true,
+                        keepRunner: true,
+                    }),
+                },
             };
         }
 
@@ -2103,6 +2157,29 @@ async function analyzeEarlyExit({
                 riskLevel: "LOW",
                 score: adjustedScore,
                 meta: commonMeta,
+            };
+        }
+
+        if (entryExitPolicy.policyType === "CONTINUATION") {
+            return {
+                action: "TAKE_PARTIAL",
+                reason: `${normalizedMode}_CONTINUATION_PARTIAL_BE_PROTECT`,
+                riskLevel,
+                score: adjustedScore,
+                meta: {
+                    ...commonMeta,
+                    peakProfit: getPeakProfit(openPosition, profit),
+                    retractionRatio: getProfitRetractionRatio(openPosition, profit),
+                    confirmation: confirmation.level,
+                    continuation: continuation.strength,
+                    bodyFlowScore: bodyFlow.score,
+                    bodyFlowEvidence: bodyFlow.evidence,
+                    ...buildPartialExitMeta({
+                        closeFraction: 0.5,
+                        moveToBeAfterPartial: true,
+                        keepRunner: true,
+                    }),
+                },
             };
         }
 
