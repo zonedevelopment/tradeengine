@@ -796,6 +796,7 @@ function analyzeSignalRefreshBodyFlow({
   const prevLowerWick = getLowerWick(prev);
   const liveOpen = toNum(liveCandle?.open);
   const liveClose = toNum(liveCandle?.last ?? liveCandle?.close);
+  const liveBody = Math.abs(liveClose - liveOpen);
   const breakoutLevel = toNum(breakoutState?.breakoutLevel);
   const breakoutZoneHigh = toNum(breakoutState?.breakoutZoneHigh);
   const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
