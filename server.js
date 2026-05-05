@@ -4028,16 +4028,16 @@ app.post("/signal", async (req, res) => {
   try {
     const result = await handleSignalCore(req, { isRefresh: false });
 
-    if (shouldPersistSignalEntryThesis(result)) {
-      writeEntryThesisSnapshot(
-        buildEntryThesisSnapshotDocument({
-          sourceEndpoint: "signal",
-          reqBody: req.body || {},
-          payload: result,
-          thesisStage: "SIGNAL_ENTRY_CANDIDATE",
-        })
-      );
-    }
+    // if (shouldPersistSignalEntryThesis(result)) {
+    //   writeEntryThesisSnapshot(
+    //     buildEntryThesisSnapshotDocument({
+    //       sourceEndpoint: "signal",
+    //       reqBody: req.body || {},
+    //       payload: result,
+    //       thesisStage: "SIGNAL_ENTRY_CANDIDATE",
+    //     })
+    //   );
+    // }
 
     return res.json(result);
   } catch (error) {
