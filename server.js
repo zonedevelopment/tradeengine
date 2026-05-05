@@ -237,10 +237,23 @@ const symbolConfig = {
 const app = express();
 app.use(express.json());
 
-const whiteList = ['https://koomport.com', 'https://www.koomport.com', 'https://tradeengine.zonedevnode.com'];
+const whiteList = [
+  'https://koomport.com',
+  'https://www.koomport.com',
+  'https://tradeengine.zonedevnode.com',
+  'http://193.186.4.134',
+  'https://193.186.4.134',
+  'http://zonidea.thddns.net',
+  'https://zonidea.thddns.net'
+];
+
+function isAllowedOrigin(origin = "") {
+  return whiteList.includes(String(origin || "").trim());
+}
+
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions;
-  if (whiteList.indexOf(req.header('Origin')) !== -1) {
+  if (isAllowedOrigin(req.header('Origin'))) {
     corsOptions = { origin: true }
   } else {
     corsOptions = { origin: false }
@@ -7284,18 +7297,7 @@ app.get("/active-positions/stream", async (req, res) => {
   }
 
   const origin = req.headers.origin;
-  // if (origin && whiteList.includes(origin)) {
-  //   res.setHeader("Access-Control-Allow-Origin", origin);
-  // }
-
-  // res.setHeader("Content-Type", "text/event-stream");
-  // res.setHeader("Cache-Control", "no-cache, no-transform");
-  // res.setHeader("Connection", "keep-alive");
-  // res.setHeader("X-Accel-Buffering", "no");
-
-  // res.flushHeaders?.();
-
-  initSseHeaders(res);
+  initSseHeaders(res, isAllowedOrigin(origin) ? origin : null);
 
   const clientId = crypto.randomUUID();
 
@@ -7484,7 +7486,8 @@ app.get("/account-snapshot/stream", async (req, res) => {
       });
     }
 
-    initSseHeaders(res);
+    const origin = req.headers.origin;
+    initSseHeaders(res, isAllowedOrigin(origin) ? origin : null);
     addAccountSnapshotClient(firebaseUserId, res);
 
     sendSse(res, "connected", {

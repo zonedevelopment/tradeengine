@@ -45,14 +45,20 @@ function broadcastAccountSnapshot(firebaseUserId, payload) {
     }
 }
 
-function initSseHeaders(res) {
-    res.writeHead(200, {
+function initSseHeaders(res, origin = null) {
+    const headers = {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
         "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-        "Access-Control-Allow-Origin": "https://koomport.com"
-    });
+        "X-Accel-Buffering": "no"
+    };
+
+    if (origin) {
+        headers["Access-Control-Allow-Origin"] = origin;
+        headers["Vary"] = "Origin";
+    }
+
+    res.writeHead(200, headers);
 }
 
 module.exports = {
