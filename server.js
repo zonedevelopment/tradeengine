@@ -2816,6 +2816,7 @@ function buildBlockedSignalResponse({
   trend = "NEUTRAL",
   pattern = null,
   sidewaysContext = null,
+  followExhaustionContext = null,
   historicalVolume = null,
   defensiveFlags = null,
   trade_setup = null,
@@ -2830,6 +2831,7 @@ function buildBlockedSignalResponse({
     trend,
     pattern,
     sidewaysContext,
+    followExhaustionContext,
     historicalVolume,
     defensiveFlags,
     trade_setup,
@@ -3059,6 +3061,196 @@ function shouldBlockPrimaryDecisionInSideways(decisionValue = "", sidewaysContex
   if (upper.includes("_SCALP")) return false;
 
   return upper.includes("BUY") || upper.includes("SELL");
+}
+
+function getDecisionSideLabel(decisionValue = "") {
+  const upper = String(decisionValue || "").trim().toUpperCase();
+  if (upper.includes("BUY")) return "BUY";
+  if (upper.includes("SELL")) return "SELL";
+  return "NONE";
+}
+
+function detectPatternDirectionalBias(pattern = null) {
+  const patternName = String(pattern?.pattern || "").toUpperCase();
+  const typeName = String(pattern?.type || "").toUpperCase();
+  const score = Number(pattern?.score || 0);
+
+  const buyHints = [
+    "BUY",
+    "BULL",
+    "HAMMER",
+    "SURGE",
+    "BREAKOUT",
+    "REVERSAL",
+    "SUPPORT",
+  ];
+  const sellHints = [
+    "SELL",
+    "BEAR",
+    "SHOOTING_STAR",
+    "DROP",
+    "BREAKDOWN",
+    "REVERSAL",
+    "RESISTANCE",
+  ];
+
+  const text = `${patternName} ${typeName}`;
+
+  const buyMatched = buyHints.some((hint) => text.includes(hint));
+  const sellMatched = sellHints.some((hint) => text.includes(hint));
+
+  if (buyMatched && !sellMatched) return "BUY";
+  if (sellMatched && !buyMatched) return "SELL";
+  if (score > 0.9) return "BUY";
+  if (score < -0.9) return "SELL";
+  return "NEUTRAL";
+}
+
+function detectFollowExhaustion({
+  candles = [],
+  pattern = null,
+}) {
+  const safeCandles = normalizeCandleArray(candles)
+    .map(normalizePriceCandle)
+    .slice(-12);
+
+  const empty = {
+    active: false,
+    exhaustedSide: "NONE",
+    streakCount: 0,
+    hasLargeImpulse: false,
+    reversalBias: "NEUTRAL",
+    reasonCodes: [],
+    metrics: {},
+  };
+
+  if (safeCandles.length < 4) {
+    return empty;
+  }
+
+  const recent = safeCandles.slice(-4);
+  const latestThree = safeCandles.slice(-3);
+  const priorSample = safeCandles.slice(
+    Math.max(0, safeCandles.length - 10),
+    Math.max(0, safeCandles.length - 3)
+  );
+
+  const priorBodies = priorSample.map((c) => Math.abs(Number(c.close || 0) - Number(c.open || 0)));
+  const priorRanges = priorSample.map((c) => Math.max(0, Number(c.high || 0) - Number(c.low || 0)));
+  const avgPriorBody = average(priorBodies) || average(recent.map((c) => Math.abs(c.close - c.open))) || 0;
+  const avgPriorRange = average(priorRanges) || average(recent.map((c) => Math.max(0, c.high - c.low))) || 0;
+
+  let streakSide = "NONE";
+  let streakCount = 0;
+
+  for (let i = safeCandles.length - 1; i >= 0; i--) {
+    const currentSide = getCandleDirection(safeCandles[i]) === 1
+      ? "BUY"
+      : getCandleDirection(safeCandles[i]) === -1
+        ? "SELL"
+        : "NONE";
+
+    if (currentSide === "NONE") break;
+    if (streakSide === "NONE") {
+      streakSide = currentSide;
+      streakCount = 1;
+      continue;
+    }
+    if (currentSide !== streakSide) break;
+    streakCount += 1;
+    if (streakCount >= 4) break;
+  }
+
+  if (streakSide === "NONE" || streakCount < 2) {
+    return empty;
+  }
+
+  const streakCandles = safeCandles.slice(-streakCount);
+  const streakBodies = streakCandles.map((c) => Math.abs(Number(c.close || 0) - Number(c.open || 0)));
+  const streakRanges = streakCandles.map((c) => Math.max(0, Number(c.high || 0) - Number(c.low || 0)));
+  const maxBody = Math.max(...streakBodies, 0);
+  const maxRange = Math.max(...streakRanges, 0);
+  const bodyExpansion = avgPriorBody > 0 ? maxBody / avgPriorBody : 0;
+  const rangeExpansion = avgPriorRange > 0 ? maxRange / avgPriorRange : 0;
+  const latestBodiesDominant = streakBodies.filter((body) => body >= avgPriorBody * 1.2).length;
+  const hasLargeImpulse =
+    bodyExpansion >= 1.55 &&
+    rangeExpansion >= 1.25 &&
+    latestBodiesDominant >= 1;
+
+  const consecutiveThreeSame = streakCount >= 3;
+  const active = consecutiveThreeSame || (streakCount >= 2 && hasLargeImpulse);
+  if (!active) {
+    return {
+      ...empty,
+      exhaustedSide: streakSide,
+      streakCount,
+      hasLargeImpulse,
+      metrics: {
+        avgPriorBody: Number(avgPriorBody.toFixed(5)),
+        avgPriorRange: Number(avgPriorRange.toFixed(5)),
+        bodyExpansion: Number(bodyExpansion.toFixed(4)),
+        rangeExpansion: Number(rangeExpansion.toFixed(4)),
+      },
+    };
+  }
+
+  const reversalBias = detectPatternDirectionalBias(pattern);
+  const latest = latestThree[latestThree.length - 1] || {};
+  const latestOpen = Number(latest.open || 0);
+  const latestClose = Number(latest.close || 0);
+  const latestHigh = Number(latest.high || 0);
+  const latestLow = Number(latest.low || 0);
+  const latestBody = Math.abs(latestClose - latestOpen);
+  const upperWick = Math.max(0, latestHigh - Math.max(latestOpen, latestClose));
+  const lowerWick = Math.max(0, Math.min(latestOpen, latestClose) - latestLow);
+
+  const exhaustionWickBias =
+    streakSide === "BUY"
+      ? upperWick > latestBody * 0.9
+      : streakSide === "SELL"
+        ? lowerWick > latestBody * 0.9
+        : false;
+
+  const reasonCodes = [];
+  if (consecutiveThreeSame) reasonCodes.push("THREE_SAME_DIRECTION_CANDLES");
+  if (streakCount >= 2 && hasLargeImpulse) reasonCodes.push("TWO_CANDLES_WITH_LARGE_IMPULSE");
+  if (exhaustionWickBias) reasonCodes.push("EXHAUSTION_WICK_PRESENT");
+  if (
+    (streakSide === "BUY" && reversalBias === "SELL") ||
+    (streakSide === "SELL" && reversalBias === "BUY")
+  ) {
+    reasonCodes.push("REVERSAL_PATTERN_READY");
+  }
+
+  return {
+    active: true,
+    exhaustedSide: streakSide,
+    streakCount,
+    hasLargeImpulse,
+    reversalBias,
+    reasonCodes,
+    metrics: {
+      avgPriorBody: Number(avgPriorBody.toFixed(5)),
+      avgPriorRange: Number(avgPriorRange.toFixed(5)),
+      maxBody: Number(maxBody.toFixed(5)),
+      maxRange: Number(maxRange.toFixed(5)),
+      bodyExpansion: Number(bodyExpansion.toFixed(4)),
+      rangeExpansion: Number(rangeExpansion.toFixed(4)),
+      upperWick: Number(upperWick.toFixed(5)),
+      lowerWick: Number(lowerWick.toFixed(5)),
+      exhaustionWickBias,
+    },
+  };
+}
+
+function shouldDelayFollowDecision(decisionValue = "", followExhaustionContext = null) {
+  if (!followExhaustionContext?.active) return false;
+
+  const decisionSide = getDecisionSideLabel(decisionValue);
+  if (decisionSide === "NONE") return false;
+
+  return decisionSide === String(followExhaustionContext.exhaustedSide || "NONE").toUpperCase();
 }
 
 function shouldApplyTradeOutcomeCooldown(symbol = "") {
@@ -3702,9 +3894,15 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       higherTfContext: basePattern?.higherTfContext || null,
     });
 
+    const followExhaustionContext = detectFollowExhaustion({
+      candles,
+      pattern: basePattern,
+    });
+
     const pattern = {
       ...(basePattern || {}),
       sidewaysContext,
+      followExhaustionContext,
     };
 
     const ictContext = analyzeICT(candles);
@@ -3802,6 +4000,11 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           : "SIDEWAYS_MARKET_FILTER";
     }
 
+    if (shouldDelayFollowDecision(finalDecision, followExhaustionContext)) {
+      finalDecision = "NO_TRADE";
+      finalDecisionReason = `FOLLOW_EXHAUSTION_${followExhaustionContext.exhaustedSide || "UNKNOWN"}`;
+    }
+
     try {
       if (Array.isArray(candles) && candles.length > 0) {
         const contextCandles = candles.map((c) => ({
@@ -3890,6 +4093,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           sidewaysContext,
+          followExhaustionContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -3958,6 +4162,25 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               trend: microResponse.trend || "NEUTRAL",
               pattern: microResponse.pattern || null,
               sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
+              followExhaustionContext:
+                microResponse.followExhaustionContext || followExhaustionContext,
+              historicalVolume: microResponse.historicalVolume || null,
+              defensiveFlags: microResponse.defensiveFlags || null,
+              trade_setup: null,
+              currentOpenPositionsCount: 0,
+            });
+          }
+
+          if (shouldDelayFollowDecision(microResponse.decision, followExhaustionContext)) {
+            return buildBlockedSignalResponse({
+              reason: `FOLLOW_EXHAUSTION_${followExhaustionContext.exhaustedSide || "UNKNOWN"}`,
+              score: microResponse.score || 0,
+              firebaseUserId: resolvedUserId,
+              mode: microResponse.mode || "MICRO_SCALP",
+              trend: microResponse.trend || "NEUTRAL",
+              pattern: microResponse.pattern || null,
+              sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
+              followExhaustionContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -3985,6 +4208,8 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               trend: microResponse.trend || "NEUTRAL",
               pattern: microResponse.pattern || null,
               sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
+              followExhaustionContext:
+                microResponse.followExhaustionContext || followExhaustionContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -4010,6 +4235,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         trend: evaluateResult.trend || "NEUTRAL",
         pattern,
         sidewaysContext,
+        followExhaustionContext,
         historicalVolume,
         defensiveFlags: evaluateResult.defensiveFlags || {
           warningMatched: false,
@@ -4084,6 +4310,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           sidewaysContext,
+          followExhaustionContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -4103,6 +4330,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           sidewaysContext,
+          followExhaustionContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -4193,6 +4421,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           sidewaysContext,
+          followExhaustionContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4230,6 +4459,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
           sidewaysContext,
+          followExhaustionContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4263,6 +4493,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       trend: evaluateResult.trend || "NEUTRAL",
       pattern,
       sidewaysContext,
+      followExhaustionContext,
       historicalVolume,
       defensiveFlags,
       trade_setup,
