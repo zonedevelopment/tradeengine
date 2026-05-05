@@ -7270,14 +7270,9 @@ app.get("/active-positions/stream", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  res.setHeader("Keep-Alive", "timeout=60");
   res.setHeader("X-Accel-Buffering", "no");
 
-  res.socket?.setKeepAlive?.(true, 15000);
-  res.socket?.setNoDelay?.(true);
   res.flushHeaders?.();
-  res.write("retry: 5000\n");
-  res.write(": connected\n\n");
 
   const clientId = crypto.randomUUID();
 
