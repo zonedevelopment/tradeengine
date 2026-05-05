@@ -7262,17 +7262,18 @@ app.get("/active-positions/stream", async (req, res) => {
   }
 
   const origin = req.headers.origin;
-  if (origin && whiteList.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
+  // if (origin && whiteList.includes(origin)) {
+  //   res.setHeader("Access-Control-Allow-Origin", origin);
+  // }
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
+  // res.setHeader("Content-Type", "text/event-stream");
+  // res.setHeader("Cache-Control", "no-cache, no-transform");
+  // res.setHeader("Connection", "keep-alive");
+  // res.setHeader("X-Accel-Buffering", "no");
 
-  res.flushHeaders?.();
+  // res.flushHeaders?.();
+
+  initSseHeaders(res);
 
   const clientId = crypto.randomUUID();
 
