@@ -229,10 +229,39 @@ function pickLatestRecord(records = []) {
         })[0];
 }
 
+function getCurrentDayRange() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+}
+
+function isRecordInCurrentDay(record = {}) {
+    const base =
+        record?.eventTime ||
+        record?.updatedAt ||
+        record?.createdAt ||
+        null;
+
+    if (!base) return false;
+
+    const time = new Date(base).getTime();
+    if (!Number.isFinite(time) || time <= 0) return false;
+
+    const { start, end } = getCurrentDayRange();
+    return time >= start.getTime() && time <= end.getTime();
+}
+
 function buildSummaryFromAccounts(accounts = []) {
     return accounts.reduce(
         (acc, item) => {
-            acc.accountId = item.accountId;
+            if (accounts.length === 1) {
+                acc.accountId = item.accountId;
+            }
             acc.balance += toNumber(item.balance);
             acc.equity += toNumber(item.equity);
             acc.margin += toNumber(item.margin);
@@ -304,7 +333,8 @@ async function upsertLiveAccountSnapshot(data = {}) {
 
     await AccountSnapshotLive.updateOne(
         {
-            firebaseUserId: safeFirebaseUserId
+            firebaseUserId: safeFirebaseUserId,
+            accountId: safeAccountId
         },
         {
             $set: {
@@ -369,13 +399,11 @@ async function getAllLiveAccountSnapshotsByUser(firebaseUserId) {
 
     if (!safeFirebaseUserId) return [];
 
-    const latestDoc = await AccountSnapshotLive.findOne({
+    return await AccountSnapshotLive.find({
         firebaseUserId: safeFirebaseUserId
     })
-        .sort({ updatedAt: -1, createdAt: -1 })
+        .sort({ updatedAt: -1, createdAt: -1, accountId: 1 })
         .lean();
-
-    return latestDoc ? [latestDoc] : [];
 }
 
 async function getAggregatedLiveAccountSnapshotByUser(firebaseUserId) {
@@ -412,7 +440,8 @@ async function getAggregatedLiveAccountSnapshotByUser(firebaseUserId) {
         updatedAt: doc.updatedAt || null
     }));
 
-    const summary = buildSummaryFromAccounts(accounts);
+    const currentDayAccounts = accounts.filter((doc) => isRecordInCurrentDay(doc));
+    const summary = buildSummaryFromAccounts(currentDayAccounts);
     const latest = pickLatestRecord(accounts);
 
     return {

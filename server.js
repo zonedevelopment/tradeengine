@@ -36,7 +36,6 @@ const {
   getTradeHistoryDetailFromCommands,
   getTodayTradeStatsByUserAndAccount,
   getRecentClosedTradePerformance,
-  getRecentCloseOrderCooldownState,
   getTradeBatchCooldownState,
 } = require("./tradeHistory.repo");
 
@@ -3804,38 +3803,11 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       });
     }
 
-    if (!isRefresh && resolvedUserId && shouldApplyTradeOutcomeCooldown(resolvedSymbol)) {
+    if (!isRefresh && resolvedUserId) {
         try {
-          const closeOrderCooldown = await getRecentCloseOrderCooldownState({
-            firebaseUserId: resolvedUserId,
-            accountId: accountId ?? null,
-            symbol: resolvedSymbol,
-            windowSeconds: 180,
-            cooldownSeconds: 120,
-          });
-
-          if (closeOrderCooldown?.active) {
-            return {
-            ...buildBlockedSignalResponse({
-              reason: closeOrderCooldown.reason,
-              score: 0,
-              firebaseUserId: resolvedUserId,
-              mode: "NORMAL",
-              trend: "NEUTRAL",
-              pattern: null,
-              historicalVolume: null,
-              defensiveFlags: null,
-              trade_setup: null,
-              currentOpenPositionsCount: 0,
-            }),
-              trade_outcome_cooldown: closeOrderCooldown,
-            };
-          }
-
           const tradeBatchCooldown = await getTradeBatchCooldownState({
             firebaseUserId: resolvedUserId,
             accountId: accountId ?? null,
-            symbol: resolvedSymbol,
             batchSize: 10,
             cooldownSeconds: 300,
           });
@@ -7655,61 +7627,6 @@ app.post("/active-positions", async (req, res) => {
       positions,
       eventTime,
     });
-
-    // ดึงข้อมูลล่าสุดหลัง sync
-    const rows = await ActivePosition.find({ firebaseUserId })
-      .sort({ updatedAt: -1 })
-      .lean();
-
-    // const origin = req.headers.origin;
-    // if (origin === "https://tradeengine.zonedevnode.com") {
-    //   res.setHeader("Access-Control-Allow-Origin", origin);
-    // }
-
-    // res.setHeader("Content-Type", "text/event-stream");
-    // res.setHeader("Cache-Control", "no-cache, no-transform");
-    // res.setHeader("Connection", "keep-alive");
-    // res.setHeader("X-Accel-Buffering", "no");
-
-    // res.flushHeaders?.();
-
-    // broadcast ไป frontend
-    if (rows.length > 0) {
-      broadcastActivePositionChange({
-        firebaseUserId,
-        symbol,
-        eventName: "active-position-update",
-        payload: {
-          action: "sync",
-          firebaseUserId,
-          symbol: symbol || "",
-          data: rows,
-          eventTime,
-          synced: result?.synced || 0
-        }
-      });
-    } else {
-      broadcastActivePositionChange({
-        firebaseUserId,
-        symbol,
-        eventName: "active-position-update",
-        payload: {
-          action: "delete",
-          firebaseUserId,
-          symbol: symbol || "",
-          data: rows,
-          eventTime,
-          synced: result?.synced || 0
-        }
-      });
-    }
-
-    // sendSse(res, "active-positions-update", {
-    //   action: "update",
-    //   firebaseUserId,
-    //   symbol: symbol || "",
-    //   data: rows
-    // });
 
     return res.json({
       success: true,

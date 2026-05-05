@@ -146,9 +146,31 @@ async function syncActivePositionsToMongo({
             }
         }
     } else {
-        const deleted = await ActivePosition.deleteMany({
+        const deleteFilter = {
             firebaseUserId: safeFirebaseUserId
-        });
+        };
+
+        if (safeAccountId) {
+            deleteFilter.accountId = safeAccountId;
+        }
+
+        if (safeSymbol) {
+            deleteFilter.symbol = safeSymbol;
+        }
+
+        const staleDocs = await ActivePosition.find(deleteFilter).lean();
+        const deleted = await ActivePosition.deleteMany(deleteFilter);
+
+        for (const doc of staleDocs) {
+            broadcastActivePositionChange({
+                action: "delete",
+                _id: doc._id,
+                ticketId: doc.ticketId,
+                firebaseUserId: doc.firebaseUserId,
+                accountId: doc.accountId,
+                symbol: doc.symbol
+            });
+        }
 
         return {
             success: true,
