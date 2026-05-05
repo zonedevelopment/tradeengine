@@ -156,25 +156,29 @@ async function countTradeHistoryByUser(firebaseUserId) {
 }
 
 async function getTradeHistoryDetailFromCommands(commandId) {
-  const sql = `SELECT
-            th.firebase_user_id,
-            ec.ticket_id,
-            th.symbol
-            th.side,
-            th.lot,
-            th.price,
-            th.sl,
-            th.tp,
-            th.profit,
-            th.mode,
-          FROM emergency_commands ec
-          LEFT JOIN trade_history th
-            ON th.firebase_user_id = ec.firebase_user_id
-          AND th.ticket_id = ec.ticket_id
-          AND th.symbol = ec.symbol
-          AND th.event_type = 'OPEN_ORDER'
-          WHERE ec.command_id = ? AND ec.type = 'CLOSE_POSITION' AND ec.status = 'DONE'
-          ORDER BY ec.id DESC, th.created_at DESC`;
+  const sql = `
+    SELECT
+      th.firebase_user_id,
+      ec.ticket_id,
+      th.symbol,
+      th.side,
+      th.lot,
+      th.price,
+      th.sl,
+      th.tp,
+      th.profit,
+      th.mode
+    FROM emergency_commands ec
+    LEFT JOIN trade_history th
+      ON th.firebase_user_id = ec.firebase_user_id
+     AND th.ticket_id = ec.ticket_id
+     AND th.symbol = ec.symbol
+     AND th.event_type = 'OPEN_ORDER'
+    WHERE ec.command_id = ?
+      AND ec.type = 'CLOSE_POSITION'
+      AND ec.status = 'DONE'
+    ORDER BY ec.id DESC, th.created_at DESC
+  `;
 
   return await query(sql, [commandId]);
 }

@@ -2815,6 +2815,7 @@ function buildBlockedSignalResponse({
   mode = "NORMAL",
   trend = "NEUTRAL",
   pattern = null,
+  sidewaysContext = null,
   historicalVolume = null,
   defensiveFlags = null,
   trade_setup = null,
@@ -2828,6 +2829,7 @@ function buildBlockedSignalResponse({
     mode,
     trend,
     pattern,
+    sidewaysContext,
     historicalVolume,
     defensiveFlags,
     trade_setup,
@@ -2845,6 +2847,218 @@ function normalizeCandleArray(input) {
       Number.isFinite(Number(c.low)) &&
       Number.isFinite(Number(c.close))
   );
+}
+
+function normalizePriceCandle(candle = {}) {
+  return {
+    open: Number(candle.open || 0),
+    high: Number(candle.high || 0),
+    low: Number(candle.low || 0),
+    close: Number(candle.close || 0),
+    tick_volume: Number(candle.tick_volume || candle.tickVolume || 0),
+  };
+}
+
+function getCandleDirection(candle = {}) {
+  const open = Number(candle.open || 0);
+  const close = Number(candle.close || 0);
+  if (close > open) return 1;
+  if (close < open) return -1;
+  return 0;
+}
+
+function detectSidewaysMarket({
+  candles = [],
+  pattern = null,
+  higherTfContext = null,
+}) {
+  const safeCandles = normalizeCandleArray(candles)
+    .map(normalizePriceCandle)
+    .slice(-10);
+
+  const empty = {
+    active: false,
+    severity: "NONE",
+    score: 0,
+    suggestedMode: null,
+    reasonCodes: [],
+    metrics: {},
+  };
+
+  if (safeCandles.length < 6) {
+    return empty;
+  }
+
+  const recent = safeCandles.slice(-6);
+  const highs = recent.map((c) => Number(c.high || 0));
+  const lows = recent.map((c) => Number(c.low || 0));
+  const maxHigh = Math.max(...highs);
+  const minLow = Math.min(...lows);
+  const span = Math.max(0, maxHigh - minLow);
+
+  if (!Number.isFinite(span) || span <= 0) {
+    return empty;
+  }
+
+  const ranges = recent.map((c) => Math.max(0, Number(c.high || 0) - Number(c.low || 0)));
+  const bodies = recent.map((c) => Math.abs(Number(c.close || 0) - Number(c.open || 0)));
+  const avgRange = average(ranges);
+  const avgBody = average(bodies);
+  const bodyToRange = avgRange > 0 ? avgBody / avgRange : 0;
+
+  const displacement = Math.abs(
+    Number(recent[recent.length - 1]?.close || 0) - Number(recent[0]?.open || 0)
+  );
+  const efficiency = span > 0 ? displacement / span : 0;
+
+  const directions = recent
+    .map(getCandleDirection)
+    .filter((value) => value !== 0);
+
+  let flipCount = 0;
+  for (let i = 1; i < directions.length; i++) {
+    if (directions[i] !== directions[i - 1]) {
+      flipCount += 1;
+    }
+  }
+
+  const alternationRatio =
+    directions.length >= 2 ? flipCount / (directions.length - 1) : 0;
+
+  let insideCount = 0;
+  for (let i = 1; i < recent.length; i++) {
+    const prev = recent[i - 1];
+    const curr = recent[i];
+    if (
+      Number(curr.high || 0) <= Number(prev.high || 0) &&
+      Number(curr.low || 0) >= Number(prev.low || 0)
+    ) {
+      insideCount += 1;
+    }
+  }
+
+  const compressionRatio =
+    avgRange > 0 ? span / Math.max(avgRange * recent.length, 0.00001) : 1;
+
+  const htfDirection = String(
+    higherTfContext?.overallDirection ||
+    pattern?.higherTfContext?.overallDirection ||
+    "NEUTRAL"
+  ).toUpperCase();
+  const htfStrength = String(
+    higherTfContext?.strength ||
+    pattern?.higherTfContext?.strength ||
+    "WEAK"
+  ).toUpperCase();
+
+  const breakoutRetest = pattern?.breakoutRetest || {};
+  const breakoutActive =
+    Boolean(pattern?.breakoutDetected) ||
+    Boolean(pattern?.freshBreakout) ||
+    Boolean(breakoutRetest?.breakoutDetected) ||
+    Boolean(breakoutRetest?.retestAccepted);
+
+  const trendFollow4 = pattern?.trendFollow4 || {};
+  const strongFollowThrough =
+    String(trendFollow4?.direction || "NEUTRAL").toUpperCase() !== "NEUTRAL" &&
+    (
+      String(trendFollow4?.strength || "WEAK").toUpperCase() === "STRONG" ||
+      Boolean(trendFollow4?.volumeConfirmed)
+    ) &&
+    efficiency >= 0.48 &&
+    bodyToRange >= 0.44;
+
+  let score = 0;
+  const reasonCodes = [];
+
+  if (efficiency <= 0.35) {
+    score += 1.4;
+    reasonCodes.push("LOW_DIRECTIONAL_EFFICIENCY");
+  }
+
+  if (bodyToRange <= 0.38) {
+    score += 1.1;
+    reasonCodes.push("SMALL_REAL_BODIES");
+  }
+
+  if (alternationRatio >= 0.55) {
+    score += 1.1;
+    reasonCodes.push("HIGH_DIRECTION_FLIP");
+  }
+
+  if (insideCount >= 2) {
+    score += 0.9;
+    reasonCodes.push("MULTIPLE_INSIDE_BARS");
+  }
+
+  if (compressionRatio <= 0.62) {
+    score += 0.9;
+    reasonCodes.push("PRICE_COMPRESSION");
+  }
+
+  if (Boolean(pattern?.isVolumeDrying)) {
+    score += 0.45;
+    reasonCodes.push("VOLUME_DRYING");
+  }
+
+  if (htfDirection === "NEUTRAL" || htfStrength === "WEAK") {
+    score += 0.55;
+    reasonCodes.push("HTF_NOT_TRENDING");
+  }
+
+  if (!breakoutActive) {
+    score += 0.35;
+    reasonCodes.push("NO_BREAKOUT_CONFIRMATION");
+  }
+
+  if (strongFollowThrough) {
+    score -= 1.6;
+    reasonCodes.push("STRONG_FOLLOW_THROUGH_PRESENT");
+  }
+
+  if (breakoutActive && Math.abs(Number(pattern?.score || 0)) >= 2.6) {
+    score -= 1.25;
+    reasonCodes.push("HIGH_SCORE_BREAKOUT_CONTEXT");
+  }
+
+  const roundedScore = Number(score.toFixed(2));
+  const active = roundedScore >= 3.2;
+  const severity = roundedScore >= 4.4 ? "STRONG" : active ? "MODERATE" : "NONE";
+
+  return {
+    active,
+    severity,
+    score: roundedScore,
+    suggestedMode: active ? "SCALP" : null,
+    reasonCodes,
+    metrics: {
+      span: Number(span.toFixed(5)),
+      avgRange: Number(avgRange.toFixed(5)),
+      avgBody: Number(avgBody.toFixed(5)),
+      bodyToRange: Number(bodyToRange.toFixed(4)),
+      displacement: Number(displacement.toFixed(5)),
+      efficiency: Number(efficiency.toFixed(4)),
+      alternationRatio: Number(alternationRatio.toFixed(4)),
+      flipCount,
+      insideCount,
+      compressionRatio: Number(compressionRatio.toFixed(4)),
+      htfDirection,
+      htfStrength,
+      breakoutActive,
+      strongFollowThrough,
+    },
+  };
+}
+
+function shouldBlockPrimaryDecisionInSideways(decisionValue = "", sidewaysContext = null) {
+  if (!sidewaysContext?.active) return false;
+
+  const upper = String(decisionValue || "").trim().toUpperCase();
+  if (!upper.startsWith("ALLOW_")) return false;
+  if (upper.includes("MICRO_SCALP")) return false;
+  if (upper.includes("_SCALP")) return false;
+
+  return upper.includes("BUY") || upper.includes("SELL");
 }
 
 function shouldApplyTradeOutcomeCooldown(symbol = "") {
@@ -3470,7 +3684,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
     const session = getSession();
     const risk = getRiskState();
 
-    const pattern = await analyzePattern({
+    const basePattern = await analyzePattern({
       symbol: resolvedSymbol,
       candles,
       candlesM15: higherTf.candlesM15,
@@ -3481,6 +3695,17 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       candlesH4: higherTf.trendSecondaryCandles,
       overlapPips,
     });
+
+    const sidewaysContext = detectSidewaysMarket({
+      candles,
+      pattern: basePattern,
+      higherTfContext: basePattern?.higherTfContext || null,
+    });
+
+    const pattern = {
+      ...(basePattern || {}),
+      sidewaysContext,
+    };
 
     const ictContext = analyzeICT(candles);
 
@@ -3556,7 +3781,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
     );
 
     let finalDecision = finalDecisionResult.decision;
-    const finalDecisionReason = finalDecisionResult.reason || null;
+    let finalDecisionReason = finalDecisionResult.reason || null;
     const patternScore = Number(pattern?.score || 0);
 
     const forceMicroScalpByPattern = Boolean(
@@ -3567,6 +3792,14 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
 
     if (forceMicroScalpByPattern) {
       finalDecision = mapDecisionToMicroScalp(finalDecision);
+    }
+
+    if (shouldBlockPrimaryDecisionInSideways(finalDecision, sidewaysContext)) {
+      finalDecision = "NO_TRADE";
+      finalDecisionReason =
+        sidewaysContext?.severity === "STRONG"
+          ? "SIDEWAYS_MARKET_STRONG"
+          : "SIDEWAYS_MARKET_FILTER";
     }
 
     try {
@@ -3656,6 +3889,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
+          sidewaysContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -3723,6 +3957,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               mode: microResponse.mode || "MICRO_SCALP",
               trend: microResponse.trend || "NEUTRAL",
               pattern: microResponse.pattern || null,
+              sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -3749,6 +3984,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               mode: microResponse.mode || "MICRO_SCALP",
               trend: microResponse.trend || "NEUTRAL",
               pattern: microResponse.pattern || null,
+              sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -3773,6 +4009,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         mode: evaluateResult.mode || "NORMAL",
         trend: evaluateResult.trend || "NEUTRAL",
         pattern,
+        sidewaysContext,
         historicalVolume,
         defensiveFlags: evaluateResult.defensiveFlags || {
           warningMatched: false,
@@ -3846,6 +4083,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
+          sidewaysContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -3864,6 +4102,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
+          sidewaysContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -3953,6 +4192,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
+          sidewaysContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -3989,6 +4229,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           mode: effectiveTradeMode,
           trend: evaluateResult.trend || "NEUTRAL",
           pattern,
+          sidewaysContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4021,6 +4262,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       mode: effectiveTradeMode,
       trend: evaluateResult.trend || "NEUTRAL",
       pattern,
+      sidewaysContext,
       historicalVolume,
       defensiveFlags,
       trade_setup,
