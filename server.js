@@ -237,7 +237,7 @@ const symbolConfig = {
 const app = express();
 app.use(express.json());
 
-const whiteList = ['https://koomport.com', 'https://tradeengine.zonedevnode.com'];
+const whiteList = ['https://koomport.com', 'https://www.koomport.com', 'https://tradeengine.zonedevnode.com'];
 var corsOptionsDelegate = function (req, callback) {
   var corsOptions;
   if (whiteList.indexOf(req.header('Origin')) !== -1) {
@@ -7262,16 +7262,22 @@ app.get("/active-positions/stream", async (req, res) => {
   }
 
   const origin = req.headers.origin;
-  if (origin === "https://koomport.com") {
+  if (origin && whiteList.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
   }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("Keep-Alive", "timeout=60");
   res.setHeader("X-Accel-Buffering", "no");
 
+  res.socket?.setKeepAlive?.(true, 15000);
+  res.socket?.setNoDelay?.(true);
   res.flushHeaders?.();
+  res.write("retry: 5000\n");
+  res.write(": connected\n\n");
 
   const clientId = crypto.randomUUID();
 
@@ -7289,6 +7295,13 @@ app.get("/active-positions/stream", async (req, res) => {
     const rows = await ActivePosition.find(query)
       .sort({ updatedAt: -1 })
       .lean();
+
+    sendSse(res, "connected", {
+      success: true,
+      firebaseUserId,
+      symbol: symbol || "",
+      eventTime: new Date().toISOString(),
+    });
 
     sendSse(res, "active-positions-init", {
       action: "init",

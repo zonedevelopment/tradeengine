@@ -141,6 +141,7 @@ function broadcastActivePositionChange(payload) {
 
         try {
             sendSse(client.res, "active-position-update", payload);
+            sendSse(client.res, "active-positions-update", payload);
         } catch (err) {
             try { client.res.end(); } catch (_) { }
             sseClients.delete(clientId);
