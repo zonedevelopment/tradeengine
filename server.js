@@ -745,6 +745,27 @@ function getSignalRefreshPatternText(result = {}, baseSignal = {}) {
     .toUpperCase();
 }
 
+function buildNeutralSignalRefreshBodyFlow() {
+  return {
+    supportiveProgression: false,
+    pullbackHolding: false,
+    pullbackPauseActive: false,
+    pullbackPauseNeedsFollow: false,
+    pullbackPauseSwingIntact: false,
+    followThroughConfirmed: false,
+    breakoutHoldByBody: false,
+    breakoutRejectedByBody: false,
+    tentativeBreakoutRetest: false,
+    breakoutGraceActive: false,
+    bodyTakeoverAgainstSide: false,
+    bodyCloseSupportive: false,
+    compression: false,
+    strongBreakoutContinuation: false,
+    continuationSequenceConfirmed: false,
+    evidence: [],
+  };
+}
+
 function analyzeSignalRefreshBodyFlow({
   pendingSide = "",
   candles = [],
@@ -755,94 +776,82 @@ function analyzeSignalRefreshBodyFlow({
   pendingAgeSec = 0,
   refreshAttempt = 0,
 }) {
-  const side = String(pendingSide || "").toUpperCase();
-  const safeCandles = normalizeCandles(candles, 0);
-  const last = getLastCandle(safeCandles, 1);
-  const prev = getLastCandle(safeCandles, 2);
-  const prev2 = getLastCandle(safeCandles, 3);
-  const priorSample = safeCandles.slice(-7, -1);
-  const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
+  try {
+    const side = String(pendingSide || "").toUpperCase();
+    const safeCandles = normalizeCandles(candles, 0);
+    const last = getLastCandle(safeCandles, 1);
+    const prev = getLastCandle(safeCandles, 2);
+    const prev2 = getLastCandle(safeCandles, 3);
+    const priorSample = safeCandles.slice(-7, -1);
+    const avgBody = average(priorSample.map((c) => getBodySize(c))) || getBodySize(last || {}) || 0;
 
-  if (!side || !last || !prev) {
-    return {
-      supportiveProgression: false,
-      pullbackHolding: false,
-      pullbackPauseActive: false,
-      pullbackPauseNeedsFollow: false,
-      pullbackPauseSwingIntact: false,
-      followThroughConfirmed: false,
-      breakoutHoldByBody: false,
-      breakoutRejectedByBody: false,
-      bodyTakeoverAgainstSide: false,
-      bodyCloseSupportive: false,
-      compression: false,
-      evidence: [],
-    };
-  }
+    if (!side || !last || !prev) {
+      return buildNeutralSignalRefreshBodyFlow();
+    }
 
-  const lastBody = getBodySize(last);
-  const prevBody = getBodySize(prev);
-  const prev2Body = getBodySize(prev2 || {});
-  const lastBodyHigh = getBodyHigh(last);
-  const lastBodyLow = getBodyLow(last);
-  const lastUpperWick = getUpperWick(last);
-  const lastLowerWick = getLowerWick(last);
-  const prevBodyHigh = getBodyHigh(prev);
-  const prevBodyLow = getBodyLow(prev);
-  const prevBodyMid = getBodyMid(prev);
-  const prev2BodyHigh = getBodyHigh(prev2 || {});
-  const prev2BodyLow = getBodyLow(prev2 || {});
-  const prevUpperWick = getUpperWick(prev);
-  const prevLowerWick = getLowerWick(prev);
-  const liveOpen = toNum(liveCandle?.open);
-  const liveClose = toNum(liveCandle?.last ?? liveCandle?.close);
-  const liveBody = Math.abs(liveClose - liveOpen);
-  const breakoutLevel = toNum(breakoutState?.breakoutLevel);
-  const breakoutZoneHigh = toNum(breakoutState?.breakoutZoneHigh);
-  const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
-  const compressionThreshold = avgBody > 0 ? avgBody * 0.60 : Math.max(lastBody, prevBody) * 0.75;
-  const patternText = getSignalRefreshPatternText(result, baseSignal);
-  const priorSwingSample = safeCandles.slice(-10, -1);
-  const priorSwingHigh = priorSwingSample.length
-    ? Math.max(...priorSwingSample.map((c) => Number(c.high || 0)))
-    : Number(prev.high || 0);
-  const priorSwingLow = priorSwingSample.length
-    ? Math.min(...priorSwingSample.map((c) => Number(c.low || 0)))
-    : Number(prev.low || 0);
-  const evidence = [];
+    const lastBody = getBodySize(last);
+    const prevBody = getBodySize(prev);
+    const prev2Body = getBodySize(prev2 || {});
+    const lastBodyHigh = getBodyHigh(last);
+    const lastBodyLow = getBodyLow(last);
+    const lastUpperWick = getUpperWick(last);
+    const lastLowerWick = getLowerWick(last);
+    const prevBodyHigh = getBodyHigh(prev);
+    const prevBodyLow = getBodyLow(prev);
+    const prevBodyMid = getBodyMid(prev);
+    const prev2BodyHigh = getBodyHigh(prev2 || {});
+    const prev2BodyLow = getBodyLow(prev2 || {});
+    const prevUpperWick = getUpperWick(prev);
+    const prevLowerWick = getLowerWick(prev);
+    const liveOpen = toNum(liveCandle?.open);
+    const liveClose = toNum(liveCandle?.last ?? liveCandle?.close);
+    const liveBody = Math.abs(liveClose - liveOpen);
+    const breakoutLevel = toNum(breakoutState?.breakoutLevel);
+    const breakoutZoneHigh = toNum(breakoutState?.breakoutZoneHigh);
+    const breakoutZoneLow = toNum(breakoutState?.breakoutZoneLow);
+    const compressionThreshold = avgBody > 0 ? avgBody * 0.60 : Math.max(lastBody, prevBody) * 0.75;
+    const patternText = getSignalRefreshPatternText(result, baseSignal);
+    const priorSwingSample = safeCandles.slice(-10, -1);
+    const priorSwingHigh = priorSwingSample.length
+      ? Math.max(...priorSwingSample.map((c) => Number(c.high || 0)))
+      : Number(prev.high || 0);
+    const priorSwingLow = priorSwingSample.length
+      ? Math.min(...priorSwingSample.map((c) => Number(c.low || 0)))
+      : Number(prev.low || 0);
+    const evidence = [];
 
-  const firstLegPattern =
-    patternText.includes("FIRST_LEG_BREAKOUT") ||
-    patternText.includes("FIRST_LEG_BREAKDOWN");
-  const breakoutGraceActive = Boolean(
-    breakoutState?.isBreakoutLike &&
-    (firstLegPattern || breakoutState?.freshBreakout) &&
-    !breakoutState?.hasRetest &&
-    !breakoutState?.retestAccepted &&
-    !breakoutState?.retestRejected &&
-    Number(pendingAgeSec || 0) <= 20 &&
-    Number(refreshAttempt || 0) <= 2
-  );
+    const firstLegPattern =
+      patternText.includes("FIRST_LEG_BREAKOUT") ||
+      patternText.includes("FIRST_LEG_BREAKDOWN");
+    const breakoutGraceActive = Boolean(
+      breakoutState?.isBreakoutLike &&
+      (firstLegPattern || breakoutState?.freshBreakout) &&
+      !breakoutState?.hasRetest &&
+      !breakoutState?.retestAccepted &&
+      !breakoutState?.retestRejected &&
+      Number(pendingAgeSec || 0) <= 20 &&
+      Number(refreshAttempt || 0) <= 2
+    );
 
-  let supportiveProgression = false;
-  let pullbackHolding = false;
-  let pullbackPauseActive = false;
-  let pullbackPauseNeedsFollow = false;
-  let pullbackPauseSwingIntact = false;
-  let followThroughConfirmed = false;
-  let breakoutHoldByBody = false;
-  let breakoutRejectedByBody = false;
-  let tentativeBreakoutRetest = false;
-  let bodyTakeoverAgainstSide = false;
-  let bodyCloseSupportive = false;
-  let compression = false;
-  let strongBreakoutContinuation = false;
-  let continuationSequenceConfirmed = false;
-  const pauseWindowActive = Boolean(
-    Number(pendingAgeSec || 0) <= 120 ||
-    Number(refreshAttempt || 0) <= 2 ||
-    Number(breakoutState?.barsSinceBreakout ?? 99) <= 2
-  );
+    let supportiveProgression = false;
+    let pullbackHolding = false;
+    let pullbackPauseActive = false;
+    let pullbackPauseNeedsFollow = false;
+    let pullbackPauseSwingIntact = false;
+    let followThroughConfirmed = false;
+    let breakoutHoldByBody = false;
+    let breakoutRejectedByBody = false;
+    let tentativeBreakoutRetest = false;
+    let bodyTakeoverAgainstSide = false;
+    let bodyCloseSupportive = false;
+    let compression = false;
+    let strongBreakoutContinuation = false;
+    let continuationSequenceConfirmed = false;
+    const pauseWindowActive = Boolean(
+      Number(pendingAgeSec || 0) <= 120 ||
+      Number(refreshAttempt || 0) <= 2 ||
+      Number(breakoutState?.barsSinceBreakout ?? 99) <= 2
+    );
 
   if (side === "BUY") {
     const liveReclaim = liveClose > 0 && liveClose >= Math.max(lastBodyLow, prevBodyMid);
@@ -1164,24 +1173,37 @@ function analyzeSignalRefreshBodyFlow({
     if (pullbackPauseActive) evidence.push("BODY_SELL_PULLBACK_PAUSE_ACTIVE");
   }
 
-  return {
-    supportiveProgression,
-    pullbackHolding,
-    pullbackPauseActive,
-    pullbackPauseNeedsFollow,
-    pullbackPauseSwingIntact,
-    followThroughConfirmed,
-    breakoutHoldByBody,
-    breakoutRejectedByBody,
-    tentativeBreakoutRetest,
-    breakoutGraceActive,
-    bodyTakeoverAgainstSide,
-    bodyCloseSupportive,
-    compression,
-    strongBreakoutContinuation,
-    continuationSequenceConfirmed,
-    evidence,
-  };
+    return {
+      supportiveProgression,
+      pullbackHolding,
+      pullbackPauseActive,
+      pullbackPauseNeedsFollow,
+      pullbackPauseSwingIntact,
+      followThroughConfirmed,
+      breakoutHoldByBody,
+      breakoutRejectedByBody,
+      tentativeBreakoutRetest,
+      breakoutGraceActive,
+      bodyTakeoverAgainstSide,
+      bodyCloseSupportive,
+      compression,
+      strongBreakoutContinuation,
+      continuationSequenceConfirmed,
+      evidence,
+    };
+  } catch (error) {
+    console.error("[signal-refresh-body-flow] error:", {
+      message: error.message,
+      stack: error.stack,
+      pendingSide: String(pendingSide || "").toUpperCase(),
+      candlesCount: Array.isArray(candles) ? candles.length : 0,
+      liveCandle,
+      breakoutState,
+      pendingAgeSec: Number(pendingAgeSec || 0),
+      refreshAttempt: Number(refreshAttempt || 0),
+    });
+    return buildNeutralSignalRefreshBodyFlow();
+  }
 }
 
 function normalizeSignalBody(body = {}) {
