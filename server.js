@@ -2960,12 +2960,12 @@ function buildRsiReversalContext({
       momentumUp: false,
       crossedDown70: false,
       crossedUp30: false,
-      crossedDown65: false,
-      crossedUp35: false,
+      crossedDown68: false,
+      crossedUp32: false,
       sellReady: false,
       buyReady: false,
-      sellConfirmed65: false,
-      buyConfirmed35: false,
+      sellConfirmed68: false,
+      buyConfirmed32: false,
       overboughtSeen: false,
       oversoldSeen: false,
       booster: null,
@@ -2984,12 +2984,12 @@ function buildRsiReversalContext({
   const oversoldSeen = Number.isFinite(recentMin) && recentMin <= 30;
   const crossedDown70 = previous >= 70 && current < 70;
   const crossedUp30 = previous <= 30 && current > 30;
-  const crossedDown65 = previous >= 65 && current < 65;
-  const crossedUp35 = previous <= 35 && current > 35;
+  const crossedDown68 = previous >= 68 && current < 68;
+  const crossedUp32 = previous <= 32 && current > 32;
   const sellReady = overboughtSeen && crossedDown70 && momentumDown;
   const buyReady = oversoldSeen && crossedUp30 && momentumUp;
-  const sellConfirmed65 = sellReady && current < 65;
-  const buyConfirmed35 = buyReady && current > 35;
+  const sellConfirmed68 = sellReady && current < 68;
+  const buyConfirmed32 = buyReady && current > 32;
 
   return {
     available: true,
@@ -3003,12 +3003,12 @@ function buildRsiReversalContext({
     momentumUp,
     crossedDown70,
     crossedUp30,
-    crossedDown65,
-    crossedUp35,
+    crossedDown68,
+    crossedUp32,
     sellReady,
     buyReady,
-    sellConfirmed65,
-    buyConfirmed35,
+    sellConfirmed68,
+    buyConfirmed32,
     overboughtSeen,
     oversoldSeen,
     booster: null,
@@ -3062,14 +3062,14 @@ function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null,
       };
     }
 
-    if (rsiContext.sellConfirmed65) {
+    if (rsiContext.sellConfirmed68) {
       return {
         active: true,
         side,
         scoreDelta: 0.36,
-        stage: "CONFIRMED_65",
+        stage: "CONFIRMED_68",
         reversalPatternAligned: true,
-        reasonCode: "RSI_REVERSAL_CONFIRM_65_SELL",
+        reasonCode: "RSI_REVERSAL_CONFIRM_68_SELL",
       };
     }
 
@@ -3090,14 +3090,14 @@ function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null,
     };
   }
 
-  if (rsiContext.buyConfirmed35) {
+  if (rsiContext.buyConfirmed32) {
     return {
       active: true,
       side,
       scoreDelta: 0.36,
-      stage: "CONFIRMED_35",
+      stage: "CONFIRMED_32",
       reversalPatternAligned: true,
-      reasonCode: "RSI_REVERSAL_CONFIRM_35_BUY",
+      reasonCode: "RSI_REVERSAL_CONFIRM_32_BUY",
     };
   }
 
