@@ -3360,10 +3360,6 @@ function detectFollowExhaustion({
   candles = [],
   pattern = null,
 }) {
-  const safeCandles = normalizeCandleArray(candles)
-    .map(normalizePriceCandle)
-    .slice(-12);
-
   const empty = {
     active: false,
     exhaustedSide: "NONE",
@@ -3372,125 +3368,9 @@ function detectFollowExhaustion({
     reversalBias: "NEUTRAL",
     reasonCodes: [],
     metrics: {},
+    disabled: true,
   };
-
-  if (safeCandles.length < 4) {
-    return empty;
-  }
-
-  const recent = safeCandles.slice(-4);
-  const latestThree = safeCandles.slice(-3);
-  const priorSample = safeCandles.slice(
-    Math.max(0, safeCandles.length - 10),
-    Math.max(0, safeCandles.length - 3)
-  );
-
-  const priorBodies = priorSample.map((c) => Math.abs(Number(c.close || 0) - Number(c.open || 0)));
-  const priorRanges = priorSample.map((c) => Math.max(0, Number(c.high || 0) - Number(c.low || 0)));
-  const avgPriorBody = average(priorBodies) || average(recent.map((c) => Math.abs(c.close - c.open))) || 0;
-  const avgPriorRange = average(priorRanges) || average(recent.map((c) => Math.max(0, c.high - c.low))) || 0;
-
-  let streakSide = "NONE";
-  let streakCount = 0;
-
-  for (let i = safeCandles.length - 1; i >= 0; i--) {
-    const currentSide = getCandleDirection(safeCandles[i]) === 1
-      ? "BUY"
-      : getCandleDirection(safeCandles[i]) === -1
-        ? "SELL"
-        : "NONE";
-
-    if (currentSide === "NONE") break;
-    if (streakSide === "NONE") {
-      streakSide = currentSide;
-      streakCount = 1;
-      continue;
-    }
-    if (currentSide !== streakSide) break;
-    streakCount += 1;
-    if (streakCount >= 4) break;
-  }
-
-  if (streakSide === "NONE" || streakCount < 2) {
-    return empty;
-  }
-
-  const streakCandles = safeCandles.slice(-streakCount);
-  const streakBodies = streakCandles.map((c) => Math.abs(Number(c.close || 0) - Number(c.open || 0)));
-  const streakRanges = streakCandles.map((c) => Math.max(0, Number(c.high || 0) - Number(c.low || 0)));
-  const maxBody = Math.max(...streakBodies, 0);
-  const maxRange = Math.max(...streakRanges, 0);
-  const bodyExpansion = avgPriorBody > 0 ? maxBody / avgPriorBody : 0;
-  const rangeExpansion = avgPriorRange > 0 ? maxRange / avgPriorRange : 0;
-  const latestBodiesDominant = streakBodies.filter((body) => body >= avgPriorBody * 1.2).length;
-  const hasLargeImpulse =
-    bodyExpansion >= 1.55 &&
-    rangeExpansion >= 1.25 &&
-    latestBodiesDominant >= 1;
-
-  const consecutiveThreeSame = false;
-  const active = streakCount >= 2 && hasLargeImpulse;
-  if (!active) {
-    return {
-      ...empty,
-      exhaustedSide: streakSide,
-      streakCount,
-      hasLargeImpulse,
-      metrics: {
-        avgPriorBody: Number(avgPriorBody.toFixed(5)),
-        avgPriorRange: Number(avgPriorRange.toFixed(5)),
-        bodyExpansion: Number(bodyExpansion.toFixed(4)),
-        rangeExpansion: Number(rangeExpansion.toFixed(4)),
-      },
-    };
-  }
-
-  const reversalBias = detectPatternDirectionalBias(pattern);
-  const latest = latestThree[latestThree.length - 1] || {};
-  const latestOpen = Number(latest.open || 0);
-  const latestClose = Number(latest.close || 0);
-  const latestHigh = Number(latest.high || 0);
-  const latestLow = Number(latest.low || 0);
-  const latestBody = Math.abs(latestClose - latestOpen);
-  const upperWick = Math.max(0, latestHigh - Math.max(latestOpen, latestClose));
-  const lowerWick = Math.max(0, Math.min(latestOpen, latestClose) - latestLow);
-
-  const exhaustionWickBias =
-    streakSide === "BUY"
-      ? upperWick > latestBody * 0.9
-      : streakSide === "SELL"
-        ? lowerWick > latestBody * 0.9
-        : false;
-
-  const reasonCodes = [];
-  if (streakCount >= 2 && hasLargeImpulse) reasonCodes.push("TWO_CANDLES_WITH_LARGE_IMPULSE");
-  if (exhaustionWickBias) reasonCodes.push("EXHAUSTION_WICK_PRESENT");
-  if (
-    (streakSide === "BUY" && reversalBias === "SELL") ||
-    (streakSide === "SELL" && reversalBias === "BUY")
-  ) {
-    reasonCodes.push("REVERSAL_PATTERN_READY");
-  }
-
-  return {
-    active: true,
-    exhaustedSide: streakSide,
-    streakCount,
-    hasLargeImpulse,
-    reversalBias,
-    reasonCodes,
-    metrics: {
-      avgPriorBody: Number(avgPriorBody.toFixed(5)),
-      avgPriorRange: Number(avgPriorRange.toFixed(5)),
-      maxBody: Number(maxBody.toFixed(5)),
-      maxRange: Number(maxRange.toFixed(5)),
-      bodyExpansion: Number(bodyExpansion.toFixed(4)),
-      rangeExpansion: Number(rangeExpansion.toFixed(4)),
-      upperWick: Number(upperWick.toFixed(5)),
-      lowerWick: Number(lowerWick.toFixed(5)),
-      exhaustionWickBias,
-    },
-  };
+  return empty;
 }
 
 function shouldDelayFollowDecision(decisionValue = "", followExhaustionContext = null) {
