@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getThailandNowDate } = require("../thailand-time");
 
 const CandleSchema = new mongoose.Schema(
   {
@@ -31,7 +32,7 @@ const CandleTrainingDataSchema = new mongoose.Schema(
     mode: { type: String, default: "NORMAL" },
   },
   {
-    timestamps: true,
+    timestamps: { currentTime: getThailandNowDate },
     collection: "candle_training_data",
   }
 );

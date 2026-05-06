@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getThailandNowDate } = require("../thailand-time");
 
 const ActivePositionSchema = new mongoose.Schema(
     {
@@ -17,7 +18,7 @@ const ActivePositionSchema = new mongoose.Schema(
         commission: { type: Number, default: 0 },
         openTime: { type: Date, default: null },
         eventTime: { type: Date, default: null },
-        updatedAt: { type: Date, default: Date.now, index: true },
+        updatedAt: { type: Date, default: getThailandNowDate, index: true },
     },
     {
         versionKey: false,

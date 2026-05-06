@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getThailandNowDate } = require("../thailand-time");
 
 const AccountSnapshotLiveSchema = new mongoose.Schema(
   {
@@ -73,7 +74,7 @@ const AccountSnapshotLiveSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true,
+    timestamps: { currentTime: getThailandNowDate },
     collection: "account_snapshot_live"
   }
 );

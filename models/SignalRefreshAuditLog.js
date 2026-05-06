@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getThailandNowDate } = require("../thailand-time");
 
 const SignalRefreshAuditLogSchema = new mongoose.Schema(
   {
@@ -11,7 +12,7 @@ const SignalRefreshAuditLogSchema = new mongoose.Schema(
 
     eventTime: {
       type: Date,
-      default: Date.now,
+      default: getThailandNowDate,
       index: true,
       expires: 60 * 60 * 24 * 14,
     },
@@ -61,7 +62,7 @@ const SignalRefreshAuditLogSchema = new mongoose.Schema(
     snapshots: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   {
-    timestamps: true,
+    timestamps: { currentTime: getThailandNowDate },
     collection: "signal_refresh_audit_logs",
   }
 );

@@ -6,6 +6,7 @@ const { testConnection, query } = require("./db");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { getThailandNowDate, formatThailandIso } = require("./thailand-time");
 const { fetchNews } = require("./news");
 const { analyzeWithGemini, analyzeMotherFishWithGemini } = require("./gemini");
 const { writeFilter, readFilter } = require("./filter-writer");
@@ -3723,8 +3724,8 @@ function buildEntryThesisSnapshotDocument({
       baseScore: Number(reqBody?.baseSignal?.score || 0),
     },
     trigger,
-    eventTime: new Date(),
-    updatedAt: new Date(),
+    eventTime: getThailandNowDate(),
+    updatedAt: getThailandNowDate(),
   };
 }
 
@@ -3777,7 +3778,7 @@ async function getLatestEntryThesisSnapshotForRefresh({
     symbol: safeSymbol,
     side: safeSide,
     sourceEndpoint: { $in: ["signal", "signal_refresh"] },
-    eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 12) },
+      eventTime: { $gte: new Date(getThailandNowDate().getTime() - 1000 * 60 * 60 * 12) },
   };
 
   if (safeAccountId) {
@@ -3842,7 +3843,7 @@ async function getLatestEntryThesisSnapshotForExit({
       symbol: safeSymbol,
       side: safeSide,
       sourceEndpoint: { $in: ["signal", "signal_refresh"] },
-      eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
+      eventTime: { $gte: new Date(getThailandNowDate().getTime() - 1000 * 60 * 60 * 24) },
     };
 
     if (safeAccountId) {
@@ -3899,7 +3900,7 @@ function linkLatestEntryThesisSnapshotToOpenOrder({
     symbol: safeSymbol,
     side: safeSide,
     linkedTicketId: null,
-    eventTime: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 6) },
+    eventTime: { $gte: new Date(getThailandNowDate().getTime() - 1000 * 60 * 60 * 6) },
   };
 
   if (safeAccountId) {
@@ -3915,7 +3916,7 @@ function linkLatestEntryThesisSnapshotToOpenOrder({
     {
       $set: {
         linkedTicketId: safeTicketId,
-        linkedAt: eventTime ? new Date(eventTime) : new Date(),
+        linkedAt: eventTime ? new Date(eventTime) : getThailandNowDate(),
         executionStatus: "EXECUTED_OPEN_ORDER",
         linkedOpenOrder: {
           lot: toNum(lot, 0),
@@ -3924,7 +3925,7 @@ function linkLatestEntryThesisSnapshotToOpenOrder({
           tp: toNum(tp, 0),
           mode: safeMode || null,
         },
-        updatedAt: new Date(),
+        updatedAt: getThailandNowDate(),
       },
     },
     {
@@ -4270,7 +4271,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           accountId: accountId || "",
           symbol: resolvedSymbol || "",
           timeframe: "M5",
-          eventTime: new Date(),
+          eventTime: getThailandNowDate(),
           price: Number(price || 0),
           candles: contextCandles,
           source: "signal",
@@ -5886,7 +5887,7 @@ function buildSignalRefreshAuditLogDocument({
     accountId: String(reqBody?.accountId || ""),
     symbol: String(reqBody?.symbol || "").toUpperCase(),
     timeframe: String(reqBody?.timeframe || "M5").toUpperCase(),
-    eventTime: new Date(),
+    eventTime: getThailandNowDate(),
 
     baseSide: String(
       reqBody?.pendingSide ||
@@ -7266,7 +7267,7 @@ app.post("/trade-event", async (req, res) => {
       firebaseUserId: resolvedUserId,
       ticketId: normalizedTicketId,
       ticket_id: normalizedTicketId,
-      logged_at: new Date().toISOString(),
+      logged_at: formatThailandIso(),
     });
 
     safeWriteJson(historyFile, history);
@@ -7277,7 +7278,7 @@ app.post("/trade-event", async (req, res) => {
       const numericProfit = Number(profit || 0);
 
       maePlaLogs.push({
-        timestamp: new Date().toISOString(),
+        timestamp: formatThailandIso(),
         type: "trade_result",
         ticket_id: normalizedTicketId || Date.now(),
         firebaseUserId: resolvedUserId,
@@ -8032,7 +8033,7 @@ app.get("/active-positions/stream", async (req, res) => {
       success: true,
       firebaseUserId,
       symbol: symbol || "",
-      eventTime: new Date().toISOString(),
+      eventTime: formatThailandIso(),
     });
 
     sendSse(res, "active-positions-init", {
@@ -8451,7 +8452,7 @@ app.post("/commands/result", async (req, res) => {
         tp: tradeHistory.tp,
         closeProfit,
         mode: tradeHistory.mode,
-        eventTime: new Date(),
+        eventTime: getThailandNowDate(),
       });
     } catch (dbError) {
       dbInsertError = dbError;
@@ -8982,7 +8983,7 @@ app.get("/candle-training-data/mini-chart", async (req, res) => {
       });
     }
 
-    const fromTime = new Date(Date.now() - safeMinutes * 60 * 1000);
+  const fromTime = new Date(getThailandNowDate().getTime() - safeMinutes * 60 * 1000);
 
     const filter = {
       symbol: { $regex: `^${escapeRegex(safeSymbol)}$`, $options: "i" },
@@ -9024,8 +9025,8 @@ app.get("/candle-training-data/mini-chart", async (req, res) => {
           : null;
 
       const point = {
-        time: new Date(bucketTime).toISOString(),
-        eventTime: eventDate.toISOString(),
+        time: formatThailandIso(bucketTime),
+        eventTime: formatThailandIso(eventDate),
         price: Number(row.price || 0),
         open: latestCandle ? Number(latestCandle.open || 0) : Number(row.price || 0),
         high: latestCandle ? Number(latestCandle.high || 0) : Number(row.price || 0),

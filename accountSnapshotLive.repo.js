@@ -206,6 +206,7 @@
 //     getAggregatedLiveAccountSnapshotByUser
 // };
 const AccountSnapshotLive = require("./models/accountSnapshotLive.model");
+const { getThailandDayRange, toThailandDate } = require("./thailand-time");
 
 function toNumber(value, fallback = 0) {
     const num = Number(value);
@@ -230,14 +231,7 @@ function pickLatestRecord(records = []) {
 }
 
 function getCurrentDayRange() {
-    const now = new Date();
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-
-    return { start, end };
+    return getThailandDayRange();
 }
 
 function isRecordInCurrentDay(record = {}) {
@@ -325,7 +319,7 @@ async function upsertLiveAccountSnapshot(data = {}) {
 
     const safeFirebaseUserId = normalizeString(firebaseUserId);
     const safeAccountId = normalizeString(accountId);
-    const safeEventTime = eventTime ? new Date(eventTime) : new Date();
+    const safeEventTime = toThailandDate(eventTime);
 
     if (!safeFirebaseUserId) {
         throw new Error("firebaseUserId is required");
@@ -360,7 +354,7 @@ async function upsertLiveAccountSnapshot(data = {}) {
                 eventTime: safeEventTime
             },
             $setOnInsert: {
-                createdAt: new Date()
+                createdAt: toThailandDate()
             }
         },
         {

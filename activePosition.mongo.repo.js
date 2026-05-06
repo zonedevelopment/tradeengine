@@ -1,5 +1,6 @@
 
 const ActivePosition = require("./models/ActivePosition");
+const { getThailandNowDate, toThailandDate } = require("./thailand-time");
 const {
     sendSse,
     registerSseClient,
@@ -27,7 +28,7 @@ function normalizeString(value, fallback = "") {
 function normalizeDate(value) {
     if (!value) return null;
 
-    const date = new Date(value);
+    const date = toThailandDate(value);
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -88,7 +89,7 @@ async function syncActivePositionsToMongo({
                     commission: normalizeNumber(position.commission, 0),
                     openTime: normalizeDate(position.openTime),
                     eventTime: normalizeDate(eventTime || position.eventTime),
-                    updatedAt: new Date(),
+                    updatedAt: getThailandNowDate(),
                 },
                 $setOnInsert: {
                     ticketId,

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getThailandNowDate } = require("../thailand-time");
 
 const { Schema } = mongoose;
 
@@ -32,8 +33,8 @@ const EntryThesisSnapshotSchema = new Schema(
     linkedTicketId: { type: String, default: null, trim: true, index: true },
     linkedAt: { type: Date, default: null },
     linkedOpenOrder: { type: Schema.Types.Mixed, default: null },
-    eventTime: { type: Date, default: Date.now, index: true },
-    updatedAt: { type: Date, default: Date.now, index: true },
+    eventTime: { type: Date, default: getThailandNowDate, index: true },
+    updatedAt: { type: Date, default: getThailandNowDate, index: true },
   },
   {
     versionKey: false,

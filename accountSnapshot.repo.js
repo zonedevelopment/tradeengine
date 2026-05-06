@@ -1,4 +1,5 @@
 const AccountSnapshot = require("./models/accountSnapshot.model");
+const { formatThailandDate, toThailandDate } = require("./thailand-time");
 
 function normalizeString(value, fallback = "") {
     if (value === undefined || value === null) return fallback;
@@ -6,11 +7,7 @@ function normalizeString(value, fallback = "") {
 }
 
 function toSnapshotDate(input) {
-    const d = input ? new Date(input) : new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return formatThailandDate(input);
 }
 
 async function upsertDailyAccountSnapshot(data = {}) {
@@ -28,7 +25,7 @@ async function upsertDailyAccountSnapshot(data = {}) {
         throw new Error("firebaseUserId is required");
     }
 
-    const eventDate = eventTime ? new Date(eventTime) : new Date();
+    const eventDate = toThailandDate(eventTime);
     const snapshotDate = toSnapshotDate(eventDate);
 
     return await AccountSnapshot.updateOne(
@@ -52,7 +49,7 @@ async function upsertDailyAccountSnapshot(data = {}) {
 
 async function getTodayAccountSnapshotsByUser(firebaseUserId) {
     const safeFirebaseUserId = normalizeString(firebaseUserId);
-    const snapshotDate = toSnapshotDate(new Date());
+    const snapshotDate = toSnapshotDate();
 
     return await AccountSnapshot.find({
         firebaseUserId: safeFirebaseUserId,

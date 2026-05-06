@@ -1,4 +1,5 @@
 const { query } = require("./db");
+const { toThailandDate, formatThailandDate } = require("./thailand-time");
 
 const ALLOWED_EVENT_TYPES = [
   "WAIT_ORDER",
@@ -37,14 +38,13 @@ function normalizeTicketId(value) {
 }
 
 function normalizeDate(value) {
-  if (!value) return new Date();
+  if (!value) return toThailandDate();
 
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? new Date() : value;
+    return Number.isNaN(value.getTime()) ? toThailandDate() : toThailandDate(value);
   }
 
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  return toThailandDate(value);
 }
 
 async function insertTradeHistory(data) {
@@ -131,13 +131,7 @@ async function getTradeHistoryByUser(firebaseUserId, limit = 100, page = 1) {
       AND c.event_type IN ('CLOSE_ORDER') AND DATE(c.event_time) = ?
     ORDER BY c.id DESC`;
 
-  const today = new Date();
-  const year = today.getFullYear();
-  // getMonth() is zero-based, so add 1
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-
-  const formattedDateLocal = `${year}-${month}-${day}`;
+  const formattedDateLocal = formatThailandDate();
   let result = await query(sql, [firebaseUserId, formattedDateLocal]);
 
   return [{ "result": result, "dateSql": formattedDateLocal }]
