@@ -3428,8 +3428,8 @@ function detectFollowExhaustion({
     rangeExpansion >= 1.25 &&
     latestBodiesDominant >= 1;
 
-  const consecutiveThreeSame = streakCount >= 3;
-  const active = consecutiveThreeSame || (streakCount >= 2 && hasLargeImpulse);
+  const consecutiveThreeSame = false;
+  const active = streakCount >= 2 && hasLargeImpulse;
   if (!active) {
     return {
       ...empty,
@@ -3463,7 +3463,6 @@ function detectFollowExhaustion({
         : false;
 
   const reasonCodes = [];
-  if (consecutiveThreeSame) reasonCodes.push("THREE_SAME_DIRECTION_CANDLES");
   if (streakCount >= 2 && hasLargeImpulse) reasonCodes.push("TWO_CANDLES_WITH_LARGE_IMPULSE");
   if (exhaustionWickBias) reasonCodes.push("EXHAUSTION_WICK_PRESENT");
   if (
