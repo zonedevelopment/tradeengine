@@ -2960,10 +2960,15 @@ function buildRsiReversalContext({
       momentumUp: false,
       crossedDown70: false,
       crossedUp30: false,
+      crossedDown65: false,
+      crossedUp35: false,
       sellReady: false,
       buyReady: false,
+      sellConfirmed65: false,
+      buyConfirmed35: false,
       overboughtSeen: false,
       oversoldSeen: false,
+      booster: null,
       source: "UNAVAILABLE",
     };
   }
@@ -2979,8 +2984,12 @@ function buildRsiReversalContext({
   const oversoldSeen = Number.isFinite(recentMin) && recentMin <= 30;
   const crossedDown70 = previous >= 70 && current < 70;
   const crossedUp30 = previous <= 30 && current > 30;
+  const crossedDown65 = previous >= 65 && current < 65;
+  const crossedUp35 = previous <= 35 && current > 35;
   const sellReady = overboughtSeen && crossedDown70 && momentumDown;
   const buyReady = oversoldSeen && crossedUp30 && momentumUp;
+  const sellConfirmed65 = sellReady && current < 65;
+  const buyConfirmed35 = buyReady && current > 35;
 
   return {
     available: true,
@@ -2994,10 +3003,15 @@ function buildRsiReversalContext({
     momentumUp,
     crossedDown70,
     crossedUp30,
+    crossedDown65,
+    crossedUp35,
     sellReady,
     buyReady,
+    sellConfirmed65,
+    buyConfirmed35,
     overboughtSeen,
     oversoldSeen,
+    booster: null,
     source: Number.isFinite(payloadCurrent) ? "EA_AND_SERVER" : "SERVER",
   };
 }
@@ -3015,6 +3029,86 @@ function shouldDelayDecisionForRsi(decisionValue = "", rsiContext = null) {
   }
 
   return null;
+}
+
+function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null, pattern = null) {
+  const side = getDecisionSideLabel(decisionValue);
+  const reversalStructure = pattern?.structure || {};
+  const directionalBias = detectPatternDirectionalBias(pattern);
+
+  const empty = {
+    active: false,
+    side,
+    scoreDelta: 0,
+    stage: "NONE",
+    reversalPatternAligned: false,
+    reasonCode: null,
+  };
+
+  if (!rsiContext?.available || (side !== "BUY" && side !== "SELL")) {
+    return empty;
+  }
+
+  const bullishReversalAligned =
+    Boolean(reversalStructure?.bullishReversal) || directionalBias === "BUY";
+  const bearishReversalAligned =
+    Boolean(reversalStructure?.bearishReversal) || directionalBias === "SELL";
+
+  if (side === "SELL") {
+    if (!bearishReversalAligned || !rsiContext.sellReady) {
+      return {
+        ...empty,
+        reversalPatternAligned: bearishReversalAligned,
+      };
+    }
+
+    if (rsiContext.sellConfirmed65) {
+      return {
+        active: true,
+        side,
+        scoreDelta: 0.36,
+        stage: "CONFIRMED_65",
+        reversalPatternAligned: true,
+        reasonCode: "RSI_REVERSAL_CONFIRM_65_SELL",
+      };
+    }
+
+    return {
+      active: true,
+      side,
+      scoreDelta: 0.18,
+      stage: "EARLY_CROSSDOWN_70",
+      reversalPatternAligned: true,
+      reasonCode: "RSI_REVERSAL_EARLY_SELL",
+    };
+  }
+
+  if (!bullishReversalAligned || !rsiContext.buyReady) {
+    return {
+      ...empty,
+      reversalPatternAligned: bullishReversalAligned,
+    };
+  }
+
+  if (rsiContext.buyConfirmed35) {
+    return {
+      active: true,
+      side,
+      scoreDelta: 0.36,
+      stage: "CONFIRMED_35",
+      reversalPatternAligned: true,
+      reasonCode: "RSI_REVERSAL_CONFIRM_35_BUY",
+    };
+  }
+
+  return {
+    active: true,
+    side,
+    scoreDelta: 0.18,
+    stage: "EARLY_CROSSUP_30",
+    reversalPatternAligned: true,
+    reasonCode: "RSI_REVERSAL_EARLY_BUY",
+  };
 }
 
 function getCandleDirection(candle = {}) {
@@ -4084,6 +4178,19 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       evaluateResult,
     });
 
+    const rsiBooster = buildRsiPatternConfidenceBooster(
+      evaluateResult?.finalDecision || "",
+      rsiContext,
+      pattern
+    );
+    rsiContext.booster = rsiBooster;
+
+    if (rsiBooster.active && Number.isFinite(rsiBooster.scoreDelta)) {
+      evaluateResult.score = Number(
+        (Number(evaluateResult?.score || 0) + Number(rsiBooster.scoreDelta || 0)).toFixed(4)
+      );
+    }
+
     let mainUserRecentPerformance = null;
     let mainUserAdaptiveProfile = null;
 
@@ -4352,6 +4459,21 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               currentOpenPositionsCount: 0,
             });
           }
+
+          const microRsiBooster = buildRsiPatternConfidenceBooster(
+            microResponse.decision || "",
+            rsiContext,
+            pattern
+          );
+          if (microRsiBooster.active && Number.isFinite(microRsiBooster.scoreDelta)) {
+            microResponse.score = Number(
+              (Number(microResponse.score || 0) + Number(microRsiBooster.scoreDelta || 0)).toFixed(4)
+            );
+          }
+          microResponse.rsiContext = {
+            ...(microResponse.rsiContext || rsiContext || {}),
+            booster: microRsiBooster,
+          };
 
           const currentOpenPositionsCount =
             await countOpenPositionsByUserAccount({
