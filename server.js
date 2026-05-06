@@ -2816,6 +2816,7 @@ function buildBlockedSignalResponse({
   pattern = null,
   sidewaysContext = null,
   followExhaustionContext = null,
+  rsiContext = null,
   historicalVolume = null,
   defensiveFlags = null,
   trade_setup = null,
@@ -2831,6 +2832,7 @@ function buildBlockedSignalResponse({
     pattern,
     sidewaysContext,
     followExhaustionContext,
+    rsiContext,
     historicalVolume,
     defensiveFlags,
     trade_setup,
@@ -2858,6 +2860,161 @@ function normalizePriceCandle(candle = {}) {
     close: Number(candle.close || 0),
     tick_volume: Number(candle.tick_volume || candle.tickVolume || 0),
   };
+}
+
+function getCandleClose(candle = {}) {
+  return Number(candle.close || 0);
+}
+
+function calculateRsiSeriesFromCandles(candles = [], period = 14) {
+  const safeCandles = normalizeCandleArray(candles);
+  const closes = safeCandles
+    .map(getCandleClose)
+    .filter((value) => Number.isFinite(value));
+
+  const safePeriod = Math.max(2, Number(period || 14));
+  if (closes.length <= safePeriod) {
+    return [];
+  }
+
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= safePeriod; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change > 0) gains += change;
+    else losses += Math.abs(change);
+  }
+
+  let avgGain = gains / safePeriod;
+  let avgLoss = losses / safePeriod;
+  const series = [];
+
+  const firstRsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  series.push({
+    candleIndex: safePeriod,
+    value: Number(firstRsi.toFixed(4)),
+  });
+
+  for (let i = safePeriod + 1; i < closes.length; i++) {
+    const change = closes[i] - closes[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? Math.abs(change) : 0;
+
+    avgGain = ((avgGain * (safePeriod - 1)) + gain) / safePeriod;
+    avgLoss = ((avgLoss * (safePeriod - 1)) + loss) / safePeriod;
+
+    const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    series.push({
+      candleIndex: i,
+      value: Number(rsi.toFixed(4)),
+    });
+  }
+
+  return series;
+}
+
+function buildRsiReversalContext({
+  candles = [],
+  rsiPayload = null,
+  period = 14,
+}) {
+  const payload = rsiPayload && typeof rsiPayload === "object" ? rsiPayload : {};
+  const series = calculateRsiSeriesFromCandles(candles, period);
+  const values = series.map((entry) => Number(entry.value || 0));
+
+  const payloadCurrent = Number(payload.current);
+  const payloadPrevious = Number(payload.previous);
+  const payloadPrevious2 = Number(payload.previous2);
+  const payloadRecentMax = Number(payload.recentMax);
+  const payloadRecentMin = Number(payload.recentMin);
+
+  const current = Number.isFinite(payloadCurrent)
+    ? payloadCurrent
+    : values.length >= 1 ? values[values.length - 1] : null;
+  const previous = Number.isFinite(payloadPrevious)
+    ? payloadPrevious
+    : values.length >= 2 ? values[values.length - 2] : null;
+  const previous2 = Number.isFinite(payloadPrevious2)
+    ? payloadPrevious2
+    : values.length >= 3 ? values[values.length - 3] : null;
+
+  const recentWindow = values.slice(-5);
+  const recentMax = Number.isFinite(payloadRecentMax)
+    ? payloadRecentMax
+    : recentWindow.length > 0 ? Math.max(...recentWindow) : null;
+  const recentMin = Number.isFinite(payloadRecentMin)
+    ? payloadRecentMin
+    : recentWindow.length > 0 ? Math.min(...recentWindow) : null;
+
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return {
+      available: false,
+      period: Number(payload.period || period || 14),
+      current: null,
+      previous: null,
+      previous2: null,
+      recentMax: null,
+      recentMin: null,
+      momentumDown: false,
+      momentumUp: false,
+      crossedDown70: false,
+      crossedUp30: false,
+      sellReady: false,
+      buyReady: false,
+      overboughtSeen: false,
+      oversoldSeen: false,
+      source: "UNAVAILABLE",
+    };
+  }
+
+  const momentumDown =
+    current < previous &&
+    (!Number.isFinite(previous2) || previous <= previous2);
+  const momentumUp =
+    current > previous &&
+    (!Number.isFinite(previous2) || previous >= previous2);
+
+  const overboughtSeen = Number.isFinite(recentMax) && recentMax >= 70;
+  const oversoldSeen = Number.isFinite(recentMin) && recentMin <= 30;
+  const crossedDown70 = previous >= 70 && current < 70;
+  const crossedUp30 = previous <= 30 && current > 30;
+  const sellReady = overboughtSeen && crossedDown70 && momentumDown;
+  const buyReady = oversoldSeen && crossedUp30 && momentumUp;
+
+  return {
+    available: true,
+    period: Number(payload.period || period || 14),
+    current: Number(current.toFixed(4)),
+    previous: Number(previous.toFixed(4)),
+    previous2: Number.isFinite(previous2) ? Number(previous2.toFixed(4)) : null,
+    recentMax: Number.isFinite(recentMax) ? Number(recentMax.toFixed(4)) : null,
+    recentMin: Number.isFinite(recentMin) ? Number(recentMin.toFixed(4)) : null,
+    momentumDown,
+    momentumUp,
+    crossedDown70,
+    crossedUp30,
+    sellReady,
+    buyReady,
+    overboughtSeen,
+    oversoldSeen,
+    source: Number.isFinite(payloadCurrent) ? "EA_AND_SERVER" : "SERVER",
+  };
+}
+
+function shouldDelayDecisionForRsi(decisionValue = "", rsiContext = null) {
+  if (!rsiContext?.available) return null;
+
+  const side = getDecisionSideLabel(decisionValue);
+  if (side === "SELL") {
+    if (rsiContext.current >= 70) return "RSI_WAIT_SELL_CROSSDOWN";
+    if (rsiContext.overboughtSeen && !rsiContext.sellReady) return "RSI_WAIT_SELL_CONFIRM";
+  } else if (side === "BUY") {
+    if (rsiContext.current <= 30) return "RSI_WAIT_BUY_CROSSUP";
+    if (rsiContext.oversoldSeen && !rsiContext.buyReady) return "RSI_WAIT_BUY_CONFIRM";
+  }
+
+  return null;
 }
 
 function getCandleDirection(candle = {}) {
@@ -3871,10 +4028,17 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       pattern: basePattern,
     });
 
+    const rsiContext = buildRsiReversalContext({
+      candles,
+      rsiPayload: req.body?.rsi || null,
+      period: 14,
+    });
+
     const pattern = {
       ...(basePattern || {}),
       sidewaysContext,
       followExhaustionContext,
+      rsiContext,
     };
 
     const ictContext = analyzeICT(candles);
@@ -3977,6 +4141,12 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       finalDecisionReason = `FOLLOW_EXHAUSTION_${followExhaustionContext.exhaustedSide || "UNKNOWN"}`;
     }
 
+    const rsiDelayReason = shouldDelayDecisionForRsi(finalDecision, rsiContext);
+    if (rsiDelayReason) {
+      finalDecision = "NO_TRADE";
+      finalDecisionReason = rsiDelayReason;
+    }
+
     try {
       if (Array.isArray(candles) && candles.length > 0) {
         const contextCandles = candles.map((c) => ({
@@ -4066,6 +4236,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           pattern,
           sidewaysContext,
           followExhaustionContext,
+          rsiContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4136,6 +4307,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
               followExhaustionContext:
                 microResponse.followExhaustionContext || followExhaustionContext,
+              rsiContext: microResponse.rsiContext || rsiContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -4153,6 +4325,27 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               pattern: microResponse.pattern || null,
               sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
               followExhaustionContext,
+              rsiContext,
+              historicalVolume: microResponse.historicalVolume || null,
+              defensiveFlags: microResponse.defensiveFlags || null,
+              trade_setup: null,
+              currentOpenPositionsCount: 0,
+            });
+          }
+
+          const microRsiDelayReason = shouldDelayDecisionForRsi(microResponse.decision, rsiContext);
+          if (microRsiDelayReason) {
+            return buildBlockedSignalResponse({
+              reason: microRsiDelayReason,
+              score: microResponse.score || 0,
+              firebaseUserId: resolvedUserId,
+              mode: microResponse.mode || "MICRO_SCALP",
+              trend: microResponse.trend || "NEUTRAL",
+              pattern: microResponse.pattern || null,
+              sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
+              followExhaustionContext:
+                microResponse.followExhaustionContext || followExhaustionContext,
+              rsiContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -4182,6 +4375,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               sidewaysContext: microResponse.sidewaysContext || sidewaysContext,
               followExhaustionContext:
                 microResponse.followExhaustionContext || followExhaustionContext,
+              rsiContext: microResponse.rsiContext || rsiContext,
               historicalVolume: microResponse.historicalVolume || null,
               defensiveFlags: microResponse.defensiveFlags || null,
               trade_setup: null,
@@ -4208,6 +4402,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
         pattern,
         sidewaysContext,
         followExhaustionContext,
+        rsiContext,
         historicalVolume,
         defensiveFlags: evaluateResult.defensiveFlags || {
           warningMatched: false,
@@ -4283,6 +4478,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           pattern,
           sidewaysContext,
           followExhaustionContext,
+          rsiContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -4303,6 +4499,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           pattern,
           sidewaysContext,
           followExhaustionContext,
+          rsiContext,
           historicalVolume,
           defensiveFlags,
           trade_setup: null,
@@ -4394,6 +4591,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           pattern,
           sidewaysContext,
           followExhaustionContext,
+          rsiContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4432,6 +4630,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
           pattern,
           sidewaysContext,
           followExhaustionContext,
+          rsiContext,
           historicalVolume,
           defensiveFlags: evaluateResult.defensiveFlags || null,
           trade_setup: null,
@@ -4466,6 +4665,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
       pattern,
       sidewaysContext,
       followExhaustionContext,
+      rsiContext,
       historicalVolume,
       defensiveFlags,
       trade_setup,
