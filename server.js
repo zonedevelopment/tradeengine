@@ -3032,21 +3032,6 @@ function shouldDelayDecisionForRsi(decisionValue = "", rsiContext = null) {
   return null;
 }
 
-function shouldOverrideFollowExhaustionForMicro(decisionValue = "", rsiContext = null) {
-  if (!rsiContext?.available) return false;
-
-  const side = getDecisionSideLabel(decisionValue);
-  if (side === "BUY") {
-    return Boolean(rsiContext.buyConfirmed32);
-  }
-
-  if (side === "SELL") {
-    return Boolean(rsiContext.sellConfirmed68);
-  }
-
-  return false;
-}
-
 function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null, pattern = null) {
   const side = getDecisionSideLabel(decisionValue);
   const reversalStructure = pattern?.structure || {};
@@ -3465,7 +3450,7 @@ function detectFollowExhaustion({
     latestBodiesDominant >= 1;
 
   const consecutiveThreeSame = streakCount >= 3;
-  const active = consecutiveThreeSame || (streakCount >= 2 && hasLargeImpulse);
+  const active = consecutiveThreeSame;
   if (!active) {
     return {
       ...empty,
@@ -3500,7 +3485,6 @@ function detectFollowExhaustion({
 
   const reasonCodes = [];
   if (consecutiveThreeSame) reasonCodes.push("THREE_SAME_DIRECTION_CANDLES");
-  if (streakCount >= 2 && hasLargeImpulse) reasonCodes.push("TWO_CANDLES_WITH_LARGE_IMPULSE");
   if (exhaustionWickBias) reasonCodes.push("EXHAUSTION_WICK_PRESENT");
   if (
     (streakSide === "BUY" && reversalBias === "SELL") ||
@@ -4458,15 +4442,7 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
             });
           }
 
-          const allowMicroFollowExhaustionByRsi = shouldOverrideFollowExhaustionForMicro(
-            microResponse.decision,
-            rsiContext
-          );
-
-          if (
-            shouldDelayFollowDecision(microResponse.decision, followExhaustionContext) &&
-            !allowMicroFollowExhaustionByRsi
-          ) {
+          if (shouldDelayFollowDecision(microResponse.decision, followExhaustionContext)) {
             return buildBlockedSignalResponse({
               reason: `FOLLOW_EXHAUSTION_${followExhaustionContext.exhaustedSide || "UNKNOWN"}`,
               score: microResponse.score || 0,
@@ -4482,14 +4458,6 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               trade_setup: null,
               currentOpenPositionsCount: 0,
             });
-          }
-
-          if (allowMicroFollowExhaustionByRsi) {
-            microResponse.followExhaustionContext = {
-              ...(microResponse.followExhaustionContext || followExhaustionContext || {}),
-              rsiOverride: true,
-              rsiOverrideReason: `RSI_CONFIRM_${getDecisionSideLabel(microResponse.decision)}`,
-            };
           }
 
           const microRsiDelayReason = shouldDelayDecisionForRsi(microResponse.decision, rsiContext);
