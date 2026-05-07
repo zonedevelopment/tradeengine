@@ -3032,6 +3032,21 @@ function shouldDelayDecisionForRsi(decisionValue = "", rsiContext = null) {
   return null;
 }
 
+function shouldOverrideFollowExhaustionForMicro(decisionValue = "", rsiContext = null) {
+  if (!rsiContext?.available) return false;
+
+  const side = getDecisionSideLabel(decisionValue);
+  if (side === "BUY") {
+    return Boolean(rsiContext.buyConfirmed32);
+  }
+
+  if (side === "SELL") {
+    return Boolean(rsiContext.sellConfirmed68);
+  }
+
+  return false;
+}
+
 function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null, pattern = null) {
   const side = getDecisionSideLabel(decisionValue);
   const reversalStructure = pattern?.structure || {};
@@ -4443,7 +4458,15 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
             });
           }
 
-          if (shouldDelayFollowDecision(microResponse.decision, followExhaustionContext)) {
+          const allowMicroFollowExhaustionByRsi = shouldOverrideFollowExhaustionForMicro(
+            microResponse.decision,
+            rsiContext
+          );
+
+          if (
+            shouldDelayFollowDecision(microResponse.decision, followExhaustionContext) &&
+            !allowMicroFollowExhaustionByRsi
+          ) {
             return buildBlockedSignalResponse({
               reason: `FOLLOW_EXHAUSTION_${followExhaustionContext.exhaustedSide || "UNKNOWN"}`,
               score: microResponse.score || 0,
@@ -4459,6 +4482,14 @@ async function handleSignalCore(req, { isRefresh = false } = {}) {
               trade_setup: null,
               currentOpenPositionsCount: 0,
             });
+          }
+
+          if (allowMicroFollowExhaustionByRsi) {
+            microResponse.followExhaustionContext = {
+              ...(microResponse.followExhaustionContext || followExhaustionContext || {}),
+              rsiOverride: true,
+              rsiOverrideReason: `RSI_CONFIRM_${getDecisionSideLabel(microResponse.decision)}`,
+            };
           }
 
           const microRsiDelayReason = shouldDelayDecisionForRsi(microResponse.decision, rsiContext);
