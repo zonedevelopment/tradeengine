@@ -3036,6 +3036,8 @@ function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null,
   const side = getDecisionSideLabel(decisionValue);
   const reversalStructure = pattern?.structure || {};
   const directionalBias = detectPatternDirectionalBias(pattern);
+  const currentRsi = Number(rsiContext?.current || 0);
+  const midlinePenalty = 0.10;
 
   const empty = {
     active: false,
@@ -3063,24 +3065,33 @@ function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null,
       };
     }
 
+    const scoreDelta = rsiContext.sellConfirmed68 ? 0.42 : 0.22;
+    const adjustedScoreDelta = currentRsi < 50
+      ? Number((scoreDelta - midlinePenalty).toFixed(4))
+      : scoreDelta;
+
     if (rsiContext.sellConfirmed68) {
       return {
         active: true,
         side,
-        scoreDelta: 0.42,
-        stage: "CONFIRMED_68",
+        scoreDelta: adjustedScoreDelta,
+        stage: currentRsi < 50 ? "CONFIRMED_68_MIDLINE_PENALTY" : "CONFIRMED_68",
         reversalPatternAligned: true,
-        reasonCode: "RSI_REVERSAL_CONFIRM_68_SELL",
+        reasonCode: currentRsi < 50
+          ? "RSI_REVERSAL_CONFIRM_68_SELL_MIDLINE_PENALTY"
+          : "RSI_REVERSAL_CONFIRM_68_SELL",
       };
     }
 
     return {
       active: true,
       side,
-      scoreDelta: 0.22,
-      stage: "EARLY_CROSSDOWN_70",
+      scoreDelta: adjustedScoreDelta,
+      stage: currentRsi < 50 ? "EARLY_CROSSDOWN_70_MIDLINE_PENALTY" : "EARLY_CROSSDOWN_70",
       reversalPatternAligned: true,
-      reasonCode: "RSI_REVERSAL_EARLY_SELL",
+      reasonCode: currentRsi < 50
+        ? "RSI_REVERSAL_EARLY_SELL_MIDLINE_PENALTY"
+        : "RSI_REVERSAL_EARLY_SELL",
     };
   }
 
@@ -3091,24 +3102,33 @@ function buildRsiPatternConfidenceBooster(decisionValue = "", rsiContext = null,
     };
   }
 
+  const scoreDelta = rsiContext.buyConfirmed32 ? 0.42 : 0.22;
+  const adjustedScoreDelta = currentRsi > 50
+    ? Number((scoreDelta - midlinePenalty).toFixed(4))
+    : scoreDelta;
+
   if (rsiContext.buyConfirmed32) {
     return {
       active: true,
       side,
-      scoreDelta: 0.42,
-      stage: "CONFIRMED_32",
+      scoreDelta: adjustedScoreDelta,
+      stage: currentRsi > 50 ? "CONFIRMED_32_MIDLINE_PENALTY" : "CONFIRMED_32",
       reversalPatternAligned: true,
-      reasonCode: "RSI_REVERSAL_CONFIRM_32_BUY",
+      reasonCode: currentRsi > 50
+        ? "RSI_REVERSAL_CONFIRM_32_BUY_MIDLINE_PENALTY"
+        : "RSI_REVERSAL_CONFIRM_32_BUY",
     };
   }
 
   return {
     active: true,
     side,
-    scoreDelta: 0.22,
-    stage: "EARLY_CROSSUP_30",
+    scoreDelta: adjustedScoreDelta,
+    stage: currentRsi > 50 ? "EARLY_CROSSUP_30_MIDLINE_PENALTY" : "EARLY_CROSSUP_30",
     reversalPatternAligned: true,
-    reasonCode: "RSI_REVERSAL_EARLY_BUY",
+    reasonCode: currentRsi > 50
+      ? "RSI_REVERSAL_EARLY_BUY_MIDLINE_PENALTY"
+      : "RSI_REVERSAL_EARLY_BUY",
   };
 }
 
