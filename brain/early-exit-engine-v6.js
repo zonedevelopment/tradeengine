@@ -80,45 +80,45 @@ function getExitProfile(mode = "NORMAL") {
 
     if (normalized === "SCALP") {
         return {
-            armProfitMin: 0.55,
-            moveToBeMinProfit: 0.35,
-            takeProfitMinProfit: 0.60,
-            minPeakBeforeProtect: 0.70,
-            beMinRetraceRatio: 0.16,
-            tpMinRetraceRatio: 0.28,
+            armProfitMin: 0.45,
+            moveToBeMinProfit: 0.28,
+            takeProfitMinProfit: 0.50,
+            minPeakBeforeProtect: 0.58,
+            beMinRetraceRatio: 0.12,
+            tpMinRetraceRatio: 0.22,
 
-            holdToBEProfit: 0.55,
+            holdToBEProfit: 0.45,
 
-            simpleCutMinutes: 8,
-            simpleCutProfit: -0.34,
+            simpleCutMinutes: 5,
+            simpleCutProfit: -0.26,
 
-            strongCutProfit: -0.26,
-            reversalCutScore: 2.70,
+            strongCutProfit: -0.20,
+            reversalCutScore: 2.45,
 
-            wrongWayMinMinutes: 6.0,
-            wrongWayCutProfit: -0.20,
-            wrongWayHardCutProfit: -0.34,
-            wrongWayFlowCutScore: 2.55,
-            wrongWayFlowHardScore: 3.05,
+            wrongWayMinMinutes: 3.5,
+            wrongWayCutProfit: -0.14,
+            wrongWayHardCutProfit: -0.24,
+            wrongWayFlowCutScore: 2.25,
+            wrongWayFlowHardScore: 2.75,
 
-            noFollowThroughMinMinutes: 6.0,
-            noFollowThroughCutProfit: -0.18,
-            noFollowThroughScore: 2.50,
+            noFollowThroughMinMinutes: 3.5,
+            noFollowThroughCutProfit: -0.12,
+            noFollowThroughScore: 2.15,
 
-            takeoverCutProfit: -0.08,
-            takeoverCutScore: 2.30,
+            takeoverCutProfit: -0.06,
+            takeoverCutScore: 2.15,
 
-            lowVolumeProfitMinutes: 8,
-            failedPatternCutProfit: 0.14,
-            failedPatternTakeProfitMin: 0.45,
+            lowVolumeProfitMinutes: 6,
+            failedPatternCutProfit: 0.10,
+            failedPatternTakeProfitMin: 0.35,
 
             weakStructureScore: 1.20,
             strongStructureScore: 1.95,
 
-            normalFastCutMinutes: 5,
-            normalFastCutProfit: -0.10,
-            normalStructureBreakProfit: -0.06,
-            normalFastReversalScore: 2.00,
+            normalFastCutMinutes: 3.5,
+            normalFastCutProfit: -0.08,
+            normalStructureBreakProfit: -0.05,
+            normalFastReversalScore: 1.75,
         };
     }
 
@@ -195,41 +195,42 @@ function buildHardCutGate({
     const damageRatio = profit < 0 ? Math.abs(profit) / sl : 0;
 
     if (safeMode === "SCALP") {
-        const timeReady = mins >= 7 * toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
+        const timeReady = mins >= 4 * toSafeNumber(lossPressureContext?.minuteMultiplier, 1);
 
         const damageReady =
-            damageRatio >= 0.42 * toSafeNumber(lossPressureContext?.damageRatioMultiplier, 1) ||
-            profit <= -Math.max(220, Math.min(sl * 0.45, 300)) * toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
+            damageRatio >= 0.34 * toSafeNumber(lossPressureContext?.damageRatioMultiplier, 1) ||
+            profit <= -Math.max(140, Math.min(sl * 0.34, 220)) * toSafeNumber(lossPressureContext?.cutProfitMultiplier, 1);
 
         const structureReady =
             Boolean(hardInvalidation) ||
-            (Boolean(failedPatternRule) && mins >= 7) ||
-            toSafeNumber(reversalScore, 0) >= 2.75 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            (Boolean(failedPatternRule) && mins >= 4) ||
+            toSafeNumber(reversalScore, 0) >= 2.45 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
             Boolean(lossPressureContext?.severeAgainst);
 
         const flowReady =
-            toSafeNumber(wrongWayFlowScore, 0) >= 2.75 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
-            toSafeNumber(noFollowThroughScore, 0) >= 2.50 - toSafeNumber(lossPressureContext?.scoreBonus, 0);
+            toSafeNumber(wrongWayFlowScore, 0) >= 2.25 - toSafeNumber(lossPressureContext?.scoreBonus, 0) ||
+            toSafeNumber(noFollowThroughScore, 0) >= 2.15 - toSafeNumber(lossPressureContext?.scoreBonus, 0);
 
         const emergencyCut =
-            mins >= 3 &&
-            damageRatio >= 0.65 &&
+            mins >= 2 &&
+            damageRatio >= 0.50 &&
             (
                 Boolean(hardInvalidation) ||
-                toSafeNumber(reversalScore, 0) >= 3.00 ||
-                toSafeNumber(wrongWayFlowScore, 0) >= 3.00
+                toSafeNumber(reversalScore, 0) >= 2.70 ||
+                toSafeNumber(wrongWayFlowScore, 0) >= 2.65
             );
 
         const suppressFailedPatternAlone =
             Boolean(failedPatternRule) &&
             !hardInvalidation &&
-            toSafeNumber(reversalScore, 0) < 2.75 &&
-            toSafeNumber(wrongWayFlowScore, 0) < 2.75 &&
-            toSafeNumber(noFollowThroughScore, 0) < 2.50;
+            toSafeNumber(reversalScore, 0) < 2.35 &&
+            toSafeNumber(wrongWayFlowScore, 0) < 2.20 &&
+            toSafeNumber(noFollowThroughScore, 0) < 2.10;
 
         const allowHardCut =
             emergencyCut ||
-            countTrue([timeReady, damageReady, structureReady, flowReady]) >= 2;
+            countTrue([timeReady, damageReady, structureReady, flowReady]) >= 2 ||
+            (structureReady && flowReady);
 
         return {
             allowHardCut,
@@ -241,8 +242,8 @@ function buildHardCutGate({
                 (
                     Boolean(softInvalidation) ||
                     Boolean(failedPatternRule) ||
-                    toSafeNumber(wrongWayFlowScore, 0) >= 2.20 ||
-                    toSafeNumber(noFollowThroughScore, 0) >= 2.10
+                    toSafeNumber(wrongWayFlowScore, 0) >= 1.95 ||
+                    toSafeNumber(noFollowThroughScore, 0) >= 1.90
                 ),
         };
     }

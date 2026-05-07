@@ -7383,6 +7383,7 @@ app.post("/check-exit-signal", async (req, res) => {
       price = 0,
       tpPoints = null,
       slPoints = null,
+      peakProfit = null,
       holdingMinutes = null,
       accountId
     } = req.body || {};
@@ -7464,6 +7465,19 @@ app.post("/check-exit-signal", async (req, res) => {
       0
     );
 
+    const resolvedPeakProfit = Number(
+      peakProfit ??
+      openPosition?.peakProfit ??
+      openPosition?.peak_profit ??
+      openPosition?.maxProfit ??
+      openPosition?.max_profit ??
+      openPosition?.bestProfit ??
+      openPosition?.best_profit ??
+      openPosition?.highestProfit ??
+      openPosition?.highest_profit ??
+      resolvedCurrentProfit
+    );
+
     const historicalVolume = evaluateCurrentVolumeAgainstHistory({
       firebaseUserId: resolvedUserId,
       symbol: resolvedSymbol,
@@ -7492,6 +7506,14 @@ app.post("/check-exit-signal", async (req, res) => {
       holding_minutes: Number.isFinite(resolvedHoldingMinutes) ? Math.max(0, resolvedHoldingMinutes) : 0,
       profit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
       floatingProfit: Number.isFinite(resolvedCurrentProfit) ? resolvedCurrentProfit : 0,
+      peakProfit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      peak_profit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      maxProfit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      max_profit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      bestProfit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      best_profit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      highestProfit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
+      highest_profit: Number.isFinite(resolvedPeakProfit) ? resolvedPeakProfit : 0,
     };
 
     const resolvedTicketId = String(
